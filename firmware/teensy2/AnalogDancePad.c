@@ -34,6 +34,7 @@
 #include "Pad.h"
 #include "Reset.h"
 #include "ConfigStore.h"
+#include "Lights.h"
 
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
 static uint8_t PrevHIDReportBuffer[GENERIC_EPSIZE];
@@ -69,6 +70,7 @@ int main(void)
     GlobalInterruptEnable();
     ConfigStore_LoadConfiguration(&configuration);
     Pad_Initialize(&configuration.padConfiguration);
+	Lights_Update(true);
 
     for (;;)
     {

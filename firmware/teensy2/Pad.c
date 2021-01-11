@@ -5,6 +5,7 @@
 #include "ConfigStore.h"
 #include "Pad.h"
 #include "ADC.h"
+#include "Lights.h"
 
 #define MIN(a,b) ((a) < (b) ? a : b)
 
@@ -98,4 +99,6 @@ void Pad_UpdateState(void) {
 
         PAD_STATE.buttonsPressed[i] = newButtonPressedState;
     }
+	
+	Lights_Update(false);
 }

@@ -19,5 +19,5 @@ void Reset_JumpToBootloader(void) {
     DDRB = 0; DDRC = 0; DDRD = 0; DDRE = 0; DDRF = 0; TWCR = 0;
     PORTB = 0; PORTC = 0; PORTD = 0; PORTE = 0; PORTF = 0;
 
-    asm volatile("jmp 0x7E00");
+    asm volatile("jmp 0x7000");
 }

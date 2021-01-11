@@ -11,8 +11,8 @@ import { ExtendableEmitter } from '../../util/ExtendableStrictEmitter'
 import delay from '../../util/delay'
 import { clamp } from 'lodash'
 
-export const VENDOR_ID = 0x03eb
-export const PRODUCT_ID = 0x204f
+export const VENDOR_ID = 0x1209
+export const PRODUCT_ID = 0xB196
 
 // in future version, I'd like to device to tell this information
 const SENSOR_COUNT = 12
