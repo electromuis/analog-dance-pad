@@ -17,6 +17,7 @@ export const PRODUCT_ID = 0xB196
 // in future version, I'd like to device to tell this information
 const SENSOR_COUNT = 12
 const BUTTON_COUNT = 16
+const MAX_LIGHT_RULES = 4
 
 const reportManager = new ReportManager({ buttonCount: BUTTON_COUNT, sensorCount: SENSOR_COUNT })
 

@@ -28,7 +28,59 @@ static const Configuration DEFAULT_CONFIGURATION = {
     .nameAndSize = {
         .size = sizeof(DEFAULT_NAME) - 1, // we don't care about the null at the end.
         .name = DEFAULT_NAME
-    }
+    },
+	.lightConfiguration = {
+		.lightRules = {
+			//UP
+			{
+				.sensorNumber = 5,
+				.fromLight = 0,
+				.toLight = PANEL_LEDS,
+				.onColor = {255, 0, 0},
+				.offColor = {0, 0, 0},
+				.onFadeColor = {0,0,0},
+				.offFadeColor = {0,255,0},
+				.fadeOn = true,
+				.fadeOff = true
+			},
+			//LEFT
+			{
+				.sensorNumber = 4,
+				.fromLight = PANEL_LEDS,
+				.toLight = PANEL_LEDS*2,
+				.onColor = {0, 255, 0},
+				.offColor = {0,0,0},
+				.onFadeColor = {0,0,0},
+				.offFadeColor = {0,0,0},
+				.fadeOn = false,
+				.fadeOff = false
+			},
+			//DOWN
+			{
+				.sensorNumber = 3,
+				.fromLight = PANEL_LEDS*2,
+				.toLight = PANEL_LEDS*3,
+				.onColor = {0, 0, 255},
+				.offColor = {0,0,0},
+				.onFadeColor = {0,0,0},
+				.offFadeColor = {0,0,0},
+				.fadeOn = true,
+				.fadeOff = false
+			},
+			//RIGHT
+			{
+				.sensorNumber = 2,
+				.fromLight = PANEL_LEDS*3,
+				.toLight = PANEL_LEDS*4,
+				.onColor = {255, 255, 0},
+				.offColor = {0,0,0},
+				.onFadeColor = {0,0,0},
+				.offFadeColor = {0,0,0},
+				.fadeOn = false,
+				.fadeOff = false
+			}
+		}
+	}
 };
 
 void ConfigStore_LoadConfiguration(Configuration* conf) {

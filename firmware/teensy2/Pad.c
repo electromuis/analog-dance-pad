@@ -100,5 +100,5 @@ void Pad_UpdateState(void) {
         PAD_STATE.buttonsPressed[i] = newButtonPressedState;
     }
 	
-	Lights_Update(false);
+	Lights_Update();
 }

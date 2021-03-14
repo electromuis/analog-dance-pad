@@ -154,6 +154,11 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
         memcpy(&nameHidReport->nameAndSize, &configuration.nameAndSize, sizeof (nameHidReport->nameAndSize));
         *ReportSize = sizeof (NameFeatureHIDReport);
     }
+	 else if (*ReportID == LIGHTS_REPORT_ID) {
+        LightsFeatureHIDReport* lightsReport = ReportData;
+        memcpy(&lightsReport->nameAndSize, &configuration.nameAndSize, sizeof (lightsReport->nameAndSize));
+        *ReportSize = sizeof (LightsFeatureHIDReport);
+    }
     
     return true;
 }

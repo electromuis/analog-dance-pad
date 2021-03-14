@@ -66,6 +66,20 @@ export class ReportManager {
       })
       .uint8('size')
       .string('name', { length: 'size' })
+	  
+	this.lightsReportParser = new Parser()
+      .uint8('reportId', {
+        assert: ReportID.PAD_CONFIGURATION
+      })
+      .array('sensorThresholds', {
+        type: 'uint16le',
+        length: this.sensorCount
+      })
+      .floatle('releaseThreshold')
+      .array('sensorToButtonMapping', {
+        type: 'int8',
+        length: this.sensorCount
+      })
   }
 
   private formatButtons = (data: number) => {
@@ -103,6 +117,10 @@ export class ReportManager {
     return {
       name: parsed.name
     }
+  }
+  
+  parseLightsReort(data: Buffer): LightsReport {
+	  
   }
 
   getConfigurationReportSize = () => {

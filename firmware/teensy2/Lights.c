@@ -25,18 +25,7 @@
 #include <util/delay.h>
 #include <stdint.h>
 #include "Pad.h"
-
-// The rgb_color struct represents the color for an 8-bit RGB LED.
-// Examples:
-//   Black:      (rgb_color){ 0, 0, 0 }
-//   Pure red:   (rgb_color){ 255, 0, 0 }
-//   Pure green: (rgb_color){ 0, 255, 0 }
-//   Pure blue:  (rgb_color){ 0, 0, 255 }
-//   White:      (rgb_color){ 255, 255, 255}
-typedef struct rgb_color
-{
-  uint8_t red, green, blue;
-} rgb_color;
+#include "Lights.h"
 
 // led_strip_write sends a series of colors to the LED strip, updating the LEDs.
 // The colors parameter should point to an array of rgb_color structs that hold
@@ -56,13 +45,12 @@ typedef struct rgb_color
 void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t count)
 {
   // Set the pin to be an output driving low.
-  LED_STRIP_PORT &= ~(1 << LED_STRIP_PIN);
-  LED_STRIP_DDR |= (1 << LED_STRIP_PIN);
+  LED_STRIP_PORT &= ~(1<<LED_STRIP_PIN);
+  LED_STRIP_DDR |= (1<<LED_STRIP_PIN);
 
   cli();   // Disable interrupts temporarily because we don't want our pulse timing to be messed up.
   while (count--)
   {
-    uint8_t portValue = LED_STRIP_PORT;
     // Send a color to the LED strip.
     // The assembly below also increments the 'colors' pointer,
     // it will be pointing to the next color at the end of this loop.
@@ -97,7 +85,7 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
 #if F_CPU == 8000000
         "rol __tmp_reg__\n"                      // Rotate left through carry.
 #endif
-        "sts %2, %4\n"                           // Drive the line high.
+        "sbi %2, %3\n"                           // Drive the line high.
 
 #if F_CPU != 8000000
         "rol __tmp_reg__\n"                      // Rotate left through carry.
@@ -111,8 +99,7 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
 #error "Unsupported F_CPU"
 #endif
 
-        // If the bit to send is 0, drive the line low now.
-        "brcs .+4\n" "sts %2, %3\n"
+        "brcs .+2\n" "cbi %2, %3\n"              // If the bit to send is 0, drive the line low now.
 
 #if F_CPU == 8000000
         "nop\n" "nop\n"
@@ -123,16 +110,14 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
         "nop\n" "nop\n"
 #endif
 
-        // If the bit to send is 1, drive the line low now.
-        "brcc .+4\n" "sts %2, %3\n"
+        "brcc .+2\n" "cbi %2, %3\n"              // If the bit to send is 1, drive the line low now.
 
         "ret\n"
         "led_strip_asm_end%=: "
         : "=b" (colors)
-        : "0" (colors),           // %a0 points to the next color to display
-          "" (&LED_STRIP_PORT),   // %2 is the port register (e.g. PORTH)
-          "r" ((uint8_t)(portValue & ~(1 << LED_STRIP_PIN))),  // %3
-          "r" ((uint8_t)(portValue | (1 << LED_STRIP_PIN)))    // %4
+        : "0" (colors),         // %a0 points to the next color to display
+          "I" (_SFR_IO_ADDR(LED_STRIP_PORT)),   // %2 is the port register (e.g. PORTC)
+          "I" (LED_STRIP_PIN)     // %3 is the pin number (0-8)
     );
 
     // Uncomment the line below to temporarily enable interrupts between each color.
@@ -142,39 +127,69 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
   _delay_us(80);  // Send the reset signal.
 }
 
-#define LED_PANELS 4
-#define PANEL_LEDS 8
-#define LED_COUNT LED_PANELS * PANEL_LEDS
-
 rgb_color colors[LED_COUNT];
 
-bool buttonsPressedLast[BUTTON_COUNT] = { [0 ... BUTTON_COUNT - 1] = false };
+LightConfiguration LIGHT_CONFIG;
 
-void Lights_Update(bool force)
-{	
-	if(PAD_STATE.buttonsPressed == buttonsPressedLast && !force) {
-		return;
-	}
-	
-	for (uint8_t p = 0; p < LED_PANELS; p++)
+long map(long x, long in_min, long in_max, long out_min, long out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
+    memcpy(&LIGHT_CONFIG, lightConfiguration, sizeof (LightConfiguration));
+}
+
+void Lights_Update()
+{
+
+	for (uint8_t s = 0; s < MAX_LIGHT_RULES; s++)
 	{
-		if(PAD_STATE.buttonsPressed[p])
-		{
-			for (uint8_t l = 0; l < PANEL_LEDS; l++)
-			{
-				colors[p * PANEL_LEDS + l] = (rgb_color){ 255, 0, 0 };
+		LightRule light = LIGHT_CONFIG.lightRules[s];
+		
+		int8_t sensor = light.sensorNumber;
+		uint16_t sensorValue = PAD_STATE.sensorValues[sensor];
+		uint16_t sensorThreshold = PAD_CONF.sensorThresholds[sensor];
+		
+		bool sensorState = sensorValue > sensorThreshold;
+		
+		rgb_color color;
+		
+		if(sensorState == true) {
+			if(light.fadeOn) {
+				uint16_t sensorThreshold2 = sensorThreshold * 2;
+				
+				if(sensorValue <= sensorThreshold2) {				
+					color = (rgb_color) {	
+						map(sensorValue, sensorThreshold, sensorThreshold2, light.onColor.red, 		light.onFadeColor.red),
+						map(sensorValue, sensorThreshold, sensorThreshold2, light.onColor.green,	light.onFadeColor.green),
+						map(sensorValue, sensorThreshold, sensorThreshold2, light.onColor.blue, 	light.onFadeColor.blue)
+					};
+				}
+				else {
+					color = light.onFadeColor;
+				}
+			}
+			else {
+				color = light.onColor;
 			}
 		}
-		else
-		{
-			for (uint8_t l = 0; l < PANEL_LEDS; l++)
-			{
-				colors[p * PANEL_LEDS + l] = (rgb_color){ 0, 0, 0 };
+		else {
+			if(light.fadeOff) {
+				color = (rgb_color) {	
+					map(sensorValue, 0, sensorThreshold, light.offColor.red, 	light.offFadeColor.red),
+					map(sensorValue, 0, sensorThreshold, light.offColor.green,	light.offFadeColor.green),
+					map(sensorValue, 0, sensorThreshold, light.offColor.blue, 	light.offFadeColor.blue)
+				};
 			}
+			else {
+				color = light.offColor;
+			}
+		}
+		
+		for (uint8_t led = light.fromLight; led < light.toLight; led ++) {
+			colors[led] = color;
 		}
 	}
 	
 	led_strip_write(colors, LED_COUNT);
-	
-	memcpy(&buttonsPressedLast, &PAD_STATE.buttonsPressed, sizeof(PAD_STATE.buttonsPressed));
 }
