@@ -4,6 +4,7 @@
     #include <stdint.h>
     #include "Config/DancePadConfig.h"
     #include "Pad.h"
+	#include "Lights.h"
     #include "Communication.h"
     #include "ConfigStore.h"
 
@@ -32,6 +33,10 @@
     typedef struct {
         NameAndSize nameAndSize;
     } __attribute__((packed)) NameFeatureHIDReport;
+	
+	typedef struct {
+        LightConfiguration lightConfiguration;
+    } __attribute__((packed)) LightsFeatureHIDReport;
 
     void Communication_WriteInputHIDReport(InputHIDReport* report);
 #endif

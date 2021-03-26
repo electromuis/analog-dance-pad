@@ -1,3 +1,12 @@
 [submodule "firmware/teensy2/lufa"]
 	path = firmware/teensy2/lufa
 	url = https://github.com/abcminiuser/lufa
+[submodule "config-tool/lib/hidapi"]
+	path = config-tool/lib/hidapi
+	url = https://github.com/libusb/hidapi
+[submodule "config-tool/lib/wxwidgets"]
+	path = config-tool/lib/wxwidgets
+	url = https://github.com/wxWidgets/wxWidgets
+[submodule "config-tool/lib/libusb"]
+	path = config-tool/lib/libusb
+	url = https://github.com/libusb/libusb
