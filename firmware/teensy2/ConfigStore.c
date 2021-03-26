@@ -48,36 +48,36 @@ static const Configuration DEFAULT_CONFIGURATION = {
 				.sensorNumber = 4,
 				.fromLight = PANEL_LEDS,
 				.toLight = PANEL_LEDS*2,
-				.onColor = {0, 255, 0},
-				.offColor = {0,0,0},
+				.onColor = {255, 0, 0},
+				.offColor = {0, 0, 0},
 				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,0,0},
-				.fadeOn = false,
-				.fadeOff = false
+				.offFadeColor = {0,255,0},
+				.fadeOn = true,
+				.fadeOff = true
 			},
 			//DOWN
 			{
 				.sensorNumber = 3,
 				.fromLight = PANEL_LEDS*2,
 				.toLight = PANEL_LEDS*3,
-				.onColor = {0, 0, 255},
-				.offColor = {0,0,0},
+				.onColor = {255, 0, 0},
+				.offColor = {0, 0, 0},
 				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,0,0},
+				.offFadeColor = {0,255,0},
 				.fadeOn = true,
-				.fadeOff = false
+				.fadeOff = true
 			},
 			//RIGHT
 			{
 				.sensorNumber = 2,
 				.fromLight = PANEL_LEDS*3,
 				.toLight = PANEL_LEDS*4,
-				.onColor = {255, 255, 0},
-				.offColor = {0,0,0},
+				.onColor = {255, 0, 0},
+				.offColor = {0, 0, 0},
 				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,0,0},
-				.fadeOn = false,
-				.fadeOff = false
+				.offFadeColor = {0,255,0},
+				.fadeOn = true,
+				.fadeOff = true
 			}
 		}
 	}

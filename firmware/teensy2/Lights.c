@@ -129,7 +129,58 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
 
 rgb_color colors[LED_COUNT];
 
-LightConfiguration LIGHT_CONFIG;
+LightConfiguration LIGHT_CONFIG = {
+	.lightRules = {
+		//UP
+		{
+			.sensorNumber = 5,
+			.fromLight = 0,
+			.toLight = PANEL_LEDS,
+			.onColor = {255, 0, 0},
+			.offColor = {0, 0, 0},
+			.onFadeColor = {0,0,0},
+			.offFadeColor = {0,255,0},
+			.fadeOn = true,
+			.fadeOff = true
+		},
+		//LEFT
+		{
+			.sensorNumber = 4,
+			.fromLight = PANEL_LEDS,
+			.toLight = PANEL_LEDS*2,
+			.onColor = {255, 0, 0},
+			.offColor = {0, 0, 0},
+			.onFadeColor = {0,0,0},
+			.offFadeColor = {0,255,0},
+			.fadeOn = true,
+			.fadeOff = true
+		},
+		//DOWN
+		{
+			.sensorNumber = 3,
+			.fromLight = PANEL_LEDS*2,
+			.toLight = PANEL_LEDS*3,
+			.onColor = {255, 0, 0},
+			.offColor = {0, 0, 0},
+			.onFadeColor = {0,0,0},
+			.offFadeColor = {0,255,0},
+			.fadeOn = true,
+			.fadeOff = true
+		},
+		//RIGHT
+		{
+			.sensorNumber = 2,
+			.fromLight = PANEL_LEDS*3,
+			.toLight = PANEL_LEDS*4,
+			.onColor = {255, 0, 0},
+			.offColor = {0, 0, 0},
+			.onFadeColor = {0,0,0},
+			.offFadeColor = {0,255,0},
+			.fadeOn = true,
+			.fadeOff = true
+		}
+	}
+};
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

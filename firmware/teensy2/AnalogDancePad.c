@@ -156,7 +156,7 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
     }
 	 else if (*ReportID == LIGHTS_REPORT_ID) {
         LightsFeatureHIDReport* lightsReport = ReportData;
-        memcpy(&lightsReport->nameAndSize, &configuration.nameAndSize, sizeof (lightsReport->nameAndSize));
+        memcpy(&lightsReport->lightConfiguration, &configuration.lightConfiguration, sizeof (lightsReport->lightConfiguration));
         *ReportSize = sizeof (LightsFeatureHIDReport);
     }
     
@@ -188,5 +188,8 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     } else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport)) {
         const NameFeatureHIDReport* nameHidReport = ReportData;
         memcpy(&configuration.nameAndSize, &nameHidReport->nameAndSize, sizeof (configuration.nameAndSize));
+    } else if (ReportID == LIGHTS_REPORT_ID && ReportSize == sizeof (LightsFeatureHIDReport)) {
+        const LightsFeatureHIDReport* lightsReport = ReportData;
+        memcpy(&configuration.lightConfiguration, &lightsReport->lightConfiguration, sizeof (configuration.lightConfiguration));
     }
 }
