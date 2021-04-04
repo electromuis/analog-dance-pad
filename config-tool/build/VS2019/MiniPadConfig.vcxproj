@@ -96,7 +96,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;shlwapi.lib;comctl32.lib;rpcrt4.lib;version.lib;wsock32.lib;wininet.lib;libusb-1.0.lib;hidapi.lib;hid.lib;Setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\lib\wxwidgets\lib\vc_lib\Debug;$(SolutionDir)..\..\lib\libusb\Win32\Debug\lib;$(SolutionDir)..\..\lib\hidapi\windows\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -118,7 +118,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;shlwapi.lib;comctl32.lib;rpcrt4.lib;version.lib;wsock32.lib;wininet.lib;libusb-1.0.lib;hidapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;shlwapi.lib;comctl32.lib;rpcrt4.lib;version.lib;wsock32.lib;wininet.lib;libusb-1.0.lib;hidapi.lib;hid.lib;Setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\lib\wxwidgets\lib\vc_lib\Release;$(SolutionDir)..\..\lib\libusb\Win32\Release\lib;$(SolutionDir)..\..\lib\hidapi\windows\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -160,10 +160,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\devices.cpp" />
+    <ClCompile Include="..\..\src\logging.cpp" />
+    <ClCompile Include="..\..\src\logo.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices.h" />
+    <ClInclude Include="..\..\src\logging.h" />
+    <ClInclude Include="..\..\src\logo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

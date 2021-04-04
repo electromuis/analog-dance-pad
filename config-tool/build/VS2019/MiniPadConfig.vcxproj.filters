@@ -3,8 +3,12 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\devices.cpp" />
+    <ClCompile Include="..\..\src\logging.cpp" />
+    <ClCompile Include="..\..\src\logo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices.h" />
+    <ClInclude Include="..\..\src\logging.h" />
+    <ClInclude Include="..\..\src\logo.h" />
   </ItemGroup>
 </Project>

@@ -1,36 +1,42 @@
 #pragma once
 
-#include <vector>
+#include <string>
+#include <functional>
+
+namespace devices {
 
 struct SensorState
 {
-	int threshold;
-	int value;
-	int button;
-	bool isPressed;
-	bool isMapped;
+	enum { UNMAPPED_BUTTON = -1 };
+
+	double threshold = 0.0;
+	double value = 0.0;
+	int button = UNMAPPED_BUTTON;
+	bool pressed = false;
 };
 
-class PadDevice
+struct DeviceState
 {
-public:
-	virtual const char* name() const = 0;
-
-	virtual int numSensors() const = 0;
-
-	virtual const SensorState& sensor(int index) const = 0;
-
-	virtual double releaseThreshold() const = 0;
+	std::wstring name;
+	int numButtons = 0;
+	int numSensors = 0;
+	double releaseThreshold = 1.0;
 };
 
 class DeviceManager
 {
 public:
-	static void init();
+	struct UpdateResult { bool deviceChanged = false; };
 
-	static bool readSensorValues();
+	static void Init();
 
-	static PadDevice* getDevice();
+	static void Shutdown();
 
-	static void shutdown();
+	static UpdateResult Update();
+
+	static const DeviceState* Device();
+
+	static const SensorState* Sensor(int index);
 };
+
+}; // namespace devices.
