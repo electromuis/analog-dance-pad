@@ -197,7 +197,12 @@ void Lights_Update()
 	{
 		LightRule light = LIGHT_CONFIG.lightRules[s];
 		
-		int8_t sensor = light.sensorNumber;
+		if(light.sensorNumber == 0) {
+			continue;
+		}
+		
+		int8_t sensor = light.sensorNumber - 1;
+		
 		uint16_t sensorValue = PAD_STATE.sensorValues[sensor];
 		uint16_t sensorThreshold = PAD_CONF.sensorThresholds[sensor];
 		
