@@ -9,7 +9,7 @@
     // teensy 2.0 has 12 analog sensors, so that's what we use.
     #define SENSOR_COUNT 12
 	
-	#define MAX_LIGHT_RULES 4
+	#define MAX_LIGHT_RULES 16
 
     // don't actually use ACD values that are read.
     #define ADC_TEST_MODE 0

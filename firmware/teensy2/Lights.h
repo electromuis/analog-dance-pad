@@ -15,8 +15,8 @@
 		int8_t sensorNumber;
 		
 		// We map from a Sensor number to a FROM-TO light number
-		int8_t fromLight;
-		int8_t toLight;
+		uint8_t fromLight;
+		uint8_t toLight;
 		
 		rgb_color onColor;
 		rgb_color offColor;

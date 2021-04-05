@@ -21,6 +21,32 @@ export interface ConfigurationReport {
   sensorToButtonMapping: number[]
 }
 
+export interface RgbColor {
+	red: number
+	green: number
+	blue: number
+}
+
+export interface LightRule {
+	sensorNumber: number
+	
+	fromLight: number
+	toLight: number
+	
+	onColor: RgbColor
+	offColor: RgbColor
+	
+	onFadeColor: RgbColor
+	offFadeColor: RgbColor
+	
+	fadeOn: boolean
+	fadeOff: boolean
+}
+
+export interface LightsReport {
+	lightRules: LightRule[]
+}
+
 export interface NameReport {
   name: string
 }
@@ -28,13 +54,18 @@ export interface NameReport {
 export class ReportManager {
   private buttonCount: number
   private sensorCount: number
+  private maxLightRules: number
   private inputReportParser: Parser<any>
   private configurationReportParser: Parser<any>
   private nameReportParser: Parser<any>
+  private rgbColorParser: Parser<Any>
+  private lightRuleParser: Parser<Any>
+  private lightsReportParser: Parser<any>
 
   constructor(settings: { buttonCount: number; sensorCount: number }) {
     this.buttonCount = settings.buttonCount
     this.sensorCount = settings.sensorCount
+	this.maxLightRules = settings.maxLightRules
 
     this.inputReportParser = new Parser()
       .uint8('reportId', {
@@ -67,19 +98,34 @@ export class ReportManager {
       .uint8('size')
       .string('name', { length: 'size' })
 	  
+	this.rgbColorParser = new Parser()
+		.namely('rgbColor')
+		
+		.uint8('red')
+		.uint8('green')
+		.uint8('blue')
+	
+	this.lightRuleParser = new Parser()
+		.namely('lightRule')
+		
+		.uint8('sensorNumber')
+		.uint8('fromLight')
+		.uint8('toLight')
+		
+		.nest('onColor', {type: 'rgbColor'})
+		.nest('offColor', {type: 'rgbColor'})
+		.nest('onFadeColor', {type: 'rgbColor'})
+		.nest('offFadeColor', {type: 'rgbColor'})
+		
+		.bit8('fadeOn')
+		.bit8('fadeOff')
+		
 	this.lightsReportParser = new Parser()
-      .uint8('reportId', {
-        assert: ReportID.PAD_CONFIGURATION
-      })
-      .array('sensorThresholds', {
-        type: 'uint16le',
-        length: this.sensorCount
-      })
-      .floatle('releaseThreshold')
-      .array('sensorToButtonMapping', {
-        type: 'int8',
-        length: this.sensorCount
-      })
+		.array('lightRules', {
+			type: 'lightRule',
+			length: this.maxLightRules
+		})
+		
   }
 
   private formatButtons = (data: number) => {
@@ -119,8 +165,12 @@ export class ReportManager {
     }
   }
   
-  parseLightsReort(data: Buffer): LightsReport {
+  parseLightsReport(data: Buffer): LightsReport {
+	  const parsed = this.lightsReportParser.parse(data)
 	  
+	  return {
+		lightRules: parsed.lightRules
+	  }
   }
 
   getConfigurationReportSize = () => {
@@ -130,6 +180,12 @@ export class ReportManager {
     // - 4 bytes for request threshold (float)
     // - 1 byte for sensor to button mapping (int8)
     return 2 * this.sensorCount + 4 + this.sensorCount + 1
+  }
+  
+  getLightsReportSize = () => {
+	  return this.maxLightRules * (
+		5 + (4 * 3)
+	  )
   }
 
   createConfigurationReport(conf: ConfigurationReport): number[] {
@@ -186,4 +242,44 @@ export class ReportManager {
 
     return [...buffer]
   }
+  
+  writeColor(color: RgbColor, buffer: Buffer, position: number) {
+	  buffer.writeUInt8(color.red, position)
+	  position += 1
+	  buffer.writeUInt8(color.green, position)
+	  position += 1
+	  buffer.writeUInt8(color.blue, position)
+	  position += 1
+	  
+	  return 3
+  }
+  
+  createLightsReport(report: LightsReport): number[] {
+	const buffer = Buffer.alloc(this.getLightsReportSize())
+	let pos = 0
+	  
+	for (let i = 0; i < this.maxLightRules; i++) {
+	  let rule = conf.lightRules[i]
+	
+	  buffer.writeInt8(rule.sensorNumber, pos)
+	  pos += 1
+	  
+	  buffer.writeUInt8(rule.fromLight, pos)
+	  pos += 1
+	  buffer.writeUInt8(rule.toLight, pos)
+	  pos += 1
+	  
+	  pos += this.writeColor(rule.onColor, buffer, pos)
+	  pos += this.writeColor(rule.offColor, buffer, pos)
+	  
+	  pos += this.writeColor(rule.onFadeColor, buffer, pos)
+	  pos += this.writeColor(rule.offFadeColor, buffer, pos)
+	  
+	  buffer.writeUInt8(rule.fadeOn, pos)
+	  buffer.writeUInt8(rule.fadeOff, pos)
+	}
+	
+	return [...buffer]
+  }
+  
 }
