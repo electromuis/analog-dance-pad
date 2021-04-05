@@ -129,73 +129,21 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
 
 rgb_color colors[LED_COUNT];
 
-LightConfiguration LIGHT_CONFIG = {
-	.lightRules = {
-		//UP
-		{
-			.sensorNumber = 5,
-			.fromLight = 0,
-			.toLight = PANEL_LEDS,
-			.onColor = {255, 0, 0},
-			.offColor = {0, 0, 0},
-			.onFadeColor = {0,0,0},
-			.offFadeColor = {0,255,0},
-			.fadeOn = true,
-			.fadeOff = true
-		},
-		//LEFT
-		{
-			.sensorNumber = 4,
-			.fromLight = PANEL_LEDS,
-			.toLight = PANEL_LEDS*2,
-			.onColor = {255, 0, 0},
-			.offColor = {0, 0, 0},
-			.onFadeColor = {0,0,0},
-			.offFadeColor = {0,255,0},
-			.fadeOn = true,
-			.fadeOff = true
-		},
-		//DOWN
-		{
-			.sensorNumber = 3,
-			.fromLight = PANEL_LEDS*2,
-			.toLight = PANEL_LEDS*3,
-			.onColor = {255, 0, 0},
-			.offColor = {0, 0, 0},
-			.onFadeColor = {0,0,0},
-			.offFadeColor = {0,255,0},
-			.fadeOn = true,
-			.fadeOff = true
-		},
-		//RIGHT
-		{
-			.sensorNumber = 2,
-			.fromLight = PANEL_LEDS*3,
-			.toLight = PANEL_LEDS*4,
-			.onColor = {255, 0, 0},
-			.offColor = {0, 0, 0},
-			.onFadeColor = {0,0,0},
-			.offFadeColor = {0,255,0},
-			.fadeOn = true,
-			.fadeOff = true
-		}
-	}
-};
+LightConfiguration LIGHT_CONF;
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
-    memcpy(&LIGHT_CONFIG, lightConfiguration, sizeof (LightConfiguration));
+    memcpy(&LIGHT_CONF, lightConfiguration, sizeof (LightConfiguration));
 }
 
 void Lights_Update()
 {
-
 	for (uint8_t s = 0; s < MAX_LIGHT_RULES; s++)
 	{
-		LightRule light = LIGHT_CONFIG.lightRules[s];
+		LightRule light = LIGHT_CONF.lightRules[s];
 		
 		if(light.sensorNumber == 0) {
 			continue;
@@ -211,7 +159,7 @@ void Lights_Update()
 		rgb_color color;
 		
 		if(sensorState == true) {
-			if(light.fadeOn) {
+			if(light.flags & LRF_FADE_ON) {
 				uint16_t sensorThreshold2 = sensorThreshold * 2;
 				
 				if(sensorValue <= sensorThreshold2) {				
@@ -230,7 +178,7 @@ void Lights_Update()
 			}
 		}
 		else {
-			if(light.fadeOff) {
+			if(light.flags & LRF_FADE_OFF) {
 				color = (rgb_color) {	
 					map(sensorValue, 0, sensorThreshold, light.offColor.red, 	light.offFadeColor.red),
 					map(sensorValue, 0, sensorThreshold, light.offColor.green,	light.offFadeColor.green),
