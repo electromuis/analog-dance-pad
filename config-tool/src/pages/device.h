@@ -12,14 +12,14 @@ using namespace std;
 
 namespace pages {
 
-class FirmwarePage : public BasePage
+class DevicePage : public BasePage
 {
 public:
-    static constexpr const wchar_t* Title() { return L"Firmware"; }
+    static constexpr const wchar_t* Title() { return L"Device"; }
 
     enum Ids { RESET_BUTTON = 1 };
 
-    FirmwarePage(wxWindow* owner) : BasePage(owner)
+    DevicePage(wxWindow* owner) : BasePage(owner)
     {
         auto sizer = new wxBoxSizer(wxVERTICAL);
         sizer->Add(new wxButton(this, RESET_BUTTON, L"Reset"));
@@ -31,8 +31,8 @@ public:
     DECLARE_EVENT_TABLE()
 };
 
-BEGIN_EVENT_TABLE(FirmwarePage, wxWindow)
-    EVT_BUTTON(FirmwarePage::RESET_BUTTON, FirmwarePage::OnReset)
+BEGIN_EVENT_TABLE(DevicePage, wxWindow)
+    EVT_BUTTON(DevicePage::RESET_BUTTON, DevicePage::OnReset)
 END_EVENT_TABLE()
 
 }; // namespace pages.

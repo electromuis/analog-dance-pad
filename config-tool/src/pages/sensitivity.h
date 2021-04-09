@@ -48,12 +48,12 @@ BEGIN_EVENT_TABLE(SensorDisplay, wxWindow)
     EVT_PAINT(SensorDisplay::OnPaint)
 END_EVENT_TABLE()
 
-class SensorsPage : public BasePage
+class SensitivityPage : public BasePage
 {
 public:
-    static constexpr const wchar_t* Title() { return L"Sensors"; }
+    static constexpr const wchar_t* Title() { return L"Sensitivity"; }
 
-    SensorsPage(wxWindow* owner, const PadState* pad) : BasePage(owner)
+    SensitivityPage(wxWindow* owner, const PadState* pad) : BasePage(owner)
     {
         for (int i = 0; i < pad->numSensors; ++i)
         {
@@ -71,8 +71,8 @@ private:
     vector<SensorDisplay*> mySensors;
 };
 
-BEGIN_EVENT_TABLE(SensorsPage, wxWindow)
-    EVT_PAINT(SensorsPage::OnPaint)
+BEGIN_EVENT_TABLE(SensitivityPage, wxWindow)
+    EVT_PAINT(SensitivityPage::OnPaint)
 END_EVENT_TABLE()
 
 }; // namespace pages.

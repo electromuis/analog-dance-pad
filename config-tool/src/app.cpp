@@ -4,9 +4,9 @@
 #include "wx/notebook.h"
 
 #include "pages/idle.h"
-#include "pages/sensors.h"
-#include "pages/firmware.h"
-#include "pages/buttons.h"
+#include "pages/sensitivity.h"
+#include "pages/mapping.h"
+#include "pages/device.h"
 #include "pages/about.h"
 #include "pages/log.h"
 
@@ -66,9 +66,9 @@ private:
         if (pad)
         {
             UpdateConnectedToStatus(pad);
-            myTabs->InsertPage(0, new SensorsPage(myTabs, pad), SensorsPage::Title(), true);
-            myTabs->InsertPage(0, new ButtonsPage(myTabs, pad), ButtonsPage::Title(), true);
-            myTabs->InsertPage(1, new FirmwarePage(myTabs), FirmwarePage::Title());
+            myTabs->InsertPage(0, new SensitivityPage(myTabs, pad), SensitivityPage::Title(), true);
+            myTabs->InsertPage(1, new MappingPage(myTabs, pad), MappingPage::Title(), true);
+            myTabs->InsertPage(2, new DevicePage(myTabs), DevicePage::Title());
         }
         else
         {
