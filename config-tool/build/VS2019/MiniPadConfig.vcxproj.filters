@@ -18,19 +18,19 @@
     <ClInclude Include="..\..\src\pages\about.h">
       <Filter>pages</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\pages\buttons.h">
-      <Filter>pages</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\pages\idle.h">
       <Filter>pages</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\pages\log.h">
       <Filter>pages</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\pages\firmware.h">
+    <ClInclude Include="..\..\src\pages\mapping.h">
       <Filter>pages</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\pages\sensors.h">
+    <ClInclude Include="..\..\src\pages\sensitivity.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\device.h">
       <Filter>pages</Filter>
     </ClInclude>
   </ItemGroup>

@@ -173,11 +173,11 @@
     <ClInclude Include="..\..\src\logo.h" />
     <ClInclude Include="..\..\src\pages\about.h" />
     <ClInclude Include="..\..\src\pages\base.h" />
-    <ClInclude Include="..\..\src\pages\buttons.h" />
-    <ClInclude Include="..\..\src\pages\firmware.h" />
+    <ClInclude Include="..\..\src\pages\mapping.h" />
+    <ClInclude Include="..\..\src\pages\device.h" />
     <ClInclude Include="..\..\src\pages\idle.h" />
     <ClInclude Include="..\..\src\pages\log.h" />
-    <ClInclude Include="..\..\src\pages\sensors.h" />
+    <ClInclude Include="..\..\src\pages\sensitivity.h" />
     <ClInclude Include="..\..\src\utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
