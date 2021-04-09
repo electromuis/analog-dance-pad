@@ -2,6 +2,8 @@
 
 #include "wx/wxprec.h"
 
+#include "devices.h"
+
 namespace pages {
 
 class BasePage : public wxWindow
@@ -11,7 +13,7 @@ public:
 
     virtual ~BasePage() {}
 
-    virtual void Tick() {}
+    virtual void Tick(devices::DeviceChanges changes) {}
 };
 
 }; // namespace pages.

@@ -79,7 +79,7 @@ struct NameReport
 {
 	DEFINE_REPORT(REPORT_NAME);
 	uint8_t size;
-	uint8_t name[50];
+	uint8_t name[MAX_NAME_LENGTH];
 };
 
 struct LightRule
@@ -199,13 +199,23 @@ static bool SendFeatureReport(hid_device* hid, const T& report)
 {
 	int bytesWritten = hid_send_feature_report(hid, (const unsigned char*)&report, sizeof(T));
 	if (bytesWritten == sizeof(T))
+	{
+		Log::Writef(L"SendFeatureReport (%s) :: done", T::NAME);
 		return true;
+	}
 
 	if (bytesWritten < 0)
 		Log::Writef(L"SendFeatureReport (%s) :: hid failed (%s)", T::NAME, hid_error(hid));
 	else
 		Log::Writef(L"SendFeatureReport (%s) :: unexpected number of bytes written (%i)", T::NAME, bytesWritten);
 	return false;
+}
+
+static void SendDeviceReset(hid_device* hid)
+{
+	uint8_t reset = REPORT_RESET;
+	hid_write(hid, &reset, sizeof(reset)); // Device resets immediately, so checking result is not reliable.
+	Log::Write(L"SendDeviceReset :: done");
 }
 
 static void PrintPadConfigurationReport(const PadConfigurationReport& padConfiguration)
@@ -242,6 +252,7 @@ public:
 		, myPath(path)
 	{
 		UpdateName(name);
+		myState.maxNameLength = MAX_NAME_LENGTH;
 		myState.numButtons = MAX_BUTTON_COUNT;
 		myState.numSensors = MAX_SENSOR_COUNT;
 		UpdatePadConfiguration(config);
@@ -249,20 +260,21 @@ public:
 
 	~PadDevice() { hid_close(myHid); }
 
-	void UpdateName(const NameReport& name)
+	void UpdateName(const NameReport& report)
 	{
-		myState.name = utils::widen((const char*)name.name, (size_t)name.size);
+		myState.name = utils::widen((const char*)report.name, (size_t)report.size);
+		myChanges |= DCF_NAME;
 	}
 
-	void UpdatePadConfiguration(const PadConfigurationReport& config)
+	void UpdatePadConfiguration(const PadConfigurationReport& report)
 	{
 		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
 		{
-			auto buttonMapping = (unsigned int)config.sensorToButtonMapping[i];
-			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(config.sensorThresholds[i]));
+			auto buttonMapping = (unsigned int)report.sensorToButtonMapping[i];
+			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(report.sensorThresholds[i]));
 			mySensors[i].button = (buttonMapping >= MAX_BUTTON_COUNT ? 0 : (buttonMapping + 1));
 		}
-		myReleaseThreshold = ReadF32LE(config.releaseThreshold);
+		myReleaseThreshold = ReadF32LE(report.releaseThreshold);
 	}
 
 	bool UpdateSensorValues()
@@ -293,11 +305,6 @@ public:
 			}
 		}
 
-		/*static int updateCounter = 0;
-		updateCounter = (updateCounter + 1) % 200;
-		if (updateCounter == 0)
-			Log::Writef(L"PadDevice :: %i reads", inputsRead);*/
-
 		if (inputsRead > 0)
 		{
 			for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
@@ -315,23 +322,29 @@ public:
 	bool SetButtonMapping(int sensorIndex, int button)
 	{
 		mySensors[sensorIndex].button = button;
+		myChanges |= DCF_BUTTON_MAPPING;
 		return SendPadConfiguration();
 	}
 
-	bool ClearButtonMapping()
+	bool SetName(const wchar_t* rawName)
 	{
-		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
-			mySensors[i].button = 0;
-		return SendPadConfiguration();
+		NameReport report;
+
+		auto name = utils::narrow(rawName, wcslen(rawName));
+		if (name.size() > sizeof(report.name))
+		{
+			Log::Writef(L"SetName :: name '%s' exceeds %i chars and was not set", rawName, MAX_NAME_LENGTH);
+			return false;
+		}
+
+		report.size = (uint8_t)name.length();
+		memcpy(report.name, name.data(), name.length());
+		bool result = SendFeatureReport(myHid, report) && GetFeatureReport(myHid, report);
+		UpdateName(report);
+		return result;
 	}
 
-	bool Reset()
-	{
-		Log::Write(L"PadDevice :: sending reset");
-		uint8_t reset = REPORT_RESET;
-		hid_write(myHid, &reset, sizeof(reset));
-		return true;
-	}
+	void Reset() { SendDeviceReset(myHid); }
 
 	bool SendPadConfiguration()
 	{
@@ -342,7 +355,9 @@ public:
 			report.sensorToButtonMapping[i] = (mySensors[i].button == 0) ? 0xFF : (mySensors[i].button - 1);
 		}
 		report.releaseThreshold = WriteF32LE((float)myReleaseThreshold);
-		return SendFeatureReport(myHid, report) && GetFeatureReport(myHid, report);
+		bool result = SendFeatureReport(myHid, report) && GetFeatureReport(myHid, report);
+		UpdatePadConfiguration(report);
+		return result;
 	}
 
 	const DevicePath& Path() const { return myPath; }
@@ -354,11 +369,19 @@ public:
 		return (index >= 0 && index < MAX_SENSOR_COUNT) ? (mySensors + index) : nullptr;
 	}
 
+	DeviceChanges PopChanges()
+	{
+		auto result = myChanges;
+		myChanges = 0;
+		return result;
+	}
+
 private:
 	hid_device* myHid;
 	DevicePath myPath;
 	PadState myState;
 	SensorState mySensors[MAX_SENSOR_COUNT];
+	DeviceChanges myChanges = 0;
 	double myReleaseThreshold = 1.0;
 };
 
@@ -501,29 +524,32 @@ void DeviceManager::Shutdown()
 	hid_exit();
 }
 
-DeviceManager::UpdateResult DeviceManager::Update()
+DeviceChanges DeviceManager::Update()
 {
-	UpdateResult result;
+	DeviceChanges changes = 0;
 
 	// If there is currently no connected device, try to find one.
 	auto device = connectionManager->ConnectedDevice();
 	if (!device)
 	{
-		result.deviceChanged = connectionManager->DiscoverDevice();
+		if (connectionManager->DiscoverDevice())
+			changes |= DCF_DEVICE;
+
 		device = connectionManager->ConnectedDevice();
 	}
 
 	// If there is a device, update it.
 	if (device)
 	{
+		changes |= device->PopChanges();
 		if (!device->UpdateSensorValues())
 		{
 			connectionManager->DisconnectFailedDevice();
-			result.deviceChanged = true;
+			changes |= DCF_DEVICE;
 		}
 	}
 
-	return result;
+	return changes;
 }
 
 const PadState* DeviceManager::Pad()
@@ -550,16 +576,16 @@ bool DeviceManager::SetButtonMapping(int sensorIndex, int button)
 	return device ? device->SetButtonMapping(sensorIndex, button) : false;
 }
 
-bool DeviceManager::ClearButtonMapping()
+bool DeviceManager::SetDeviceName(const wchar_t* name)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->ClearButtonMapping() : false;
+	return device ? device->SetName(name) : false;
 }
 
-bool DeviceManager::SendDeviceReset()
+void DeviceManager::SendDeviceReset()
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->Reset() : false;
+	if (device) device->Reset();
 }
 
 }; // namespace devices.

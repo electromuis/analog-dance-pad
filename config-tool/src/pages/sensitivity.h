@@ -60,7 +60,7 @@ public:
         }
     }
 
-    void Tick()
+    void Tick(devices::DeviceChanges changes)
     {
         Refresh();
     }

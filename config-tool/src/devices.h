@@ -5,6 +5,14 @@
 
 namespace devices {
 
+enum DeviceChangeFlags
+{
+	DCF_DEVICE         = 0x1,
+	DCF_BUTTON_MAPPING = 0x2,
+	DCF_NAME           = 0x2,
+};
+typedef int32_t DeviceChanges;
+
 struct SensorState
 {
 	double threshold = 0.0;
@@ -16,6 +24,7 @@ struct SensorState
 struct PadState
 {
 	std::wstring name;
+	int maxNameLength = 0;
 	int numButtons = 0;
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
@@ -24,13 +33,11 @@ struct PadState
 class DeviceManager
 {
 public:
-	struct UpdateResult { bool deviceChanged = false; };
-
 	static void Init();
 
 	static void Shutdown();
 
-	static UpdateResult Update();
+	static DeviceChanges Update();
 
 	static const PadState* Pad();
 
@@ -38,9 +45,9 @@ public:
 
 	static bool SetButtonMapping(int sensorIndex, int button);
 
-	static bool ClearButtonMapping();
+	static bool SetDeviceName(const wchar_t* name);
 
-	static bool SendDeviceReset();
+	static void SendDeviceReset();
 };
 
 }; // namespace devices.

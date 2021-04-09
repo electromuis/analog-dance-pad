@@ -32,7 +32,7 @@ public:
         sizer->Add(myTabs, 1, wxEXPAND);
         SetSizer(sizer);
 
-        UpdateDevice();
+        UpdatePages();
 
         myUpdateTimer = make_unique<UpdateTimer>(this);
         myUpdateTimer->Start(10);
@@ -45,41 +45,46 @@ public:
 
     void Tick()
     {
-        auto result = DeviceManager::Update();
+        auto changes = DeviceManager::Update();
 
-        if (result.deviceChanged)
-            UpdateDevice();
+        if (changes & DCF_DEVICE)
+            UpdatePages();
+
+        if (changes & (DCF_DEVICE | DCF_NAME))
+            UpdateStatusText();
 
         auto page = (BasePage*)myTabs->GetCurrentPage();
         if (page)
-            page->Tick();
+            page->Tick(changes);
     }
 
 private:
-    void UpdateDevice()
+    void UpdatePages()
     {
-        // [dynamic pages] | About | Log
+        // Delete all pages except "About" and "Log" at the end.
         while (myTabs->GetPageCount() > 2)
             myTabs->DeletePage(0);
 
         auto pad = DeviceManager::Pad();
         if (pad)
         {
-            UpdateConnectedToStatus(pad);
             myTabs->InsertPage(0, new SensitivityPage(myTabs, pad), SensitivityPage::Title(), true);
             myTabs->InsertPage(1, new MappingPage(myTabs, pad), MappingPage::Title(), true);
             myTabs->InsertPage(2, new DevicePage(myTabs), DevicePage::Title());
         }
         else
         {
-            SetStatusText(wxEmptyString);
             myTabs->InsertPage(0, new IdlePage(myTabs), IdlePage::Title(), true);
         }
     }
 
-    void UpdateConnectedToStatus(const PadState* pad)
+    void UpdateStatusText()
     {
-        SetStatusText(L"Connected to: " + pad->name);
+        auto pad = DeviceManager::Pad();
+        if (pad)
+            SetStatusText(L"Connected to: " + pad->name);
+        else
+            SetStatusText(wxEmptyString);
     }
 
     struct UpdateTimer : public wxTimer

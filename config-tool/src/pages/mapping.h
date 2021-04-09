@@ -93,7 +93,7 @@ public:
         SetSizer(outerSizer);
     }
 
-    void Tick() override
+    void Tick(devices::DeviceChanges changes) override
     {
         for (auto bar : mySensorBars)
             bar->Refresh(false);

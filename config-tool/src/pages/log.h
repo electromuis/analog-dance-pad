@@ -28,7 +28,7 @@ public:
         SetSizer(sizer);
     }
 
-    void Tick() override
+    void Tick(devices::DeviceChanges changes) override
     {
         for (int numMessages = Log::NumMessages(); myNumMessages < numMessages; ++myNumMessages)
         {
