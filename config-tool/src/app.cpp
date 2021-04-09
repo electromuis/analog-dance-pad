@@ -69,7 +69,7 @@ private:
         if (pad)
         {
             myTabs->InsertPage(0, new SensitivityPage(myTabs, pad), SensitivityPage::Title(), true);
-            myTabs->InsertPage(1, new MappingPage(myTabs, pad), MappingPage::Title(), true);
+            myTabs->InsertPage(1, new MappingPage(myTabs, pad), MappingPage::Title());
             myTabs->InsertPage(2, new DevicePage(myTabs), DevicePage::Title());
         }
         else

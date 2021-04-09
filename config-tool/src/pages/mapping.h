@@ -4,6 +4,7 @@
 #include "devices.h"
 
 #include "wx/dataview.h"
+#include "wx/dcbuffer.h"
 
 #include <string>
 
@@ -16,7 +17,7 @@ class HorizontalSensorBar : public wxWindow
 {
 public:
     HorizontalSensorBar(wxWindow* owner, int sensor)
-        : wxWindow(owner, wxID_ANY)
+        : wxWindow(owner, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBG_STYLE_PAINT)
         , mySensor(sensor)
     {
     }
@@ -24,13 +25,13 @@ public:
     void OnPaint(wxPaintEvent& evt)
     {
         int w, h;
-        wxPaintDC dc(this);
+        wxBufferedPaintDC dc(this);
         dc.GetSize(&w, &h);
 
         auto sensor = DeviceManager::Sensor(mySensor);
         int barW = sensor ? (sensor->value * w) : 0;
 
-        dc.SetPen(wxNullPen);
+        dc.SetPen(wxPen(*wxBLACK, 0));
         dc.SetBrush(*wxBLACK_BRUSH);
         dc.DrawRectangle(barW, 0, w - barW, h);
         dc.SetBrush(*wxYELLOW_BRUSH);
