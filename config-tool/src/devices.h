@@ -7,15 +7,13 @@ namespace devices {
 
 struct SensorState
 {
-	enum { UNMAPPED_BUTTON = -1 };
-
 	double threshold = 0.0;
 	double value = 0.0;
-	int button = UNMAPPED_BUTTON;
+	int button = 0; // zero means unmapped.
 	bool pressed = false;
 };
 
-struct DeviceState
+struct PadState
 {
 	std::wstring name;
 	int numButtons = 0;
@@ -34,9 +32,15 @@ public:
 
 	static UpdateResult Update();
 
-	static const DeviceState* Device();
+	static const PadState* Pad();
 
-	static const SensorState* Sensor(int index);
+	static const SensorState* Sensor(int sensorIndex);
+
+	static bool SetButtonMapping(int sensorIndex, int button);
+
+	static bool ClearButtonMapping();
+
+	static bool SendDeviceReset();
 };
 
 }; // namespace devices.

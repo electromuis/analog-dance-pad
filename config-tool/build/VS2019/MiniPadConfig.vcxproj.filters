@@ -1,14 +1,42 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\devices.cpp" />
     <ClCompile Include="..\..\src\logging.cpp" />
+    <ClCompile Include="..\..\src\utils.cpp" />
     <ClCompile Include="..\..\src\logo.cpp" />
+    <ClCompile Include="..\..\src\app.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices.h" />
     <ClInclude Include="..\..\src\logging.h" />
+    <ClInclude Include="..\..\src\utils.h" />
     <ClInclude Include="..\..\src\logo.h" />
+    <ClInclude Include="..\..\src\pages\base.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\about.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\buttons.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\idle.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\log.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\firmware.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pages\sensors.h">
+      <Filter>pages</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="pages">
+      <UniqueIdentifier>{88274c71-c01e-491e-8551-cb04c4c43070}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

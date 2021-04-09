@@ -41,7 +41,7 @@ void Log::Writef(const wchar_t* format, ...)
 
 int Log::NumMessages()
 {
-	return messages->size();
+	return (int)messages->size();
 }
 
 const wstring& Log::Message(int index)

@@ -1,18 +1,15 @@
 #include "devices.h"
 #include "logging.h"
 #include "hidapi.h"
+#include "utils.h"
 
 #include <vector>
 #include <string>
 #include <memory>
-#include <thread>
-#include <mutex>
 #include <algorithm>
 #include <future>
 #include <chrono>
 #include <map>
-#include <locale>
-#include <codecvt>
 
 using namespace std;
 using namespace logging;
@@ -26,6 +23,9 @@ constexpr int MAX_SENSOR_COUNT = 12;
 constexpr int MAX_BUTTON_COUNT = 16;
 constexpr int MAX_NAME_LENGTH  = 50;
 constexpr int MAX_SENSOR_VALUE = 850;
+constexpr int MAX_LIGHT_RULES = 16;
+
+constexpr size_t MAX_REPORT_SIZE = 512;
 
 // ====================================================================================================================
 // Report functionality.
@@ -40,33 +40,64 @@ enum ReportId
 	REPORT_RESET              = 0x3,
 	REPORT_SAVE_CONFIGURATION = 0x4,
 	REPORT_NAME               = 0x5,
+	REPORT_UNUSED_JOYSTICK    = 0x6,
+	REPORT_LIGHTS             = 0x7,
+};
+
+enum LightRuleFlags
+{
+	LRF_FADE_ON  = 0x1,
+	LRF_FADE_OFF = 0x2,
 };
 
 #pragma pack(1)
 
 struct uint16_le { uint8_t bytes[2]; };
 struct float32_le { uint8_t bytes[4]; };
+struct rgb_color { uint8_t red, green, blue; };
+
+#define DEFINE_REPORT(id) \
+	inline static constexpr const wchar_t* NAME = L#id; \
+	uint8_t reportId = id;
 
 struct SensorValuesReport
 {
-	uint8_t reportId = REPORT_SENSOR_VALUES;
+	DEFINE_REPORT(REPORT_SENSOR_VALUES);
 	uint16_le buttonBits;
 	uint16_le sensorValues[MAX_SENSOR_COUNT];
 };
 
 struct PadConfigurationReport
 {
-	uint8_t reportId = REPORT_PAD_CONFIGURATION;
+	DEFINE_REPORT(REPORT_PAD_CONFIGURATION);
 	uint16_le sensorThresholds[MAX_SENSOR_COUNT];
 	float32_le releaseThreshold;
-	uint8_t sensorToButtonMapping[MAX_SENSOR_COUNT];
+	int8_t sensorToButtonMapping[MAX_SENSOR_COUNT];
 };
 
 struct NameReport
 {
-	uint8_t reportId = REPORT_NAME;
+	DEFINE_REPORT(REPORT_NAME);
 	uint8_t size;
 	uint8_t name[50];
+};
+
+struct LightRule
+{
+	int8_t sensorNumber;
+	uint8_t fromLight;
+	uint8_t toLight;
+	rgb_color onColor;
+	rgb_color offColor;
+	rgb_color onFadeColor;
+	rgb_color offFadeColor;
+	uint8_t flags;
+};
+
+struct LightsReport
+{
+	DEFINE_REPORT(REPORT_LIGHTS);
+	LightRule lightRules[MAX_LIGHT_RULES];
 };
 
 #pragma pack()
@@ -119,39 +150,19 @@ static int ToDeviceSensorValue(double normalizedValue)
 	return max(0, min(MAX_SENSOR_VALUE, mapped));
 }
 
-static bool ReadPadConfiguration(hid_device* hid, PadConfigurationReport& out)
-{
-	int bytesRead = hid_get_feature_report(hid, (unsigned char*)&out, sizeof(PadConfigurationReport));
-	if (bytesRead == sizeof(PadConfigurationReport) + 1)
-		return true;
-
-	if (bytesRead < 0)
-		Log::Writef(L"ReadPadConfiguration :: hid_get_feature_report failed (%s)", hid_error(hid));
-	else
-		Log::Writef(L"ReadPadConfiguration :: unexpected number of bytes read (%i)", bytesRead);
-	return false;
-}
-
-static bool ReadPadName(hid_device* hid, NameReport& out)
-{
-	int bytesRead = hid_get_feature_report(hid, (unsigned char*)&out, sizeof(NameReport));
-	if (bytesRead == sizeof(NameReport) + 1)
-		return true;
-
-	if (bytesRead < 0)
-		Log::Writef(L"ReadPadName :: hid_get_feature_report failed (%s)", hid_error(hid));
-	else
-		Log::Writef(L"ReadPadName :: unexpected number of bytes read (%i)", bytesRead);
-	return false;
-}
-
 enum class ReadSensorResult { NO_DATA, SUCCESS, FAILURE };
 
-static ReadSensorResult ReadSensorValues(hid_device* hid, SensorValuesReport& out)
+static ReadSensorResult ReadSensorValues(hid_device* hid, SensorValuesReport& report)
 {
-	int bytesRead = hid_read(hid, (unsigned char*)&out, sizeof(SensorValuesReport));
+	uint8_t buffer[MAX_REPORT_SIZE];
+	buffer[0] = report.reportId;
+
+	int bytesRead = hid_read(hid, buffer, sizeof(buffer));
 	if (bytesRead == sizeof(SensorValuesReport))
+	{
+		memcpy(&report, buffer, sizeof(SensorValuesReport));
 		return ReadSensorResult::SUCCESS;
+	}
 
 	if (bytesRead == 0)
 		return ReadSensorResult::NO_DATA;
@@ -161,6 +172,54 @@ static ReadSensorResult ReadSensorValues(hid_device* hid, SensorValuesReport& ou
 	else
 		Log::Writef(L"ReadSensorValues :: unexpected number of bytes read (%i)", bytesRead);
 	return ReadSensorResult::FAILURE;
+}
+
+template <typename T>
+static bool GetFeatureReport(hid_device* hid, T& report)
+{
+	uint8_t buffer[MAX_REPORT_SIZE];
+	buffer[0] = report.reportId;
+
+	int bytesRead = hid_get_feature_report(hid, buffer, sizeof(buffer));
+	if (bytesRead == sizeof(T) + 1)
+	{
+		memcpy(&report, buffer, sizeof(T));
+		return true;
+	}
+
+	if (bytesRead < 0)
+		Log::Writef(L"GetFeatureReport (%s) :: hid failed (%s)", T::NAME, hid_error(hid));
+	else
+		Log::Writef(L"GetFeatureReport (%s) :: unexpected number of bytes read (%i)", T::NAME, bytesRead);
+	return false;
+}
+
+template <typename T>
+static bool SendFeatureReport(hid_device* hid, const T& report)
+{
+	int bytesWritten = hid_send_feature_report(hid, (const unsigned char*)&report, sizeof(T));
+	if (bytesWritten == sizeof(T))
+		return true;
+
+	if (bytesWritten < 0)
+		Log::Writef(L"SendFeatureReport (%s) :: hid failed (%s)", T::NAME, hid_error(hid));
+	else
+		Log::Writef(L"SendFeatureReport (%s) :: unexpected number of bytes written (%i)", T::NAME, bytesWritten);
+	return false;
+}
+
+static void PrintPadConfigurationReport(const PadConfigurationReport& padConfiguration)
+{
+	Log::Write(L"pad configuration [");
+	Log::Writef(L"  releaseThreshold: %.2f", ReadF32LE(padConfiguration.releaseThreshold));
+	Log::Write(L"  sensors: [");
+	for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+	{
+		Log::Writef(L"    sensorToButtonMapping: %i", padConfiguration.sensorToButtonMapping[i]);
+		Log::Writef(L"    sensorThresholds: %i", ReadU16LE(padConfiguration.sensorThresholds[i]));
+	}
+	Log::Write(L"  ]");
+	Log::Write(L"]");
 }
 
 // ====================================================================================================================
@@ -173,7 +232,12 @@ typedef wstring DeviceName;
 class PadDevice
 {
 public:
-	PadDevice(hid_device* hid, const char* path, const NameReport& name, const PadConfigurationReport& config)
+	PadDevice(
+		hid_device* hid,
+		const char* path,
+		const NameReport& name,
+		const PadConfigurationReport& config,
+		const LightsReport* lights)
 		: myHid(hid)
 		, myPath(path)
 	{
@@ -187,17 +251,16 @@ public:
 
 	void UpdateName(const NameReport& name)
 	{
-		myState.name = wstring_convert<codecvt_utf8<wchar_t>>()
-			.from_bytes((const char*)name.name, (const char*)(name.name + name.size));
+		myState.name = utils::widen((const char*)name.name, (size_t)name.size);
 	}
 
 	void UpdatePadConfiguration(const PadConfigurationReport& config)
 	{
 		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
 		{
-			auto buttonMapping = config.sensorToButtonMapping[i];
+			auto buttonMapping = (unsigned int)config.sensorToButtonMapping[i];
 			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(config.sensorThresholds[i]));
-			mySensors[i].button = (buttonMapping >= MAX_BUTTON_COUNT ? SensorState::UNMAPPED_BUTTON : buttonMapping);
+			mySensors[i].button = (buttonMapping >= MAX_BUTTON_COUNT ? 0 : (buttonMapping + 1));
 		}
 		myReleaseThreshold = ReadF32LE(config.releaseThreshold);
 	}
@@ -230,10 +293,10 @@ public:
 			}
 		}
 
-		static int updateCounter = 0;
+		/*static int updateCounter = 0;
 		updateCounter = (updateCounter + 1) % 200;
 		if (updateCounter == 0)
-			Log::Writef(L"PadDevice :: %i reads", inputsRead);
+			Log::Writef(L"PadDevice :: %i reads", inputsRead);*/
 
 		if (inputsRead > 0)
 		{
@@ -241,7 +304,7 @@ public:
 			{
 				auto button = mySensors[i].button;
 				auto value = (double)aggregateValues[i] / (double)inputsRead;
-				mySensors[i].pressed = button != SensorState::UNMAPPED_BUTTON && IsBitSet(pressedButtons, button);
+				mySensors[i].pressed = button > 0 && IsBitSet(pressedButtons, button - 1);
 				mySensors[i].value = ToNormalizedSensorValue(value);
 			}
 		}
@@ -249,9 +312,42 @@ public:
 		return true;
 	}
 
+	bool SetButtonMapping(int sensorIndex, int button)
+	{
+		mySensors[sensorIndex].button = button;
+		return SendPadConfiguration();
+	}
+
+	bool ClearButtonMapping()
+	{
+		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+			mySensors[i].button = 0;
+		return SendPadConfiguration();
+	}
+
+	bool Reset()
+	{
+		Log::Write(L"PadDevice :: sending reset");
+		uint8_t reset = REPORT_RESET;
+		hid_write(myHid, &reset, sizeof(reset));
+		return true;
+	}
+
+	bool SendPadConfiguration()
+	{
+		PadConfigurationReport report;
+		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+		{
+			report.sensorThresholds[i] = WriteU16LE(ToDeviceSensorValue(mySensors[i].threshold));
+			report.sensorToButtonMapping[i] = (mySensors[i].button == 0) ? 0xFF : (mySensors[i].button - 1);
+		}
+		report.releaseThreshold = WriteF32LE((float)myReleaseThreshold);
+		return SendFeatureReport(myHid, report) && GetFeatureReport(myHid, report);
+	}
+
 	const DevicePath& Path() const { return myPath; }
 
-	const DeviceState& State() const { return myState; }
+	const PadState& State() const { return myState; }
 
 	const SensorState* Sensor(int index)
 	{
@@ -261,7 +357,7 @@ public:
 private:
 	hid_device* myHid;
 	DevicePath myPath;
-	DeviceState myState;
+	PadState myState;
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	double myReleaseThreshold = 1.0;
 };
@@ -334,25 +430,31 @@ public:
 		}
 
 		// Try to read the pad configuration and name.
+		// If both succeeded, we'll assume the device is valid.
 
 		NameReport name;
 		PadConfigurationReport padConfiguration;
-		if (!ReadPadName(hid, name) || !ReadPadConfiguration(hid, padConfiguration))
+		if (!GetFeatureReport(hid, name) || !GetFeatureReport(hid, padConfiguration))
 		{
 			AddIncompatibleDevice(deviceInfo);
 			hid_close(hid);
 			return false;
 		}
 
-		// If both succeeded, we'll assume the device is valid.
+		// If the device supports light configuration, read lights.
 
-		auto device = new PadDevice(hid, deviceInfo->path, name, padConfiguration);
+		//LightsReport lights;
+		//bool supportsLight = GetFeatureReport(hid, lights);
+
+		auto device = new PadDevice(hid, deviceInfo->path, name, padConfiguration, nullptr);
 
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %s", device->State().name.data());
 		Log::Writef(L"  Product: %s", deviceInfo->product_string);
 		Log::Writef(L"  Manufacturer: %s", deviceInfo->manufacturer_string);
+		Log::Writef(L"  Path: %s", utils::widen(deviceInfo->path, strlen(deviceInfo->path)).data());
 		Log::Write(L"]");
+		PrintPadConfigurationReport(padConfiguration);
 
 		myConnectedDevice.reset(device);
 		return true;
@@ -424,16 +526,40 @@ DeviceManager::UpdateResult DeviceManager::Update()
 	return result;
 }
 
-const DeviceState* DeviceManager::Device()
+const PadState* DeviceManager::Pad()
 {
+	// static PadState dummy;
+	// dummy.numSensors = 8;
+	// dummy.numButtons = 4;
+	// return &dummy;
 	auto device = connectionManager->ConnectedDevice();
 	return device ? &device->State() : nullptr;
 }
 
-const SensorState* DeviceManager::Sensor(int index)
+const SensorState* DeviceManager::Sensor(int sensorIndex)
+{
+	// static SensorState dummies[MAX_SENSOR_COUNT];
+	// return dummies + index;
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->Sensor(sensorIndex) : nullptr;
+}
+
+bool DeviceManager::SetButtonMapping(int sensorIndex, int button)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->Sensor(index) : nullptr;
+	return device ? device->SetButtonMapping(sensorIndex, button) : false;
+}
+
+bool DeviceManager::ClearButtonMapping()
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->ClearButtonMapping() : false;
+}
+
+bool DeviceManager::SendDeviceReset()
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->Reset() : false;
 }
 
 }; // namespace devices.

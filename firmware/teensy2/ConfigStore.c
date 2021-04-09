@@ -19,6 +19,18 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
 
 #define DEFAULT_NAME "Untitled Pad Device"
 
+#define DEFAULT_LIGHT_RULE(sensor, lfrom, lto) \
+    {                                          \
+        .sensorNumber = sensor,                \
+        .fromLight = lfrom,                    \
+        .toLight = lto,                        \
+        .onColor = {1, 1, 1},                  \
+        .offColor = {0, 0, 0},                 \
+        .onFadeColor = {0, 0, 0},              \
+        .offFadeColor = {0, 0, 0},             \
+        .flags = 0,                            \
+    }
+
 static const Configuration DEFAULT_CONFIGURATION = {
     .padConfiguration = {
         .sensorThresholds = { [0 ... SENSOR_COUNT - 1] = 400 },
@@ -31,54 +43,10 @@ static const Configuration DEFAULT_CONFIGURATION = {
     },
 	.lightConfiguration = {
 		.lightRules = {
-			//UP
-			{
-				.sensorNumber = 5,
-				.fromLight = 0,
-				.toLight = PANEL_LEDS,
-				.onColor = {255, 0, 0},
-				.offColor = {0, 0, 0},
-				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,255,0},
-				.fadeOn = true,
-				.fadeOff = true
-			},
-			//LEFT
-			{
-				.sensorNumber = 4,
-				.fromLight = PANEL_LEDS,
-				.toLight = PANEL_LEDS*2,
-				.onColor = {255, 0, 0},
-				.offColor = {0, 0, 0},
-				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,255,0},
-				.fadeOn = true,
-				.fadeOff = true
-			},
-			//DOWN
-			{
-				.sensorNumber = 3,
-				.fromLight = PANEL_LEDS*2,
-				.toLight = PANEL_LEDS*3,
-				.onColor = {255, 0, 0},
-				.offColor = {0, 0, 0},
-				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,255,0},
-				.fadeOn = true,
-				.fadeOff = true
-			},
-			//RIGHT
-			{
-				.sensorNumber = 2,
-				.fromLight = PANEL_LEDS*3,
-				.toLight = PANEL_LEDS*4,
-				.onColor = {255, 0, 0},
-				.offColor = {0, 0, 0},
-				.onFadeColor = {0,0,0},
-				.offFadeColor = {0,255,0},
-				.fadeOn = true,
-				.fadeOff = true
-			}
+            DEFAULT_LIGHT_RULE(5, PANEL_LEDS*0, PANEL_LEDS*1), // UP
+            DEFAULT_LIGHT_RULE(4, PANEL_LEDS*1, PANEL_LEDS*2), // LEFT
+            DEFAULT_LIGHT_RULE(3, PANEL_LEDS*2, PANEL_LEDS*3), // DOWN
+            DEFAULT_LIGHT_RULE(2, PANEL_LEDS*3, PANEL_LEDS*4), // RIGHT
 		}
 	}
 };
@@ -89,7 +57,8 @@ void ConfigStore_LoadConfiguration(Configuration* conf) {
         uint8_t magicByteBuffer[sizeof (magicBytes)];
         eeprom_read_block(magicByteBuffer, MAGIC_BYTES_ADDRESS, sizeof (magicBytes));
 
-        if (memcmp(magicByteBuffer, magicBytes, sizeof (magicBytes)) == 0) {
+        //if (memcmp(magicByteBuffer, magicBytes, sizeof (magicBytes)) == 0) {
+        if (false) {
             // we had magic bytes, let's load the configuration!
             eeprom_read_block(conf, CONFIGURATION_ADDRESS, sizeof (Configuration));
         } else {

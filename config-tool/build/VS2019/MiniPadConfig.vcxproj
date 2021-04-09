@@ -92,8 +92,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\lib\wxwidgets\lib\vc_lib\Release\mswu;$(SolutionDir)..\..\lib\wxwidgets\include;$(SolutionDir)..\..\lib\libusb\libusb;$(SolutionDir)..\..\lib\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\lib\wxwidgets\lib\vc_lib\Debug\mswud;$(SolutionDir)..\..\lib\wxwidgets\include;$(SolutionDir)..\..\lib\libusb\libusb;$(SolutionDir)..\..\lib\hidapi\hidapi;$(SolutionDir)..\..\lib\utfcpp\source;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -110,8 +111,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\lib\wxwidgets\lib\vc_lib\Release\mswu;$(SolutionDir)..\..\lib\wxwidgets\include;$(SolutionDir)..\..\lib\libusb\libusb;$(SolutionDir)..\..\lib\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\lib\wxwidgets\lib\vc_lib\Release\mswu;$(SolutionDir)..\..\lib\wxwidgets\include;$(SolutionDir)..\..\lib\libusb\libusb;$(SolutionDir)..\..\lib\hidapi\hidapi;$(SolutionDir)..\..\lib\utfcpp\source;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -162,12 +164,21 @@
     <ClCompile Include="..\..\src\devices.cpp" />
     <ClCompile Include="..\..\src\logging.cpp" />
     <ClCompile Include="..\..\src\logo.cpp" />
-    <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\app.cpp" />
+    <ClCompile Include="..\..\src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices.h" />
     <ClInclude Include="..\..\src\logging.h" />
     <ClInclude Include="..\..\src\logo.h" />
+    <ClInclude Include="..\..\src\pages\about.h" />
+    <ClInclude Include="..\..\src\pages\base.h" />
+    <ClInclude Include="..\..\src\pages\buttons.h" />
+    <ClInclude Include="..\..\src\pages\firmware.h" />
+    <ClInclude Include="..\..\src\pages\idle.h" />
+    <ClInclude Include="..\..\src\pages\log.h" />
+    <ClInclude Include="..\..\src\pages\sensors.h" />
+    <ClInclude Include="..\..\src\utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
