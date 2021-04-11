@@ -337,6 +337,12 @@ public:
 		return SendPadConfiguration();
 	}
 
+	bool SetReleaseThreshold(double threshold)
+	{
+		myReleaseThreshold = clamp(threshold, 0.01, 1.00);
+		return SendPadConfiguration();
+	}
+
 	bool SetButtonMapping(int sensorIndex, int button)
 	{
 		mySensors[sensorIndex].button = button;
@@ -610,6 +616,12 @@ bool DeviceManager::SetThreshold(int sensorIndex, double threshold)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->SetThreshold(sensorIndex, threshold) : false;
+}
+
+bool DeviceManager::SetReleaseThreshold(double threshold)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SetReleaseThreshold(threshold) : false;
 }
 
 bool DeviceManager::SetButtonMapping(int sensorIndex, int button)

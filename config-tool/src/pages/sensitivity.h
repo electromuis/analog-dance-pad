@@ -93,13 +93,23 @@ public:
     SensitivityPage(wxWindow* owner, const PadState* pad) : BasePage(owner)
     {
         auto sizer = new wxBoxSizer(wxVERTICAL);
-        auto topLabel = new wxStaticText(this, wxID_ANY, myInstructionMsg);
-        sizer->Add(topLabel, 0, wxLEFT | wxRIGHT | wxTOP, 4);
+
+        auto activationLabel = new wxStaticText(this, wxID_ANY, myActivationMsg);
+        sizer->Add(activationLabel, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 4);
 
         mySensorSizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(mySensorSizer, 1, wxEXPAND);
         UpdateDisplays();
 
+        auto releaseLabel = new wxStaticText(this, wxID_ANY, myReleaseMsg);
+        sizer->Add(releaseLabel, 0, wxALIGN_CENTER_HORIZONTAL);
+
+        myReleaseThresholdSlider = new wxSlider(this, wxID_ANY, 90, 1, 100,
+            wxDefaultPosition, wxSize(300, -1), wxSL_VALUE_LABEL |  wxSL_TOP | wxSL_BOTH);
+
+        myReleaseThresholdSlider->Bind(wxEVT_SLIDER, &SensitivityPage::OnReleaseThresholdChanged, this);
+        sizer->Add(myReleaseThresholdSlider, 0, wxALIGN_CENTER_HORIZONTAL);
+ 
         SetSizer(sizer);
     }
 
@@ -113,9 +123,18 @@ public:
             display->Refresh(false);
     }
 
+    void OnReleaseThresholdChanged(wxCommandEvent& event)
+    {
+        auto value = myReleaseThresholdSlider->GetValue();
+        DeviceManager::SetReleaseThreshold(value * 0.01);
+    }
+
 private:
-    inline static constexpr const wchar_t* myInstructionMsg =
-        L"Click inside a sensor bar to adjust its sensitivity threshold.";
+    inline static constexpr const wchar_t* myActivationMsg =
+        L"Click inside sensor bars to adjust their activation threshold.";
+
+    inline static constexpr const wchar_t* myReleaseMsg =
+        L"Adjust release threshold (percentage of activation threshold).";
 
     void UpdateDisplays()
     {
@@ -156,6 +175,7 @@ private:
     }
 
     vector<SensorDisplay*> mySensorDisplays;
+    wxSlider* myReleaseThresholdSlider;
     wxBoxSizer* mySensorSizer;
 };
 

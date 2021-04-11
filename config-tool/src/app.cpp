@@ -24,6 +24,8 @@ class MainWindow : public wxFrame
 public:
     MainWindow() : wxFrame(nullptr, wxID_ANY, "FSR Mini Pad Config", wxDefaultPosition, wxSize(500, 500))
     {
+        SetMinClientSize(wxSize(400, 400));
+
         SetStatusBar(CreateStatusBar(1));
 
         auto sizer = new wxBoxSizer(wxVERTICAL);

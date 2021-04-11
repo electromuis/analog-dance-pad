@@ -45,6 +45,8 @@ public:
 
 	static bool SetThreshold(int sensorIndex, double threshold);
 
+	static bool SetReleaseThreshold(double threshold);
+
 	static bool SetButtonMapping(int sensorIndex, int button);
 
 	static bool SetDeviceName(const wchar_t* name);
