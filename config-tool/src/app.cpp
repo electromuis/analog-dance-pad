@@ -11,6 +11,7 @@
 #include "pages/log.h"
 
 using namespace pages;
+using namespace style;
 
 namespace app {
 
@@ -117,6 +118,7 @@ public:
         Log::Writef(L"Application started: %s", now.wc_str());
 
         DeviceManager::Init();
+        Style::Init();
 
         wxImage::AddHandler(new wxPNGHandler());
 
@@ -127,6 +129,7 @@ public:
 
     int OnExit() override
     {
+        Style::Shutdown();
         DeviceManager::Shutdown();
         Log::Shutdown();
 

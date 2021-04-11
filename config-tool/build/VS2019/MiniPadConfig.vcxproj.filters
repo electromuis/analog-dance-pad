@@ -6,6 +6,7 @@
     <ClCompile Include="..\..\src\utils.cpp" />
     <ClCompile Include="..\..\src\logo.cpp" />
     <ClCompile Include="..\..\src\app.cpp" />
+    <ClCompile Include="..\..\src\style.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices.h" />
@@ -33,6 +34,7 @@
     <ClInclude Include="..\..\src\pages\device.h">
       <Filter>pages</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\style.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="pages">

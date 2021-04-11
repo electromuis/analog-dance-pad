@@ -2,6 +2,7 @@
 
 #include "pages/base.h"
 #include "devices.h"
+#include "style.h"
 
 #include "wx/dataview.h"
 #include "wx/dcbuffer.h"
@@ -26,15 +27,15 @@ public:
     {
         int w, h;
         wxBufferedPaintDC dc(this);
-        dc.GetSize(&w, &h);
+        GetClientSize(&w, &h);
 
         auto sensor = DeviceManager::Sensor(mySensor);
         int barW = sensor ? (sensor->value * w) : 0;
 
-        dc.SetPen(wxPen(*wxBLACK, 0));
-        dc.SetBrush(*wxBLACK_BRUSH);
+        dc.SetPen(style::Pens::Black1px());
+        dc.SetBrush(style::Brushes::SensorBar());
         dc.DrawRectangle(barW, 0, w - barW, h);
-        dc.SetBrush(*wxYELLOW_BRUSH);
+        dc.SetBrush(style::Brushes::SensorOn());
         dc.DrawRectangle(0, 0, barW, h);
     }
 

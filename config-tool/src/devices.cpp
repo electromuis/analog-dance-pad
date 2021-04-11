@@ -211,10 +211,22 @@ static bool SendFeatureReport(hid_device* hid, const T& report)
 	return false;
 }
 
+static bool WriteReport(hid_device* hid, uint8_t reportId, const wchar_t* name)
+{
+	int bytesWritten = hid_write(hid, &reportId, sizeof(reportId));
+	if (bytesWritten > 0)
+	{
+		Log::Writef(L"WriteReport :: done");
+		return true;
+	}
+	Log::Writef(L"WriteReport (%s) :: hid failed (%s)", name, hid_error(hid));
+	return false;
+}
+
 static void SendDeviceReset(hid_device* hid)
 {
-	uint8_t reset = REPORT_RESET;
-	hid_write(hid, &reset, sizeof(reset)); // Device resets immediately, so checking result is not reliable.
+	uint8_t reportId = REPORT_RESET;
+	hid_write(hid, &reportId, sizeof(reportId)); // Device resets immediately, so checking result is not reliable.
 	Log::Write(L"SendDeviceReset :: done");
 }
 
@@ -319,6 +331,12 @@ public:
 		return true;
 	}
 
+	bool SetThreshold(int sensorIndex, double threshold)
+	{
+		mySensors[sensorIndex].threshold = clamp(threshold, 0.0, 1.0);
+		return SendPadConfiguration();
+	}
+
 	bool SetButtonMapping(int sensorIndex, int button)
 	{
 		mySensors[sensorIndex].button = button;
@@ -326,7 +344,7 @@ public:
 		return SendPadConfiguration();
 	}
 
-	bool SetName(const wchar_t* rawName)
+	bool SendName(const wchar_t* rawName)
 	{
 		NameReport report;
 
@@ -340,6 +358,7 @@ public:
 		report.size = (uint8_t)name.length();
 		memcpy(report.name, name.data(), name.length());
 		bool result = SendFeatureReport(myHid, report) && GetFeatureReport(myHid, report);
+		myHasUnsavedChanges = true;
 		UpdateName(report);
 		return result;
 	}
@@ -356,8 +375,18 @@ public:
 		}
 		report.releaseThreshold = WriteF32LE((float)myReleaseThreshold);
 		bool result = SendFeatureReport(myHid, report) && GetFeatureReport(myHid, report);
+		myHasUnsavedChanges = true;
 		UpdatePadConfiguration(report);
 		return result;
+	}
+
+	void SaveChanges()
+	{
+		if (myHasUnsavedChanges)
+		{
+			WriteReport(myHid, REPORT_SAVE_CONFIGURATION, L"REPORT_SAVE_CONFIGURATION");
+			myHasUnsavedChanges = false;
+		}
 	}
 
 	const DevicePath& Path() const { return myPath; }
@@ -382,6 +411,7 @@ private:
 	PadState myState;
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
+	bool myHasUnsavedChanges = false;
 	double myReleaseThreshold = 1.0;
 };
 
@@ -401,6 +431,12 @@ static bool ContainsDevice(hid_device_info* devices, DevicePath path)
 class ConnectionManager
 {
 public:
+	~ConnectionManager()
+	{
+		if (myConnectedDevice)
+			myConnectedDevice->SaveChanges();
+	}
+
 	PadDevice* ConnectedDevice() const { return myConnectedDevice.get(); }
 
 	bool DiscoverDevice()
@@ -570,6 +606,12 @@ const SensorState* DeviceManager::Sensor(int sensorIndex)
 	return device ? device->Sensor(sensorIndex) : nullptr;
 }
 
+bool DeviceManager::SetThreshold(int sensorIndex, double threshold)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SetThreshold(sensorIndex, threshold) : false;
+}
+
 bool DeviceManager::SetButtonMapping(int sensorIndex, int button)
 {
 	auto device = connectionManager->ConnectedDevice();
@@ -579,7 +621,7 @@ bool DeviceManager::SetButtonMapping(int sensorIndex, int button)
 bool DeviceManager::SetDeviceName(const wchar_t* name)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->SetName(name) : false;
+	return device ? device->SendName(name) : false;
 }
 
 void DeviceManager::SendDeviceReset()
