@@ -12,9 +12,8 @@
 #include <map>
 
 using namespace std;
-using namespace logging;
 
-namespace devices {
+namespace mpc {
 
 constexpr int HID_VENDOR_ID = 0x1209;
 constexpr int HID_PRODUCT_ID = 0xB196;
@@ -274,7 +273,7 @@ public:
 
 	void UpdateName(const NameReport& report)
 	{
-		myState.name = utils::widen((const char*)report.name, (size_t)report.size);
+		myState.name = widen((const char*)report.name, (size_t)report.size);
 		myChanges |= DCF_NAME;
 	}
 
@@ -354,7 +353,7 @@ public:
 	{
 		NameReport report;
 
-		auto name = utils::narrow(rawName, wcslen(rawName));
+		auto name = narrow(rawName, wcslen(rawName));
 		if (name.size() > sizeof(report.name))
 		{
 			Log::Writef(L"SetName :: name '%s' exceeds %i chars and was not set", rawName, MAX_NAME_LENGTH);
@@ -517,7 +516,7 @@ public:
 		Log::Writef(L"  Name: %s", device->State().name.data());
 		Log::Writef(L"  Product: %s", deviceInfo->product_string);
 		Log::Writef(L"  Manufacturer: %s", deviceInfo->manufacturer_string);
-		Log::Writef(L"  Path: %s", utils::widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+		Log::Writef(L"  Path: %s", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
 		Log::Write(L"]");
 		PrintPadConfigurationReport(padConfiguration);
 
@@ -642,4 +641,4 @@ void DeviceManager::SendDeviceReset()
 	if (device) device->Reset();
 }
 
-}; // namespace devices.
+}; // namespace mpc.

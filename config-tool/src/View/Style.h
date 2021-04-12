@@ -2,7 +2,7 @@
 
 #include "wx/wxprec.h"
 
-namespace style {
+namespace mpc {
 
 struct Brushes
 {
@@ -25,4 +25,4 @@ public:
 	static void Shutdown();
 };
 
-}; // namespace style.
+}; // namespace mpc.

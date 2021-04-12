@@ -161,26 +161,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\devices.cpp" />
-    <ClCompile Include="..\..\src\logging.cpp" />
-    <ClCompile Include="..\..\src\logo.cpp" />
-    <ClCompile Include="..\..\src\app.cpp" />
-    <ClCompile Include="..\..\src\style.cpp" />
-    <ClCompile Include="..\..\src\utils.cpp" />
+    <ClCompile Include="..\..\src\Assets\Logo.inl" />
+    <ClCompile Include="..\..\src\Model\Devices.cpp" />
+    <ClCompile Include="..\..\src\Model\Logging.cpp" />
+    <ClCompile Include="..\..\src\Model\Utils.cpp" />
+    <ClCompile Include="..\..\src\View\AboutTab.cpp" />
+    <ClCompile Include="..\..\src\View\DeviceTab.cpp" />
+    <ClCompile Include="..\..\src\View\IdleTab.cpp" />
+    <ClCompile Include="..\..\src\View\LogTab.cpp" />
+    <ClCompile Include="..\..\src\View\MappingTab.cpp" />
+    <ClCompile Include="..\..\src\View\SensitivityTab.cpp" />
+    <ClCompile Include="..\..\src\View\Style.cpp" />
+    <ClCompile Include="..\..\src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\devices.h" />
-    <ClInclude Include="..\..\src\logging.h" />
-    <ClInclude Include="..\..\src\logo.h" />
-    <ClInclude Include="..\..\src\pages\about.h" />
-    <ClInclude Include="..\..\src\pages\base.h" />
-    <ClInclude Include="..\..\src\pages\mapping.h" />
-    <ClInclude Include="..\..\src\pages\device.h" />
-    <ClInclude Include="..\..\src\pages\idle.h" />
-    <ClInclude Include="..\..\src\pages\log.h" />
-    <ClInclude Include="..\..\src\pages\sensitivity.h" />
-    <ClInclude Include="..\..\src\style.h" />
-    <ClInclude Include="..\..\src\utils.h" />
+    <ClInclude Include="..\..\src\Model\Devices.h" />
+    <ClInclude Include="..\..\src\Model\Logging.h" />
+    <ClInclude Include="..\..\src\Model\Utils.h" />
+    <ClInclude Include="..\..\src\View\AboutTab.h" />
+    <ClInclude Include="..\..\src\View\BaseTab.h" />
+    <ClInclude Include="..\..\src\View\DeviceTab.h" />
+    <ClInclude Include="..\..\src\View\IdleTab.h" />
+    <ClInclude Include="..\..\src\View\LogTab.h" />
+    <ClInclude Include="..\..\src\View\MappingTab.h" />
+    <ClInclude Include="..\..\src\View\SensitivityTab.h" />
+    <ClInclude Include="..\..\src\View\Style.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

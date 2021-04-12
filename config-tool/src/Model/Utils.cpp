@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace utils {
+namespace mpc {
 
 const uint32_t utf8MultibyteResidu[6] =
 {
@@ -137,4 +137,4 @@ wstring widen(const char* s, size_t len)
 	return out;
 }
 
-}; // namespace utils.
+}; // namespace mpc.

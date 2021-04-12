@@ -1,6 +1,6 @@
-#include "style.h"
+#include "View/Style.h"
 
-namespace style {
+namespace mpc {
 
 struct StyleData
 {
@@ -32,4 +32,4 @@ const wxBrush& Brushes::DarkGray() { return styleData->brushDarkGray; }
 
 const wxPen& Pens::Black1px() { return styleData->penBlack1px; }
 
-}; // namespace style.
+}; // namespace mpc.

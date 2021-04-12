@@ -10,7 +10,7 @@
 
 using namespace std;
 
-namespace logging {
+namespace mpc {
 
 static vector<wstring>* messages = nullptr;
 
@@ -49,4 +49,4 @@ const wstring& Log::Message(int index)
 	return messages->at(index);
 }
 
-}; // namespace logging.
+}; // namespace mpc.

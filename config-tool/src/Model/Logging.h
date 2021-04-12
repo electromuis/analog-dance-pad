@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace logging {
+namespace mpc {
 
 class Log
 {
@@ -20,4 +20,4 @@ public:
 	static const std::wstring& Message(int index);
 };
 
-}; // namespace logging.
+}; // namespace mpc.

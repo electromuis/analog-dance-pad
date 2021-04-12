@@ -3,7 +3,7 @@
 #include <string>
 #include <functional>
 
-namespace devices {
+namespace mpc {
 
 enum DeviceChangeFlags
 {
@@ -54,4 +54,4 @@ public:
 	static void SendDeviceReset();
 };
 
-}; // namespace devices.
+}; // namespace mpc.
