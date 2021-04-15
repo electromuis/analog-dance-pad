@@ -1,5 +1,8 @@
 node_modules
 *.user
+
+config-tool/build/
+!config-tool/build/VS2019/
 config-tool/build/VS2019/.vs/
 config-tool/build/VS2019/Debug/
 config-tool/build/VS2019/Release/
