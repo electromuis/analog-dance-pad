@@ -5,9 +5,9 @@
 
 namespace mpc {
 
-const wchar_t* IdlePage::Title = L"Idle";
+const wchar_t* IdleTab::Title = L"Idle";
 
-IdlePage::IdlePage(wxWindow* owner) : BaseTab(owner)
+IdleTab::IdleTab(wxWindow* owner) : BaseTab(owner)
 {
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     auto text = new wxStaticText(

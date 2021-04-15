@@ -7,12 +7,12 @@
 
 namespace mpc {
 
-class DevicePage : public BaseTab
+class DeviceTab : public BaseTab
 {
 public:
     static const wchar_t* Title;
 
-    DevicePage(wxWindow* owner);
+    DeviceTab(wxWindow* owner);
 
     void OnRename(wxCommandEvent& event);
     void OnReset(wxCommandEvent& event);

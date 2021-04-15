@@ -13,12 +13,12 @@ namespace mpc {
 
 class SensorDisplay;
 
-class SensitivityPage : public BaseTab
+class SensitivityTab : public BaseTab
 {
 public:
     static const wchar_t* Title;
 
-    SensitivityPage(wxWindow* owner, const PadState* pad);
+    SensitivityTab(wxWindow* owner, const PadState* pad);
 
     void Tick(DeviceChanges changes) override;
 

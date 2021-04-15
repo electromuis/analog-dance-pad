@@ -9,9 +9,9 @@
 
 namespace mpc {
 
-const wchar_t* AboutPage::Title = L"About";
+const wchar_t* AboutTab::Title = L"About";
 
-AboutPage::AboutPage(wxWindow* owner)
+AboutTab::AboutTab(wxWindow* owner)
     : BaseTab(owner)
 {
     wxMemoryInputStream stream(LOGO_PNG, sizeof(LOGO_PNG));

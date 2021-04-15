@@ -6,9 +6,9 @@
 
 namespace mpc {
 
-const wchar_t* LogPage::Title = L"Log";
+const wchar_t* LogTab::Title = L"Log";
 
-LogPage::LogPage(wxWindow* owner) : BaseTab(owner)
+LogTab::LogTab(wxWindow* owner) : BaseTab(owner)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
     myText = new wxTextCtrl(
@@ -24,7 +24,7 @@ LogPage::LogPage(wxWindow* owner) : BaseTab(owner)
     SetSizer(sizer);
 }
 
-void LogPage::Tick(DeviceChanges changes)
+void LogTab::Tick(DeviceChanges changes)
 {
     for (int numMessages = Log::NumMessages(); myNumMessages < numMessages; ++myNumMessages)
     {

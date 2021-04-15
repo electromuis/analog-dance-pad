@@ -6,12 +6,12 @@
 
 namespace mpc {
 
-class LogPage : public BaseTab
+class LogTab : public BaseTab
 {
 public:
     static const wchar_t* Title;
 
-    LogPage(wxWindow* owner);
+    LogTab(wxWindow* owner);
 
     void Tick(DeviceChanges changes) override;
 

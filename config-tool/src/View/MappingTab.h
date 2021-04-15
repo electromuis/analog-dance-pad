@@ -14,12 +14,12 @@ namespace mpc {
 
 class HorizontalSensorBar;
 
-class MappingPage : public BaseTab
+class MappingTab : public BaseTab
 {
 public:
     static const wchar_t* Title;
 
-    MappingPage(wxWindow* owner, const PadState* pad);
+    MappingTab(wxWindow* owner, const PadState* pad);
 
     void Tick(DeviceChanges changes) override;
 

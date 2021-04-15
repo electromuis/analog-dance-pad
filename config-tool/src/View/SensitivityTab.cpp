@@ -84,9 +84,9 @@ static const wchar_t* ActivationMsg =
 static const wchar_t* ReleaseMsg =
     L"Adjust release threshold (percentage of activation threshold).";
 
-const wchar_t* SensitivityPage::Title = L"Sensitivity";
+const wchar_t* SensitivityTab::Title = L"Sensitivity";
 
-SensitivityPage::SensitivityPage(wxWindow* owner, const PadState* pad) : BaseTab(owner)
+SensitivityTab::SensitivityTab(wxWindow* owner, const PadState* pad) : BaseTab(owner)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -103,13 +103,13 @@ SensitivityPage::SensitivityPage(wxWindow* owner, const PadState* pad) : BaseTab
     myReleaseThresholdSlider = new wxSlider(this, wxID_ANY, 90, 1, 100,
         wxDefaultPosition, wxSize(300, -1), wxSL_VALUE_LABEL |  wxSL_TOP | wxSL_BOTH);
 
-    myReleaseThresholdSlider->Bind(wxEVT_SLIDER, &SensitivityPage::OnReleaseThresholdChanged, this);
+    myReleaseThresholdSlider->Bind(wxEVT_SLIDER, &SensitivityTab::OnReleaseThresholdChanged, this);
     sizer->Add(myReleaseThresholdSlider, 0, wxALIGN_CENTER_HORIZONTAL);
 
     SetSizer(sizer);
 }
 
-void SensitivityPage::Tick(DeviceChanges changes)
+void SensitivityTab::Tick(DeviceChanges changes)
 {
     if (changes & DCF_BUTTON_MAPPING)
         UpdateDisplays();
@@ -119,13 +119,13 @@ void SensitivityPage::Tick(DeviceChanges changes)
         display->Refresh(false);
 }
 
-void SensitivityPage::OnReleaseThresholdChanged(wxCommandEvent& event)
+void SensitivityTab::OnReleaseThresholdChanged(wxCommandEvent& event)
 {
     auto value = myReleaseThresholdSlider->GetValue();
     DeviceManager::SetReleaseThreshold(value * 0.01);
 }
 
-void SensitivityPage::UpdateDisplays()
+void SensitivityTab::UpdateDisplays()
 {
     vector<tuple<int, int>> sensors;
 

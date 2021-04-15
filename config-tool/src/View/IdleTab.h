@@ -4,12 +4,12 @@
 
 namespace mpc {
 
-class IdlePage : public BaseTab
+class IdleTab : public BaseTab
 {
 public:
     static const wchar_t* Title;
 
-    IdlePage(wxWindow* owner);
+    IdleTab(wxWindow* owner);
 };
 
 }; // namespace mpc.

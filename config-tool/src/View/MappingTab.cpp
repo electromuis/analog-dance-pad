@@ -44,9 +44,9 @@ BEGIN_EVENT_TABLE(HorizontalSensorBar, wxWindow)
     EVT_PAINT(HorizontalSensorBar::OnPaint)
 END_EVENT_TABLE()
 
-const wchar_t* MappingPage::Title = L"Mapping";
+const wchar_t* MappingTab::Title = L"Mapping";
 
-MappingPage::MappingPage(wxWindow* owner, const PadState* pad) : BaseTab(owner)
+MappingTab::MappingTab(wxWindow* owner, const PadState* pad) : BaseTab(owner)
 {
     wxArrayString options;
     options.Add(L"-");
@@ -65,7 +65,7 @@ MappingPage::MappingPage(wxWindow* owner, const PadState* pad) : BaseTab(owner)
         sizer->Add(text, 0, wxLEFT | wxTOP | wxRIGHT, 4);
 
         auto box = new wxComboBox(view, i, options[0], wxDefaultPosition, wxSize(100, 24), options, wxCB_READONLY);
-        box->Bind(wxEVT_COMBOBOX, &MappingPage::OnButtonChanged, this);
+        box->Bind(wxEVT_COMBOBOX, &MappingTab::OnButtonChanged, this);
         sizer->Add(box);
         myButtonBoxes.push_back(box);
 
@@ -84,13 +84,13 @@ MappingPage::MappingPage(wxWindow* owner, const PadState* pad) : BaseTab(owner)
     SetSizer(outerSizer);
 }
 
-void MappingPage::Tick(DeviceChanges changes)
+void MappingTab::Tick(DeviceChanges changes)
 {
     for (auto bar : mySensorBars)
         bar->Refresh(false);
 }
 
-void MappingPage::OnButtonChanged(wxCommandEvent& event)
+void MappingTab::OnButtonChanged(wxCommandEvent& event)
 {
     int sensorIndex = event.GetId();
     auto selectedButton = myButtonBoxes[sensorIndex]->GetSelection();
@@ -98,7 +98,7 @@ void MappingPage::OnButtonChanged(wxCommandEvent& event)
     UpdateButtonMapping();
 }
 
-void MappingPage::UpdateButtonMapping()
+void MappingTab::UpdateButtonMapping()
 {
     for (uint32_t i = 0; i < myButtonBoxes.size(); ++i)
     {

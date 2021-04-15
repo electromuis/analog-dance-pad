@@ -30,8 +30,8 @@ public:
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
-        myTabs->AddPage(new AboutPage(myTabs), AboutPage::Title);
-        myTabs->AddPage(new LogPage(myTabs), LogPage::Title);
+        myTabs->AddPage(new AboutTab(myTabs), AboutTab::Title);
+        myTabs->AddPage(new LogTab(myTabs), LogTab::Title);
         sizer->Add(myTabs, 1, wxEXPAND);
         SetSizer(sizer);
 
@@ -71,13 +71,13 @@ private:
         auto pad = DeviceManager::Pad();
         if (pad)
         {
-            myTabs->InsertPage(0, new SensitivityPage(myTabs, pad), SensitivityPage::Title, true);
-            myTabs->InsertPage(1, new MappingPage(myTabs, pad), MappingPage::Title);
-            myTabs->InsertPage(2, new DevicePage(myTabs), DevicePage::Title);
+            myTabs->InsertPage(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
+            myTabs->InsertPage(1, new MappingTab(myTabs, pad), MappingTab::Title);
+            myTabs->InsertPage(2, new DeviceTab(myTabs), DeviceTab::Title);
         }
         else
         {
-            myTabs->InsertPage(0, new IdlePage(myTabs), IdlePage::Title, true);
+            myTabs->InsertPage(0, new IdleTab(myTabs), IdleTab::Title, true);
         }
     }
 

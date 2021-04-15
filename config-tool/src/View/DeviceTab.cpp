@@ -18,11 +18,11 @@ static constexpr const wchar_t* RenameMsg =
 static constexpr const wchar_t* ResetMsg =
     L"Perform a hardware reset. This will restart the\ndevice and provide a window to update firmware.";
 
-const wchar_t* DevicePage::Title = L"Device";
+const wchar_t* DeviceTab::Title = L"Device";
 
 enum Ids { RESET_BUTTON = 1, RENAME_BUTTON = 2 };
 
-DevicePage::DevicePage(wxWindow* owner) : BaseTab(owner)
+DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 {
     mySizer = new wxBoxSizer(wxVERTICAL);
     myRenameLabel = new wxStaticText(this, wxID_ANY, RenameMsg);
@@ -36,7 +36,7 @@ DevicePage::DevicePage(wxWindow* owner) : BaseTab(owner)
     SetSizer(mySizer);
 }
 
-void DevicePage::OnRename(wxCommandEvent& event)
+void DeviceTab::OnRename(wxCommandEvent& event)
 {
     auto pad = DeviceManager::Pad();
     if (pad == nullptr)
@@ -49,14 +49,14 @@ void DevicePage::OnRename(wxCommandEvent& event)
         DeviceManager::SetDeviceName(dlg.GetValue().wc_str());
 }
 
-void DevicePage::OnReset(wxCommandEvent& event)
+void DeviceTab::OnReset(wxCommandEvent& event)
 {
     DeviceManager::SendDeviceReset();
 }
 
-BEGIN_EVENT_TABLE(DevicePage, wxWindow)
-    EVT_BUTTON(RENAME_BUTTON, DevicePage::OnRename)
-    EVT_BUTTON(RESET_BUTTON, DevicePage::OnReset)
+BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
+    EVT_BUTTON(RENAME_BUTTON, DeviceTab::OnRename)
+    EVT_BUTTON(RESET_BUTTON, DeviceTab::OnReset)
 END_EVENT_TABLE()
 
 }; // namespace mpc.
