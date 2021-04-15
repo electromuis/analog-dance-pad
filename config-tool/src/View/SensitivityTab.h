@@ -30,6 +30,7 @@ private:
     vector<SensorDisplay*> mySensorDisplays;
     wxSlider* myReleaseThresholdSlider;
     wxBoxSizer* mySensorSizer;
+    bool myIsUpdatingReleaseThreshold;
 };
 
 }; // namespace mpc.

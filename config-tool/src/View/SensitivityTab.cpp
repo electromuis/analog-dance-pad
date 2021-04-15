@@ -1,4 +1,5 @@
 #include "wx/dcbuffer.h"
+#include "wx/stattext.h"
 
 #include "View/Style.h"
 #include "View/SensitivityTab.h"
@@ -17,6 +18,26 @@ public:
         SetMaxSize(wxSize(500, 1000));
     }
 
+    void Tick()
+    {
+        if (myIsBeingDragged)
+        {
+            auto mouse = wxGetMouseState();
+            auto rect = GetScreenRect();
+            myThreshold = clamp(1.0 - double(mouse.GetY() - rect.y) / max(1.0, (double)rect.height), 0.0, 1.0);
+            if (!mouse.LeftIsDown())
+            {
+                DeviceManager::SetThreshold(mySensor, myThreshold);
+                myIsBeingDragged = false;
+            }
+        }
+        else
+        {
+            auto sensor = DeviceManager::Sensor(mySensor);
+            myThreshold = sensor ? sensor->threshold : 0.0;
+        }
+    }
+
     void OnPaint(wxPaintEvent& evt)
     {
         wxBufferedPaintDC dc(this);
@@ -24,8 +45,7 @@ public:
 
         auto sensor = DeviceManager::Sensor(mySensor);
         int barH = sensor ? (sensor->value * size.y) : 0;
-        auto threshold = sensor ? sensor->threshold : 0;
-        auto thresholdY = size.y * (1.0 - threshold);
+        auto thresholdY = size.y * (1.0 - myThreshold);
         bool pressed = sensor ? sensor->pressed : false;
 
         dc.SetPen(Pens::Black1px());
@@ -36,7 +56,7 @@ public:
         dc.SetBrush(*wxWHITE_BRUSH);
         dc.DrawRectangle(0, thresholdY - 1, size.x, 3);
 
-        auto sensitivityText = wxString::Format("%i%%", (int)std::lround(threshold * 100.0));
+        auto sensitivityText = wxString::Format("%i%%", (int)std::lround(myThreshold * 100.0));
         auto rect = wxRect(size.x / 2 - 20, 5, 40, 20);
         dc.SetBrush(Brushes::DarkGray());
         dc.DrawRectangle(rect);
@@ -49,10 +69,7 @@ public:
         auto pos = event.GetPosition();
         auto rect = GetClientRect();
         if (rect.Contains(pos))
-        {
-            double threshold = 1.0 - double(pos.y - rect.y) / max(1.0, (double)rect.height);
-            DeviceManager::SetThreshold(mySensor, threshold);
-        }
+            myIsBeingDragged = true;
     }
 
     void SetSensor(int index, int button)
@@ -71,11 +88,14 @@ protected:
 private:
     int mySensor = 0;
     int myButton = 0;
+    double myThreshold = 0.0;
+    bool myIsBeingDragged = false;
 };
 
 BEGIN_EVENT_TABLE(SensorDisplay, wxWindow)
     EVT_PAINT(SensorDisplay::OnPaint)
     EVT_LEFT_DOWN(SensorDisplay::OnClick)
+    EVT_LEFT_UP(SensorDisplay::OnClick)
 END_EVENT_TABLE()
 
 static const wchar_t* ActivationMsg =
@@ -107,6 +127,8 @@ SensitivityTab::SensitivityTab(wxWindow* owner, const PadState* pad) : BaseTab(o
     sizer->Add(myReleaseThresholdSlider, 0, wxALIGN_CENTER_HORIZONTAL);
 
     SetSizer(sizer);
+
+    myIsUpdatingReleaseThreshold = false;
 }
 
 void SensitivityTab::Tick(DeviceChanges changes)
@@ -116,13 +138,22 @@ void SensitivityTab::Tick(DeviceChanges changes)
 
     auto mouseState = wxGetMouseState();
     for (auto display : mySensorDisplays)
+    {
+        display->Tick();
         display->Refresh(false);
+    }
+
+    if (myIsUpdatingReleaseThreshold && !wxGetMouseState().LeftIsDown())
+    {
+        auto value = myReleaseThresholdSlider->GetValue();
+        DeviceManager::SetReleaseThreshold(value * 0.01);
+        myIsUpdatingReleaseThreshold = false;
+    }
 }
 
 void SensitivityTab::OnReleaseThresholdChanged(wxCommandEvent& event)
 {
-    auto value = myReleaseThresholdSlider->GetValue();
-    DeviceManager::SetReleaseThreshold(value * 0.01);
+    myIsUpdatingReleaseThreshold = true;
 }
 
 void SensitivityTab::UpdateDisplays()

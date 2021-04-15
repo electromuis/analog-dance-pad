@@ -1,6 +1,4 @@
-#include "wx/wxprec.h"
-#include "wx/setup.h"
-#include "wx/timer.h"
+#include "wx/wx.h"
 #include "wx/notebook.h"
 
 #include "View/IdleTab.h"

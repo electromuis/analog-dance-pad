@@ -1,5 +1,7 @@
 #include "wx/dataview.h"
 #include "wx/dcbuffer.h"
+#include "wx/sizer.h"
+#include "wx/stattext.h"
 
 #include "View/MappingTab.h"
 #include "View/Style.h"

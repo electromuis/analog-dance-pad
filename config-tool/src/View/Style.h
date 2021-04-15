@@ -1,6 +1,7 @@
 #pragma once
 
-#include "wx/wxprec.h"
+#include "wx/brush.h"
+#include "wx/pen.h"
 
 namespace mpc {
 
