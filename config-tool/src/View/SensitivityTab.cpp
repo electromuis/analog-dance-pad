@@ -27,13 +27,13 @@ public:
             myThreshold = clamp(1.0 - double(mouse.GetY() - rect.y) / max(1.0, (double)rect.height), 0.0, 1.0);
             if (!mouse.LeftIsDown())
             {
-                DeviceManager::SetThreshold(mySensor, myThreshold);
+                Device::SetThreshold(mySensor, myThreshold);
                 myIsBeingDragged = false;
             }
         }
         else
         {
-            auto sensor = DeviceManager::Sensor(mySensor);
+            auto sensor = Device::Sensor(mySensor);
             myThreshold = sensor ? sensor->threshold : 0.0;
         }
     }
@@ -43,7 +43,7 @@ public:
         wxBufferedPaintDC dc(this);
         auto size = GetClientSize();
 
-        auto sensor = DeviceManager::Sensor(mySensor);
+        auto sensor = Device::Sensor(mySensor);
         int barH = sensor ? (sensor->value * size.y) : 0;
         auto thresholdY = size.y * (1.0 - myThreshold);
         bool pressed = sensor ? sensor->pressed : false;
@@ -146,7 +146,7 @@ void SensitivityTab::Tick(DeviceChanges changes)
     if (myIsUpdatingReleaseThreshold && !wxGetMouseState().LeftIsDown())
     {
         auto value = myReleaseThresholdSlider->GetValue();
-        DeviceManager::SetReleaseThreshold(value * 0.01);
+        Device::SetReleaseThreshold(value * 0.01);
         myIsUpdatingReleaseThreshold = false;
     }
 }
@@ -160,12 +160,12 @@ void SensitivityTab::UpdateDisplays()
 {
     vector<tuple<int, int>> sensors;
 
-    auto pad = DeviceManager::Pad();
+    auto pad = Device::Pad();
     if (pad)
     {
         for (int i = 0; i < pad->numSensors; ++i)
         {
-            auto sensor = DeviceManager::Sensor(i);
+            auto sensor = Device::Sensor(i);
             if (sensor->button != 0)
                 sensors.push_back(make_tuple(i, sensor->button));
         }

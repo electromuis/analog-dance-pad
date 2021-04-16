@@ -2,7 +2,7 @@
 
 #include "wx/window.h"
 
-#include "Model/Devices.h"
+#include "Model/Device.h"
 
 namespace mpc {
 
