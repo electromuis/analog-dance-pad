@@ -8,12 +8,14 @@ set(wxBUILD_SHARED OFF)
 
 add_executable (${PROJECT_NAME} WIN32
 	src/Main.cpp
-	src/Model/Devices.cpp
-	src/Model/Logging.cpp
+	src/Model/Device.cpp
+	src/Model/Log.cpp
+	src/Model/Reporter.cpp
 	src/Model/Utils.cpp
 	src/View/AboutTab.cpp
 	src/View/DeviceTab.cpp
 	src/View/IdleTab.cpp
+	src/View/LightsTab.cpp
 	src/View/LogTab.cpp
 	src/View/MappingTab.cpp
 	src/View/SensitivityTab.cpp
