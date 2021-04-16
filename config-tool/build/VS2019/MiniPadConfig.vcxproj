@@ -162,12 +162,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Assets\Logo.inl" />
-    <ClCompile Include="..\..\src\Model\Devices.cpp" />
-    <ClCompile Include="..\..\src\Model\Logging.cpp" />
+    <ClCompile Include="..\..\src\Model\Device.cpp" />
+    <ClCompile Include="..\..\src\Model\Log.cpp" />
+    <ClCompile Include="..\..\src\Model\Reporter.cpp" />
     <ClCompile Include="..\..\src\Model\Utils.cpp" />
     <ClCompile Include="..\..\src\View\AboutTab.cpp" />
     <ClCompile Include="..\..\src\View\DeviceTab.cpp" />
     <ClCompile Include="..\..\src\View\IdleTab.cpp" />
+    <ClCompile Include="..\..\src\View\LightsTab.cpp" />
     <ClCompile Include="..\..\src\View\LogTab.cpp" />
     <ClCompile Include="..\..\src\View\MappingTab.cpp" />
     <ClCompile Include="..\..\src\View\SensitivityTab.cpp" />
@@ -175,13 +177,15 @@
     <ClCompile Include="..\..\src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\Model\Devices.h" />
-    <ClInclude Include="..\..\src\Model\Logging.h" />
+    <ClInclude Include="..\..\src\Model\Device.h" />
+    <ClInclude Include="..\..\src\Model\Log.h" />
+    <ClInclude Include="..\..\src\Model\Reporter.h" />
     <ClInclude Include="..\..\src\Model\Utils.h" />
     <ClInclude Include="..\..\src\View\AboutTab.h" />
     <ClInclude Include="..\..\src\View\BaseTab.h" />
     <ClInclude Include="..\..\src\View\DeviceTab.h" />
     <ClInclude Include="..\..\src\View\IdleTab.h" />
+    <ClInclude Include="..\..\src\View\LightsTab.h" />
     <ClInclude Include="..\..\src\View\LogTab.h" />
     <ClInclude Include="..\..\src\View\MappingTab.h" />
     <ClInclude Include="..\..\src\View\SensitivityTab.h" />

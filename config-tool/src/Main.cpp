@@ -4,12 +4,13 @@
 #include "View/IdleTab.h"
 #include "View/SensitivityTab.h"
 #include "View/MappingTab.h"
+#include "View/LightsTab.h"
 #include "View/DeviceTab.h"
 #include "View/AboutTab.h"
 #include "View/LogTab.h"
 #include "View/Style.h"
 
-#include "Model/Logging.h"
+#include "Model/Log.h"
 
 namespace mpc {
 
@@ -46,7 +47,7 @@ public:
 
     void Tick()
     {
-        auto changes = DeviceManager::Update();
+        auto changes = Device::Update();
 
         if (changes & DCF_DEVICE)
             UpdatePages();
@@ -66,12 +67,13 @@ private:
         while (myTabs->GetPageCount() > 2)
             myTabs->DeletePage(0);
 
-        auto pad = DeviceManager::Pad();
+        auto pad = Device::Pad();
         if (pad)
         {
             myTabs->InsertPage(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
             myTabs->InsertPage(1, new MappingTab(myTabs, pad), MappingTab::Title);
-            myTabs->InsertPage(2, new DeviceTab(myTabs), DeviceTab::Title);
+            myTabs->InsertPage(2, new LightsTab(myTabs), LightsTab::Title);
+            myTabs->InsertPage(3, new DeviceTab(myTabs), DeviceTab::Title);
         }
         else
         {
@@ -81,7 +83,7 @@ private:
 
     void UpdateStatusText()
     {
-        auto pad = DeviceManager::Pad();
+        auto pad = Device::Pad();
         if (pad)
             SetStatusText(L"Connected to: " + pad->name);
         else
@@ -117,7 +119,7 @@ public:
         auto now = wxDateTime::Now().FormatISOCombined(' ');
         Log::Writef(L"Application started: %s", now.wc_str());
 
-        DeviceManager::Init();
+        Device::Init();
         Style::Init();
 
         wxImage::AddHandler(new wxPNGHandler());
@@ -130,7 +132,7 @@ public:
     int OnExit() override
     {
         Style::Shutdown();
-        DeviceManager::Shutdown();
+        Device::Shutdown();
         Log::Shutdown();
 
         return wxApp::OnExit();

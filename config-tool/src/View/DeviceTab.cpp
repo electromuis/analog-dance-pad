@@ -4,7 +4,7 @@
 
 #include "View/DeviceTab.h"
 
-#include "Model/Devices.h"
+#include "Model/Device.h"
 
 #include <string>
 
@@ -38,7 +38,7 @@ DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 
 void DeviceTab::OnRename(wxCommandEvent& event)
 {
-    auto pad = DeviceManager::Pad();
+    auto pad = Device::Pad();
     if (pad == nullptr)
         return;
 
@@ -46,12 +46,12 @@ void DeviceTab::OnRename(wxCommandEvent& event)
     dlg.SetTextValidator(wxFILTER_ALPHANUMERIC | wxFILTER_SPACE);
     dlg.SetMaxLength(pad->maxNameLength);
     if (dlg.ShowModal() == wxID_OK)
-        DeviceManager::SetDeviceName(dlg.GetValue().wc_str());
+        Device::SetDeviceName(dlg.GetValue().wc_str());
 }
 
 void DeviceTab::OnReset(wxCommandEvent& event)
 {
-    DeviceManager::SendDeviceReset();
+    Device::SendDeviceReset();
 }
 
 BEGIN_EVENT_TABLE(DeviceTab, wxWindow)

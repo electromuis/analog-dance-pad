@@ -2,7 +2,7 @@
 
 #include "View/LogTab.h"
 
-#include "Model/Logging.h"
+#include "Model/Log.h"
 
 namespace mpc {
 

@@ -20,12 +20,6 @@
     <ClCompile Include="..\..\src\View\SensitivityTab.cpp">
       <Filter>View</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Model\Devices.cpp">
-      <Filter>Model</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Model\Logging.cpp">
-      <Filter>Model</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Model\Utils.cpp">
       <Filter>Model</Filter>
     </ClCompile>
@@ -34,6 +28,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Assets\Logo.inl">
       <Filter>Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\View\LightsTab.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Model\Device.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Model\Log.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Model\Reporter.cpp">
+      <Filter>Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -58,17 +64,23 @@
     <ClInclude Include="..\..\src\View\SensitivityTab.h">
       <Filter>View</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Model\Devices.h">
-      <Filter>Model</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Model\Logging.h">
-      <Filter>Model</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Model\Utils.h">
       <Filter>Model</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\View\Style.h">
       <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\View\LightsTab.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Model\Device.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Model\Log.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Model\Reporter.h">
+      <Filter>Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

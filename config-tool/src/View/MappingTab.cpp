@@ -23,7 +23,7 @@ public:
         wxBufferedPaintDC dc(this);
         GetClientSize(&w, &h);
 
-        auto sensor = DeviceManager::Sensor(mySensor);
+        auto sensor = Device::Sensor(mySensor);
         int barW = sensor ? (sensor->value * w) : 0;
 
         dc.SetPen(Pens::Black1px());
@@ -96,7 +96,7 @@ void MappingTab::OnButtonChanged(wxCommandEvent& event)
 {
     int sensorIndex = event.GetId();
     auto selectedButton = myButtonBoxes[sensorIndex]->GetSelection();
-    DeviceManager::SetButtonMapping(sensorIndex, selectedButton);
+    Device::SetButtonMapping(sensorIndex, selectedButton);
     UpdateButtonMapping();
 }
 
@@ -104,7 +104,7 @@ void MappingTab::UpdateButtonMapping()
 {
     for (uint32_t i = 0; i < myButtonBoxes.size(); ++i)
     {
-        auto sensor = DeviceManager::Sensor(i);
+        auto sensor = Device::Sensor(i);
         auto button = sensor ? sensor->button : 0;
         myButtonBoxes[i]->SetSelection(button);
     }

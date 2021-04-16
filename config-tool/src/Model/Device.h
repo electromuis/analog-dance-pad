@@ -1,7 +1,7 @@
 #pragma once
 
+#include "stdint.h"
 #include <string>
-#include <functional>
 
 namespace mpc {
 
@@ -30,7 +30,7 @@ struct PadState
 	double releaseThreshold = 1.0;
 };
 
-class DeviceManager
+class Device
 {
 public:
 	static void Init();
