@@ -87,7 +87,13 @@ MappingTab::MappingTab(wxWindow* owner, const PadState* pad) : BaseTab(owner)
     SetSizer(outerSizer);
 }
 
-void MappingTab::Tick(DeviceChanges changes)
+void MappingTab::HandleChanges(DeviceChanges changes)
+{
+    if (changes & DCF_BUTTON_MAPPING)
+        UpdateButtonMapping();
+}
+
+void MappingTab::Tick()
 {
     for (auto bar : mySensorBars)
         bar->Refresh(false);
@@ -98,7 +104,6 @@ void MappingTab::OnButtonChanged(wxCommandEvent& event)
     int sensorIndex = event.GetId();
     auto selectedButton = myButtonBoxes[sensorIndex]->GetSelection();
     Device::SetButtonMapping(sensorIndex, selectedButton);
-    UpdateButtonMapping();
 }
 
 void MappingTab::UpdateButtonMapping()

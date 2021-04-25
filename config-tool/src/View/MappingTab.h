@@ -21,7 +21,8 @@ public:
 
     MappingTab(wxWindow* owner, const PadState* pad);
 
-    void Tick(DeviceChanges changes) override;
+    void HandleChanges(DeviceChanges changes) override;
+    void Tick() override;
 
 private:
     std::vector<wxComboBox*> myButtonBoxes;

@@ -56,9 +56,15 @@ public:
         if (changes & (DCF_DEVICE | DCF_NAME))
             UpdateStatusText();
 
+        if (changes)
+        {
+            for (size_t i = 0; i < myTabs->GetPageCount(); ++i)
+                ((BaseTab*)myTabs->GetPage(i))->HandleChanges(changes);
+        }
+
         auto page = (BaseTab*)myTabs->GetCurrentPage();
         if (page)
-            page->Tick(changes);
+            page->Tick();
     }
 
 private:

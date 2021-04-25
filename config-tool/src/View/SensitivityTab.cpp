@@ -132,10 +132,13 @@ SensitivityTab::SensitivityTab(wxWindow* owner, const PadState* pad) : BaseTab(o
     myIsUpdatingReleaseThreshold = false;
 }
 
-void SensitivityTab::Tick(DeviceChanges changes)
+void SensitivityTab::HandleChanges(DeviceChanges changes)
 {
     if (changes & DCF_BUTTON_MAPPING)
         UpdateDisplays();
+}
+
+void SensitivityTab::Tick()
 
     auto mouseState = wxGetMouseState();
     for (auto display : mySensorDisplays)

@@ -13,7 +13,7 @@ public:
 
     LogTab(wxWindow* owner);
 
-    void Tick(DeviceChanges changes) override;
+    void Tick() override;
 
 private:
     wxTextCtrl* myText;

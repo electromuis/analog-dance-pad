@@ -20,7 +20,8 @@ public:
 
     SensitivityTab(wxWindow* owner, const PadState* pad);
 
-    void Tick(DeviceChanges changes) override;
+    void HandleChanges(DeviceChanges changes) override;
+    void Tick() override;
 
     void OnReleaseThresholdChanged(wxCommandEvent& event);
 

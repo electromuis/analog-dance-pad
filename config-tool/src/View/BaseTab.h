@@ -13,7 +13,9 @@ public:
 
     virtual ~BaseTab() {}
 
-    virtual void Tick(DeviceChanges changes) {}
+    virtual void HandleChanges(DeviceChanges changes) {}
+
+    virtual void Tick() {}
 };
 
 }; // namespace adp.

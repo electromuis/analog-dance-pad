@@ -24,7 +24,7 @@ LogTab::LogTab(wxWindow* owner) : BaseTab(owner)
     SetSizer(sizer);
 }
 
-void LogTab::Tick(DeviceChanges changes)
+void LogTab::Tick()
 {
     for (int numMessages = Log::NumMessages(); myNumMessages < numMessages; ++myNumMessages)
     {
