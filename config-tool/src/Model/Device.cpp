@@ -11,6 +11,7 @@
 #include <thread>
 
 using namespace std;
+using namespace chrono;
 
 namespace adp {
 
@@ -92,6 +93,13 @@ static void PrintPadConfigurationReport(const PadConfigurationReport& padConfigu
 typedef string DevicePath;
 typedef wstring DeviceName;
 
+struct PollingData
+{
+	int readsSinceLastUpdate = 0;
+	int pollingRate = 0;
+	time_point<system_clock> lastUpdate;
+};
+
 class PadDevice
 {
 public:
@@ -108,6 +116,7 @@ public:
 		myPad.numButtons = MAX_BUTTON_COUNT;
 		myPad.numSensors = MAX_SENSOR_COUNT;
 		UpdatePadConfiguration(config);
+		myPollingData.lastUpdate = system_clock::now();
 	}
 
 	void UpdateName(const NameReport& report)
@@ -164,6 +173,16 @@ public:
 				mySensors[i].pressed = button > 0 && IsBitSet(pressedButtons, button - 1);
 				mySensors[i].value = ToNormalizedSensorValue(value);
 			}
+			myPollingData.readsSinceLastUpdate += inputsRead;
+		}
+
+		auto now = system_clock::now();
+		if (now > myPollingData.lastUpdate + 1s)
+		{
+			auto dt = duration<double>(now - myPollingData.lastUpdate).count();
+			myPollingData.pollingRate = (int)lround(myPollingData.readsSinceLastUpdate / dt);
+			myPollingData.readsSinceLastUpdate = 0;
+			myPollingData.lastUpdate = now;
 		}
 
 		return true;
@@ -215,7 +234,7 @@ public:
 		myReporter->SendFactoryReset();
 		
 		// Wait for the controller to process the report
-		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		this_thread::sleep_for(2ms);
 
 		// Fetch fresh config from device, and load it into our memory
 		NameReport name;
@@ -245,7 +264,7 @@ public:
 		bool sendResult = myReporter->Send(report);
 		
 		// Wait for the controller to process the report
-		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		this_thread::sleep_for(2ms);
 
 		bool getResult = myReporter->Get(report);
 		
@@ -264,6 +283,8 @@ public:
 	}
 
 	const DevicePath& Path() const { return myPath; }
+
+	const int PollingRate() const { return myPollingData.pollingRate; }
 
 	const PadState& State() const { return myPad; }
 
@@ -286,6 +307,7 @@ private:
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
+	PollingData myPollingData;
 };
 
 // ====================================================================================================================
@@ -460,6 +482,12 @@ DeviceChanges Device::Update()
 	}
 
 	return changes;
+}
+
+int Device::PollingRate()
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->PollingRate() : 0;
 }
 
 const PadState* Device::Pad()

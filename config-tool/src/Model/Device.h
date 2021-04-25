@@ -39,6 +39,8 @@ public:
 
 	static DeviceChanges Update();
 
+	static int PollingRate();
+
 	static const PadState* Pad();
 
 	static const SensorState* Sensor(int sensorIndex);

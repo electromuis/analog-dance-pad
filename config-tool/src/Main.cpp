@@ -26,7 +26,7 @@ public:
     {
         SetMinClientSize(wxSize(400, 400));
 
-        SetStatusBar(CreateStatusBar(1));
+        SetStatusBar(CreateStatusBar(2));
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
@@ -55,6 +55,8 @@ public:
 
         if (changes & (DCF_DEVICE | DCF_NAME))
             UpdateStatusText();
+
+        UpdatePollingRate();
 
         if (changes)
         {
@@ -92,9 +94,18 @@ private:
     {
         auto pad = Device::Pad();
         if (pad)
-            SetStatusText(L"Connected to: " + pad->name);
+            SetStatusText(L"Connected to: " + pad->name, 0);
         else
-            SetStatusText(wxEmptyString);
+            SetStatusText(wxEmptyString, 0);
+    }
+
+    void UpdatePollingRate()
+    {
+        auto rate = Device::PollingRate();
+        if (rate > 0)
+            SetStatusText(wxString::Format("%iHz", rate), 1);
+        else
+            SetStatusText(wxEmptyString, 1);
     }
 
     struct UpdateTimer : public wxTimer
