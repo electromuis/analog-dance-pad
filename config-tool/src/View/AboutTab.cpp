@@ -3,7 +3,7 @@
 #include "wx/stattext.h"
 #include "wx/generic/statbmpg.h"
 
-#include "Assets/Logo.inl"
+#include "Assets/Assets.h"
 
 #include "View/AboutTab.h"
 
@@ -14,8 +14,7 @@ const wchar_t* AboutTab::Title = L"About";
 AboutTab::AboutTab(wxWindow* owner)
     : BaseTab(owner)
 {
-    wxMemoryInputStream stream(LOGO_PNG, sizeof(LOGO_PNG));
-    wxImage logo(stream, wxBITMAP_TYPE_PNG);
+    wxImage logo(Files::Icon64(), wxBITMAP_TYPE_PNG);
 
     auto logoBitmap = new wxGenericStaticBitmap(this, wxID_ANY, wxBitmap(logo));
     auto topText = new wxStaticText(this, wxID_ANY, L"FSR Mini Pad Config Tool");

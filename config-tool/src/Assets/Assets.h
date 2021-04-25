@@ -2,6 +2,7 @@
 
 #include "wx/brush.h"
 #include "wx/pen.h"
+#include "wx/mstream.h"
 
 namespace mpc {
 
@@ -18,7 +19,14 @@ struct Pens
 	static const wxPen& Black1px();
 };
 
-class Style
+struct Files
+{
+	static wxMemoryInputStream Icon16();
+	static wxMemoryInputStream Icon32();
+	static wxMemoryInputStream Icon64();
+};
+
+class Assets
 {
 public:
 	static void Init();

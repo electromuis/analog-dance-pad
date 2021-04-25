@@ -1,6 +1,8 @@
 #include "wx/wx.h"
 #include "wx/notebook.h"
 
+#include "Assets/Assets.h"
+
 #include "View/IdleTab.h"
 #include "View/SensitivityTab.h"
 #include "View/MappingTab.h"
@@ -8,7 +10,6 @@
 #include "View/DeviceTab.h"
 #include "View/AboutTab.h"
 #include "View/LogTab.h"
-#include "View/Style.h"
 
 #include "Model/Log.h"
 
@@ -119,20 +120,28 @@ public:
         auto now = wxDateTime::Now().FormatISOCombined(' ');
         Log::Writef(L"Application started: %s", now.wc_str());
 
+        Assets::Init();
         Device::Init();
-        Style::Init();
 
         wxImage::AddHandler(new wxPNGHandler());
 
+        wxIconBundle icons;
+        icons.AddIcon(Files::Icon16(), wxBITMAP_TYPE_PNG);
+        icons.AddIcon(Files::Icon32(), wxBITMAP_TYPE_PNG);
+        icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
+
         myWindow = new MainWindow();
+        myWindow->SetIcons(icons);
         myWindow->Show();
+
+
         return true;
     }
 
     int OnExit() override
     {
-        Style::Shutdown();
         Device::Shutdown();
+        Assets::Shutdown();
         Log::Shutdown();
 
         return wxApp::OnExit();
