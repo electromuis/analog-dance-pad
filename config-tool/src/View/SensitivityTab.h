@@ -23,6 +23,8 @@ public:
     void HandleChanges(DeviceChanges changes) override;
     void Tick() override;
 
+    double ReleaseThreshold() const;
+
     void OnReleaseThresholdChanged(wxCommandEvent& event);
 
 private:
@@ -31,7 +33,8 @@ private:
     vector<SensorDisplay*> mySensorDisplays;
     wxSlider* myReleaseThresholdSlider;
     wxBoxSizer* mySensorSizer;
-    bool myIsUpdatingReleaseThreshold;
+    double myReleaseThreshold = 1.0;
+    bool myIsAdjustingReleaseThreshold = false;
 };
 
 }; // namespace adp.
