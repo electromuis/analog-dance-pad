@@ -2,7 +2,7 @@
 
 #include "View/BaseTab.h"
 
-namespace mpc {
+namespace adp {
 
 class LightsTab : public BaseTab
 {
@@ -12,4 +12,4 @@ public:
     LightsTab(wxWindow* owner);
 };
 
-}; // namespace mpc.
+}; // namespace adp.

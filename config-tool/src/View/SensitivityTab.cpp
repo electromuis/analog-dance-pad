@@ -1,12 +1,13 @@
 #include "wx/dcbuffer.h"
 #include "wx/stattext.h"
 
-#include "View/Style.h"
+#include "Assets/Assets.h"
+
 #include "View/SensitivityTab.h"
 
 using namespace std;
 
-namespace mpc {
+namespace adp {
 
 class SensorDisplay : public wxWindow
 {
@@ -194,4 +195,4 @@ void SensitivityTab::UpdateDisplays()
     }
 }
 
-}; // namespace mpc.
+}; // namespace adp.

@@ -4,7 +4,7 @@
 
 #include "View/BaseTab.h"
 
-namespace mpc {
+namespace adp {
 
 class LogTab : public BaseTab
 {
@@ -20,4 +20,4 @@ private:
     int myNumMessages = 0;
 };
 
-}; // namespace mpc.
+}; // namespace adp.

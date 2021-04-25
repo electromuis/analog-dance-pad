@@ -3,7 +3,7 @@
 #include "stdint.h"
 #include "hidapi.h"
 
-namespace mpc {
+namespace adp {
 
 #pragma pack(1)
 
@@ -108,4 +108,4 @@ private:
 	hid_device* myHid;
 };
 
-}; // namespace mpc.
+}; // namespace adp.

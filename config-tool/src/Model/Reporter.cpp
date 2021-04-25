@@ -2,7 +2,7 @@
 #include "log.h"
 #include "utils.h"
 
-namespace mpc {
+namespace adp {
 
 // ====================================================================================================================
 // Helper functions.
@@ -145,4 +145,4 @@ bool Reporter::Send(const LightsReport& report)
 	return SendFeatureReport(myHid, report, L"SendLightsReport");
 }
 
-}; // namespace mpc.
+}; // namespace adp.

@@ -4,7 +4,7 @@
 
 #include "Model/Device.h"
 
-namespace mpc {
+namespace adp {
 
 class BaseTab : public wxWindow
 {
@@ -16,4 +16,4 @@ public:
     virtual void Tick(DeviceChanges changes) {}
 };
 
-}; // namespace mpc.
+}; // namespace adp.

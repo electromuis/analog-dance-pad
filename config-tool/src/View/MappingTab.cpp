@@ -3,10 +3,11 @@
 #include "wx/sizer.h"
 #include "wx/stattext.h"
 
-#include "View/MappingTab.h"
-#include "View/Style.h"
+#include "Assets/Assets.h"
 
-namespace mpc {
+#include "View/MappingTab.h"
+
+namespace adp {
 
 class HorizontalSensorBar : public wxWindow
 {
@@ -110,4 +111,4 @@ void MappingTab::UpdateButtonMapping()
     }
 }
 
-}; // namespace mpc.
+}; // namespace adp.

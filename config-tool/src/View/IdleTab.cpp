@@ -3,7 +3,7 @@
 
 #include "View/IdleTab.h"
 
-namespace mpc {
+namespace adp {
 
 const wchar_t* IdleTab::Title = L"Idle";
 
@@ -21,4 +21,4 @@ IdleTab::IdleTab(wxWindow* owner) : BaseTab(owner)
     SetSizer(sizer);
 }
 
-}; // namespace mpc.
+}; // namespace adp.

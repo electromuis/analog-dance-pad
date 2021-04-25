@@ -4,7 +4,7 @@
 #include "wx/pen.h"
 #include "wx/mstream.h"
 
-namespace mpc {
+namespace adp {
 
 struct Brushes
 {
@@ -34,4 +34,4 @@ public:
 	static void Shutdown();
 };
 
-}; // namespace mpc.
+}; // namespace adp.

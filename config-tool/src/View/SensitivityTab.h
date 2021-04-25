@@ -9,7 +9,7 @@
 
 using namespace std;
 
-namespace mpc {
+namespace adp {
 
 class SensorDisplay;
 
@@ -33,4 +33,4 @@ private:
     bool myIsUpdatingReleaseThreshold;
 };
 
-}; // namespace mpc.
+}; // namespace adp.

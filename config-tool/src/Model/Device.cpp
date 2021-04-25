@@ -12,7 +12,7 @@
 
 using namespace std;
 
-namespace mpc {
+namespace adp {
 
 constexpr int HID_VENDOR_ID = 0x1209;
 constexpr int HID_PRODUCT_ID = 0xB196;
@@ -511,4 +511,4 @@ void Device::SendFactoryReset()
 	if (device) device->FactoryReset();
 }
 
-}; // namespace mpc.
+}; // namespace adp.

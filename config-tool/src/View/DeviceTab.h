@@ -5,7 +5,7 @@
 
 #include "View/BaseTab.h"
 
-namespace mpc {
+namespace adp {
 
 class DeviceTab : public BaseTab
 {
@@ -26,4 +26,4 @@ private:
     wxStaticText* myResetLabel;
 };
 
-}; // namespace mpc.
+}; // namespace adp.

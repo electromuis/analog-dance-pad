@@ -13,7 +13,7 @@
 
 #include "Model/Log.h"
 
-namespace mpc {
+namespace adp {
 
 // ====================================================================================================================
 // Main window.
@@ -152,4 +152,4 @@ private:
 };
 wxIMPLEMENT_APP(Application);
 
-}; // namespace mpc.
+}; // namespace adp.

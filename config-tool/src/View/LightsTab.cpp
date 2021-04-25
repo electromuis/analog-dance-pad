@@ -3,7 +3,7 @@
 
 #include "View/LightsTab.h"
 
-namespace mpc {
+namespace adp {
 
 const wchar_t* LightsTab::Title = L"Lights";
 
@@ -21,4 +21,4 @@ LightsTab::LightsTab(wxWindow* owner) : BaseTab(owner)
     SetSizer(sizer);
 }
 
-}; // namespace mpc.
+}; // namespace adp.

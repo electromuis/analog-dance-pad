@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace mpc {
+namespace adp {
 
 class HorizontalSensorBar;
 
@@ -31,4 +31,4 @@ private:
     void UpdateButtonMapping();
 };
 
-}; // namespace mpc.
+}; // namespace adp.

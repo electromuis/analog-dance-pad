@@ -3,7 +3,7 @@
 #include "stdint.h"
 #include <string>
 
-namespace mpc {
+namespace adp {
 
 enum DeviceChangeFlags
 {
@@ -56,4 +56,4 @@ public:
 	static void SendFactoryReset();
 };
 
-}; // namespace mpc.
+}; // namespace adp.

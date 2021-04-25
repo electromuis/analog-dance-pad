@@ -7,7 +7,7 @@
 
 #include "View/AboutTab.h"
 
-namespace mpc {
+namespace adp {
 
 const wchar_t* AboutTab::Title = L"About";
 
@@ -30,4 +30,4 @@ AboutTab::AboutTab(wxWindow* owner)
     SetSizer(sizer);
 }
 
-}; // namespace mpc.
+}; // namespace adp.

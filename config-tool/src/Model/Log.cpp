@@ -10,7 +10,7 @@
 
 using namespace std;
 
-namespace mpc {
+namespace adp {
 
 static vector<wstring>* messages = nullptr;
 
@@ -49,4 +49,4 @@ const wstring& Log::Message(int index)
 	return messages->at(index);
 }
 
-}; // namespace mpc.
+}; // namespace adp.

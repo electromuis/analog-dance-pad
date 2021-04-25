@@ -4,7 +4,7 @@
 
 #include "Model/Log.h"
 
-namespace mpc {
+namespace adp {
 
 const wchar_t* LogTab::Title = L"Log";
 
@@ -34,4 +34,4 @@ void LogTab::Tick(DeviceChanges changes)
     }
 }
 
-}; // namespace mpc.
+}; // namespace adp.

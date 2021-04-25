@@ -1,6 +1,6 @@
 #include "Assets/Assets.h"
 
-namespace mpc {
+namespace adp {
 
 // ====================================================================================================================
 // Brushes.
@@ -77,4 +77,4 @@ void Assets::Shutdown()
 	pens = nullptr;
 }
 
-}; // namespace mpc.
+}; // namespace adp.

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-namespace mpc {
+namespace adp {
 
 static constexpr const wchar_t* RenameMsg =
     L"Rename the pad device. Convenient if you have\nmultiple devices and want to tell them apart.";
@@ -73,4 +73,4 @@ BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
     EVT_BUTTON(FACTORY_RESET_BUTTON, DeviceTab::OnFactoryReset)
 END_EVENT_TABLE()
 
-}; // namespace mpc.
+}; // namespace adp.
