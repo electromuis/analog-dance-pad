@@ -19,7 +19,8 @@ add_executable (${PROJECT_NAME} WIN32
 	src/View/LogTab.cpp
 	src/View/MappingTab.cpp
 	src/View/SensitivityTab.cpp
-	src/View/Style.cpp
+	
+	src/Assets/Assets.cpp
 	
 	lib/hidapi/windows/hid.c
 )
