@@ -104,15 +104,15 @@ public:
 		, myPath(path)
 	{
 		UpdateName(name);
-		myState.maxNameLength = MAX_NAME_LENGTH;
-		myState.numButtons = MAX_BUTTON_COUNT;
-		myState.numSensors = MAX_SENSOR_COUNT;
+		myPad.maxNameLength = MAX_NAME_LENGTH;
+		myPad.numButtons = MAX_BUTTON_COUNT;
+		myPad.numSensors = MAX_SENSOR_COUNT;
 		UpdatePadConfiguration(config);
 	}
 
 	void UpdateName(const NameReport& report)
 	{
-		myState.name = widen((const char*)report.name, (size_t)report.size);
+		myPad.name = widen((const char*)report.name, (size_t)report.size);
 		myChanges |= DCF_NAME;
 	}
 
@@ -124,7 +124,7 @@ public:
 			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(report.sensorThresholds[i]));
 			mySensors[i].button = (buttonMapping >= MAX_BUTTON_COUNT ? 0 : (buttonMapping + 1));
 		}
-		myReleaseThreshold = ReadF32LE(report.releaseThreshold);
+		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
 	}
 
 	bool UpdateSensorValues()
@@ -177,7 +177,7 @@ public:
 
 	bool SetReleaseThreshold(double threshold)
 	{
-		myReleaseThreshold = clamp(threshold, 0.01, 1.00);
+		myPad.releaseThreshold = clamp(threshold, 0.01, 1.00);
 		return SendPadConfiguration();
 	}
 
@@ -240,7 +240,7 @@ public:
 			report.sensorThresholds[i] = WriteU16LE(ToDeviceSensorValue(mySensors[i].threshold));
 			report.sensorToButtonMapping[i] = (mySensors[i].button == 0) ? 0xFF : (mySensors[i].button - 1);
 		}
-		report.releaseThreshold = WriteF32LE((float)myReleaseThreshold);
+		report.releaseThreshold = WriteF32LE((float)myPad.releaseThreshold);
 		
 		bool sendResult = myReporter->Send(report);
 		
@@ -265,7 +265,7 @@ public:
 
 	const DevicePath& Path() const { return myPath; }
 
-	const PadState& State() const { return myState; }
+	const PadState& State() const { return myPad; }
 
 	const SensorState* Sensor(int index)
 	{
@@ -282,11 +282,10 @@ public:
 private:
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
-	PadState myState;
+	PadState myPad;
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
-	double myReleaseThreshold = 1.0;
 };
 
 // ====================================================================================================================

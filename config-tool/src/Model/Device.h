@@ -7,9 +7,9 @@ namespace adp {
 
 enum DeviceChangeFlags
 {
-	DCF_DEVICE         = 0x1,
-	DCF_BUTTON_MAPPING = 0x2,
-	DCF_NAME           = 0x2,
+	DCF_DEVICE         = 1 << 0,
+	DCF_BUTTON_MAPPING = 1 << 1,
+	DCF_NAME           = 1 << 2,
 };
 typedef int32_t DeviceChanges;
 
