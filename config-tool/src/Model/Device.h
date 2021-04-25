@@ -52,6 +52,8 @@ public:
 	static bool SetDeviceName(const wchar_t* name);
 
 	static void SendDeviceReset();
+
+	static void SendFactoryReset();
 };
 
 }; // namespace mpc.

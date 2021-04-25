@@ -71,7 +71,7 @@ int main(void)
     ConfigStore_LoadConfiguration(&configuration);
     Pad_Initialize(&configuration.padConfiguration);
     Lights_UpdateConfiguration(&configuration.lightConfiguration);
-	Lights_Update(true);
+	Lights_Update();
 
     for (;;)
     {
@@ -184,6 +184,9 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     } else if (ReportID == RESET_REPORT_ID) {
         Reset_JumpToBootloader();
     } else if (ReportID == SAVE_CONFIGURATION_REPORT_ID) {
+        ConfigStore_StoreConfiguration(&configuration);
+    } else if (ReportID == FACTORY_RESET_REPORT_ID) {
+        ConfigStore_FactoryDefaults(&configuration);
         ConfigStore_StoreConfiguration(&configuration);
     } else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport)) {
         const NameFeatureHIDReport* nameHidReport = ReportData;

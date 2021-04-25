@@ -24,6 +24,7 @@ enum ReportId
 	REPORT_NAME               = 0x5,
 	REPORT_UNUSED_JOYSTICK    = 0x6,
 	REPORT_LIGHTS             = 0x7,
+	REPORT_FACTORY_RESET	  = 0x8
 };
 
 enum LightRuleFlags
@@ -97,6 +98,7 @@ public:
 	bool Get(LightsReport& report);
 
 	void SendReset();
+	void SendFactoryReset();
 	bool SendSaveConfiguration();
 	bool Send(const PadConfigurationReport& report);
 	bool Send(const NameReport& report);

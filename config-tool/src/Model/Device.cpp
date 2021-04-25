@@ -7,6 +7,8 @@
 #include <memory>
 #include <algorithm>
 #include <map>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -207,6 +209,29 @@ public:
 
 	void Reset() { myReporter->SendReset(); }
 
+	void FactoryReset()
+	{
+		// Have the device load up and save its defaults
+		myReporter->SendFactoryReset();
+		
+		// Wait for the controller to process the report
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+		// Fetch fresh config from device, and load it into our memory
+		NameReport name;
+		PadConfigurationReport padConfiguration;
+
+		if (!myReporter->Get(name) || !myReporter->Get(padConfiguration)) {
+			Log::Writef(L"FactoryReset :: failed fetching configuration after sending FactoryReset");
+			return;
+		}
+
+		UpdateName(name);
+		UpdatePadConfiguration(padConfiguration);
+
+		PrintPadConfigurationReport(padConfiguration);
+	}
+
 	bool SendPadConfiguration()
 	{
 		PadConfigurationReport report;
@@ -216,10 +241,17 @@ public:
 			report.sensorToButtonMapping[i] = (mySensors[i].button == 0) ? 0xFF : (mySensors[i].button - 1);
 		}
 		report.releaseThreshold = WriteF32LE((float)myReleaseThreshold);
-		bool result = myReporter->Send(report) && myReporter->Get(report);
+		
+		bool sendResult = myReporter->Send(report);
+		
+		// Wait for the controller to process the report
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+		bool getResult = myReporter->Get(report);
+		
 		myHasUnsavedChanges = true;
 		UpdatePadConfiguration(report);
-		return result;
+		return sendResult && getResult;
 	}
 
 	void SaveChanges()
@@ -471,6 +503,12 @@ void Device::SendDeviceReset()
 {
 	auto device = connectionManager->ConnectedDevice();
 	if (device) device->Reset();
+}
+
+void Device::SendFactoryReset()
+{
+	auto device = connectionManager->ConnectedDevice();
+	if (device) device->FactoryReset();
 }
 
 }; // namespace mpc.

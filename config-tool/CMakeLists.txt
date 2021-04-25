@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.6)
 
 set(CMAKE_GENERATOR_PLATFORM win32)
-project(config-tool)
+project(adp-tool)
 
 add_subdirectory (lib/wxwidgets)
 set(wxBUILD_SHARED OFF)

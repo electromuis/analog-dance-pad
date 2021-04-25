@@ -120,6 +120,11 @@ void Reporter::SendReset()
 	WriteData(myHid, REPORT_RESET, L"SendResetReport", false);
 }
 
+void Reporter::SendFactoryReset()
+{
+	WriteData(myHid, REPORT_FACTORY_RESET, L"SendFactoryResetReport", false);
+}
+
 bool Reporter::SendSaveConfiguration()
 {
 	return WriteData(myHid, REPORT_SAVE_CONFIGURATION, L"SendSaveConfigurationReport", true);

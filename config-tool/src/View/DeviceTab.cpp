@@ -16,11 +16,14 @@ static constexpr const wchar_t* RenameMsg =
     L"Rename the pad device. Convenient if you have\nmultiple devices and want to tell them apart.";
 
 static constexpr const wchar_t* ResetMsg =
-    L"Perform a hardware reset. This will restart the\ndevice and provide a window to update firmware.";
+    L"Reboot to bootloader. This will restart the\ndevice and provide a window to update firmware.";
+
+static constexpr const wchar_t* FactoryResetMsg =
+    L"Perform a factory reset. This will load the\nfirmware defaults ans the current configuration.";
 
 const wchar_t* DeviceTab::Title = L"Device";
 
-enum Ids { RESET_BUTTON = 1, RENAME_BUTTON = 2 };
+enum Ids { RESET_BUTTON = 1, RENAME_BUTTON = 2, FACTORY_RESET_BUTTON = 3 };
 
 DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 {
@@ -29,10 +32,15 @@ DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
     mySizer->Add(myRenameLabel, 0, wxLEFT | wxTOP, 8);
     mySizer->Add(new wxButton(this, RENAME_BUTTON, L"Rename...", wxDefaultPosition, wxSize(200, -1)),
         0, wxLEFT | wxTOP, 8);
+    myResetLabel = new wxStaticText(this, wxID_ANY, FactoryResetMsg);
+    mySizer->Add(myResetLabel, 0, wxLEFT | wxTOP, 8);
+    mySizer->Add(new wxButton(this, FACTORY_RESET_BUTTON, L"Factory reset", wxDefaultPosition, wxSize(200, -1)),
+        0, wxLEFT | wxTOP, 8);
     myResetLabel = new wxStaticText(this, wxID_ANY, ResetMsg);
     mySizer->Add(myResetLabel, 0, wxLEFT | wxTOP, 8);
-    mySizer->Add(new wxButton(this, RESET_BUTTON, L"Hardware reset", wxDefaultPosition, wxSize(200, -1)),
+    mySizer->Add(new wxButton(this, RESET_BUTTON, L"Bootloader mode", wxDefaultPosition, wxSize(200, -1)),
         0, wxLEFT | wxTOP, 8);
+    SetSizer(mySizer);
     SetSizer(mySizer);
 }
 
@@ -54,9 +62,15 @@ void DeviceTab::OnReset(wxCommandEvent& event)
     Device::SendDeviceReset();
 }
 
+void DeviceTab::OnFactoryReset(wxCommandEvent& event)
+{
+    Device::SendFactoryReset();
+}
+
 BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
     EVT_BUTTON(RENAME_BUTTON, DeviceTab::OnRename)
     EVT_BUTTON(RESET_BUTTON, DeviceTab::OnReset)
+    EVT_BUTTON(FACTORY_RESET_BUTTON, DeviceTab::OnFactoryReset)
 END_EVENT_TABLE()
 
 }; // namespace mpc.

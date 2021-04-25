@@ -16,6 +16,7 @@ public:
 
     void OnRename(wxCommandEvent& event);
     void OnReset(wxCommandEvent& event);
+    void OnFactoryReset(wxCommandEvent& event);
 
     DECLARE_EVENT_TABLE()
 
