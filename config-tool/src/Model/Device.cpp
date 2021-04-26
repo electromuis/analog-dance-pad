@@ -245,10 +245,13 @@ public:
 			return;
 		}
 
+		
 		UpdateName(name);
 		UpdatePadConfiguration(padConfiguration);
 
 		PrintPadConfigurationReport(padConfiguration);
+
+		myChanges |= DCF_DEVICE | DCF_BUTTON_MAPPING | DCF_NAME;
 	}
 
 	bool SendPadConfiguration()
