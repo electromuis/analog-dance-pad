@@ -56,34 +56,27 @@ MappingTab::MappingTab(wxWindow* owner, const PadState* pad) : BaseTab(owner)
     for (int i = 1; i <= pad->numButtons; ++i)
         options.Add(wxString::Format("Button %i", i));
 
-    auto view = new wxScrolledWindow(this);
-
-    auto sizer = new wxFlexGridSizer(pad->numSensors, 3, 4, 4);
-    sizer->SetFlexibleDirection(wxHORIZONTAL);
-    sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_NONE);
-
+    auto sizer = new wxGridSizer(pad->numSensors, 3, 4, 4);
     for (int i = 0; i < pad->numSensors; ++i)
     {
-        auto text = new wxStaticText(view, wxID_ANY, wxString::Format("Sensor %i", i + 1));
-        sizer->Add(text, 0, wxLEFT | wxTOP | wxRIGHT, 4);
+        auto text = new wxStaticText(this, wxID_ANY, wxString::Format("Sensor %i", i + 1),
+            wxDefaultPosition, wxDefaultSize);
+        sizer->Add(text, 1, wxLEFT | wxTOP | wxRIGHT | wxEXPAND, 4);
 
-        auto box = new wxComboBox(view, i, options[0], wxDefaultPosition, wxSize(100, 24), options, wxCB_READONLY);
+        auto box = new wxComboBox(this, i, options[0],
+            wxDefaultPosition, wxDefaultSize, options, wxCB_READONLY);
         box->Bind(wxEVT_COMBOBOX, &MappingTab::OnButtonChanged, this);
-        sizer->Add(box);
+        sizer->Add(box, 1, wxEXPAND);
         myButtonBoxes.push_back(box);
 
-        auto bar = new HorizontalSensorBar(view, i);
-        sizer->Add(bar);
+        auto bar = new HorizontalSensorBar(this, i);
+        sizer->Add(bar, 1, wxEXPAND);
         mySensorBars.push_back(bar);
     }
-    view->SetSizer(sizer);
-    view->FitInside();
-    view->SetScrollRate(5, 5);
-
     UpdateButtonMapping();
 
-    auto outerSizer = new wxBoxSizer(wxVERTICAL);
-    outerSizer->Add(view, 1, wxTOP | wxLEFT | wxEXPAND, 4);
+    auto outerSizer = new wxBoxSizer(wxVERTICAL | wxALIGN_TOP);
+    outerSizer->Add(sizer, 0, wxALL | wxEXPAND, 4);
     SetSizer(outerSizer);
 }
 
