@@ -11,6 +11,7 @@ struct Brushes
 	static const wxBrush& SensorOff();
 	static const wxBrush& SensorOn();
 	static const wxBrush& SensorBar();
+	static const wxBrush& ReleaseMargin();
 	static const wxBrush& DarkGray();
 };
 

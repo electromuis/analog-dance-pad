@@ -68,18 +68,18 @@ public:
             dc.SetBrush(Brushes::SensorBar());
             dc.DrawRectangle(x, 0, barW, size.y - barH);
 
-            // Coloured region below the current sensor value.
-            dc.SetBrush(pressed ? Brushes::SensorOn() : Brushes::SensorOff());
-            dc.DrawRectangle(x, size.y - barH, barW, barH);
-
             // Line representing where the release threshold would be for the current sensor.
             auto releaseThreshold = myOwner->ReleaseThreshold();
             if (releaseThreshold < 1.0)
             {
-                dc.SetBrush(*wxMEDIUM_GREY_BRUSH);
+                dc.SetBrush(Brushes::ReleaseMargin());
                 int releaseY = size.y - (releaseThreshold * threshold * size.y);
-                dc.DrawRectangle(x, releaseY - 1, barW, 3);
+                dc.DrawRectangle(x, thresholdY, barW, max(1, releaseY - thresholdY));
             }
+
+            // Coloured region below the current sensor value.
+            dc.SetBrush(pressed ? Brushes::SensorOn() : Brushes::SensorOff());
+            dc.DrawRectangle(x, size.y - barH, barW, barH);
 
             // Line representing the sensitivity threshold.
             dc.SetBrush(*wxWHITE_BRUSH);
