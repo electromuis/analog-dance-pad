@@ -15,8 +15,13 @@ using namespace chrono;
 
 namespace adp {
 
-constexpr int HID_VENDOR_ID = 0x1209;
-constexpr int HID_PRODUCT_ID = 0xB196;
+struct HidIdentifier
+{
+	int vendorId;
+	int productId;
+};
+
+constexpr HidIdentifier HID_IDS[] = { {0x1209, 0xb196}, {0x03eb, 0x204f} };
 
 static_assert(sizeof(float) == sizeof(uint32_t), "32-bit float required");
 
@@ -339,7 +344,7 @@ public:
 
 	bool DiscoverDevice()
 	{
-		auto foundDevices = hid_enumerate(HID_VENDOR_ID, HID_PRODUCT_ID);
+		auto foundDevices = hid_enumerate(0, 0);
 
 		// Devices that are incompatible or had a communication failure are tracked in a failed device list to prevent
 		// a loop of reconnection attempts. Remove unplugged devices from the list. Then, the user can attempt to
@@ -369,6 +374,22 @@ public:
 
 	bool ConnectToDevice(hid_device_info* deviceInfo)
 	{
+		// Check if the vendor and product are compatible.
+
+		bool compatible = false;
+
+		for (auto id : HID_IDS)
+		{
+			if (deviceInfo->vendor_id == id.vendorId && deviceInfo->product_id == id.productId)
+			{
+				compatible = true;
+				break;
+			}
+		}
+
+		if (!compatible)
+			return false;
+
 		// Open and configure HID for communicating with the pad.
 
 		auto hid = hid_open_path(deviceInfo->path);
@@ -430,7 +451,8 @@ public:
 
 	void AddIncompatibleDevice(hid_device_info* device)
 	{
-		myFailedDevices[device->path] = device->product_string;
+		if (device->product_string) // Can be null on failure, apparently.
+			myFailedDevices[device->path] = device->product_string;
 	}
 
 private:
