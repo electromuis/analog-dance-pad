@@ -18,6 +18,7 @@ struct Brushes
 struct Pens
 {
 	static const wxPen& Black1px();
+	static const wxPen& White1px();
 };
 
 struct Files

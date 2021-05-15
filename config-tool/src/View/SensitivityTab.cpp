@@ -133,7 +133,6 @@ private:
 BEGIN_EVENT_TABLE(SensorDisplay, wxWindow)
     EVT_PAINT(SensorDisplay::OnPaint)
     EVT_LEFT_DOWN(SensorDisplay::OnClick)
-    EVT_LEFT_UP(SensorDisplay::OnClick)
 END_EVENT_TABLE()
 
 static const wchar_t* ActivationMsg =

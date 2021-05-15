@@ -33,10 +33,12 @@ BRUSH(DarkGray)
 struct PenData
 {
 	wxPen Black1px = wxPen(*wxBLACK, 1);
+	wxPen White1px = wxPen(*wxWHITE, 1);
 };
 static PenData* pens;
 
 PEN(Black1px)
+PEN(White1px)
 
 // ====================================================================================================================
 // Files.
