@@ -3,6 +3,11 @@
 #include "stdint.h"
 #include "hidapi.h"
 
+// Potentially defined by WinSock2.h
+#ifdef NO_DATA
+#undef NO_DATA
+#endif
+
 namespace adp {
 
 #pragma pack(1)

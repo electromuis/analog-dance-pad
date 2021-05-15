@@ -4,6 +4,7 @@
 #include "wx/stattext.h"
 #include "wx/dcbuffer.h"
 #include "wx/checkbox.h"
+#include "wx/colordlg.h"
 
 #include "View/LightsTab.h"
 #include "Assets/Assets.h"
@@ -25,6 +26,7 @@ public:
     {
         myStartColor = c1;
         myEndColor = c2;
+        myIsFadeEnabled = false;
     }
 
     void EnableFade(bool enabled)
@@ -85,7 +87,32 @@ public:
         auto rect = GetClientRect();
         if (rect.Contains(pos))
         {
+            if (pos.x < rect.x + 30 || !myIsFadeEnabled)
+            {
+                ShowPicker(myStartColor);
+            }
+            else if (pos.x > rect.x + rect.width - 30)
+            {
+                ShowPicker(myEndColor);
+            }
         }
+    }
+
+    bool ShowPicker(color24& color)
+    {
+        wxColourData data;
+        data.SetColour(ToWx(color));
+        wxColourDialog dlg(this, &data);
+        if (dlg.ShowModal() != wxID_OK)
+            return false;
+
+        auto result = dlg.GetColourData().GetColour();
+        color.red = result.Red();
+        color.green = result.Green();
+        color.blue = result.Blue();
+        Refresh();
+
+        return true;
     }
 
     DECLARE_EVENT_TABLE()
