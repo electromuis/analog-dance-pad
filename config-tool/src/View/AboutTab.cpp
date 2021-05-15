@@ -22,9 +22,9 @@ AboutTab::AboutTab(wxWindow* owner)
 
     auto sizer = new wxBoxSizer(wxVERTICAL);
     sizer->AddStretchSpacer();
-    sizer->Add(topText, 0, wxBOTTOM | wxALIGN_CENTER_HORIZONTAL, 10);
     sizer->Add(logoBitmap, 0, wxALIGN_CENTER_HORIZONTAL);
-    sizer->Add(bottomText, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 10);
+    sizer->Add(topText, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 10);
+    sizer->Add(bottomText, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 5);
     sizer->AddStretchSpacer();
 
     SetSizer(sizer);

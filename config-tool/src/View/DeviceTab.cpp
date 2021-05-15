@@ -15,7 +15,7 @@ namespace adp {
 static constexpr const wchar_t* RenameMsg =
     L"Rename the pad device. Convenient if you have\nmultiple devices and want to tell them apart.";
 
-static constexpr const wchar_t* ResetMsg =
+static constexpr const wchar_t* RebootMsg =
     L"Reboot to bootloader. This will restart the\ndevice and provide a window to update firmware.";
 
 static constexpr const wchar_t* FactoryResetMsg =
@@ -23,25 +23,33 @@ static constexpr const wchar_t* FactoryResetMsg =
 
 const wchar_t* DeviceTab::Title = L"Device";
 
-enum Ids { RESET_BUTTON = 1, RENAME_BUTTON = 2, FACTORY_RESET_BUTTON = 3 };
+enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3};
 
 DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 {
-    mySizer = new wxBoxSizer(wxVERTICAL);
-    myRenameLabel = new wxStaticText(this, wxID_ANY, RenameMsg);
-    mySizer->Add(myRenameLabel, 0, wxLEFT | wxTOP, 8);
-    mySizer->Add(new wxButton(this, RENAME_BUTTON, L"Rename...", wxDefaultPosition, wxSize(200, -1)),
-        0, wxLEFT | wxTOP, 8);
-    myResetLabel = new wxStaticText(this, wxID_ANY, FactoryResetMsg);
-    mySizer->Add(myResetLabel, 0, wxLEFT | wxTOP, 8);
-    mySizer->Add(new wxButton(this, FACTORY_RESET_BUTTON, L"Factory reset", wxDefaultPosition, wxSize(200, -1)),
-        0, wxLEFT | wxTOP, 8);
-    myResetLabel = new wxStaticText(this, wxID_ANY, ResetMsg);
-    mySizer->Add(myResetLabel, 0, wxLEFT | wxTOP, 8);
-    mySizer->Add(new wxButton(this, RESET_BUTTON, L"Bootloader mode", wxDefaultPosition, wxSize(200, -1)),
-        0, wxLEFT | wxTOP, 8);
-    SetSizer(mySizer);
-    SetSizer(mySizer);
+    auto sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->AddStretchSpacer();
+
+    auto lRename = new wxStaticText(this, wxID_ANY, RenameMsg,
+        wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
+    sizer->Add(lRename, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+    auto bRename = new wxButton(this, RENAME_BUTTON, L"Rename...", wxDefaultPosition, wxSize(200, -1));
+    sizer->Add(bRename, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 10);
+
+    auto lReset = new wxStaticText(this, wxID_ANY, FactoryResetMsg,
+        wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
+    sizer->Add(lReset, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
+    auto bReset = new wxButton(this, FACTORY_RESET_BUTTON, L"Factory reset", wxDefaultPosition, wxSize(200, -1));
+    sizer->Add(bReset, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 10);
+
+    auto lReboot = new wxStaticText(this, wxID_ANY, RebootMsg,
+        wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
+    sizer->Add(lReboot, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
+    auto bReboot = new wxButton(this, REBOOT_BUTTON, L"Bootloader mode", wxDefaultPosition, wxSize(200, -1));
+    sizer->Add(bReboot, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 10);
+
+    sizer->AddStretchSpacer();
+    SetSizer(sizer);
 }
 
 void DeviceTab::OnRename(wxCommandEvent& event)
@@ -57,20 +65,20 @@ void DeviceTab::OnRename(wxCommandEvent& event)
         Device::SetDeviceName(dlg.GetValue().wc_str());
 }
 
-void DeviceTab::OnReset(wxCommandEvent& event)
-{
-    Device::SendDeviceReset();
-}
-
 void DeviceTab::OnFactoryReset(wxCommandEvent& event)
 {
     Device::SendFactoryReset();
 }
 
+void DeviceTab::OnReboot(wxCommandEvent& event)
+{
+    Device::SendDeviceReset();
+}
+
 BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
     EVT_BUTTON(RENAME_BUTTON, DeviceTab::OnRename)
-    EVT_BUTTON(RESET_BUTTON, DeviceTab::OnReset)
     EVT_BUTTON(FACTORY_RESET_BUTTON, DeviceTab::OnFactoryReset)
+    EVT_BUTTON(REBOOT_BUTTON, DeviceTab::OnReboot)
 END_EVENT_TABLE()
 
 }; // namespace adp.
