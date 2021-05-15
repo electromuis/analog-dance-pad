@@ -17,6 +17,7 @@ public:
     void OnRename(wxCommandEvent& event);
     void OnReboot(wxCommandEvent& event);
     void OnFactoryReset(wxCommandEvent& event);
+    void OnUploadFirmware(wxCommandEvent& event);
 
     DECLARE_EVENT_TABLE()
 };

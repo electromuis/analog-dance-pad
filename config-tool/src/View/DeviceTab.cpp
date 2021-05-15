@@ -1,6 +1,8 @@
 #include "wx/dataview.h"
 #include "wx/button.h"
 #include "wx/generic/textdlgg.h"
+#include "wx/filedlg.h"
+#include "wx/msgdlg.h"
 
 #include "View/DeviceTab.h"
 
@@ -21,9 +23,12 @@ static constexpr const wchar_t* RebootMsg =
 static constexpr const wchar_t* FactoryResetMsg =
     L"Perform a factory reset. This will load the\nfirmware defaults ans the current configuration.";
 
+static constexpr const wchar_t* UpdateFirmwareMsg =
+    L"Upload a firmware file to the pad device.";
+
 const wchar_t* DeviceTab::Title = L"Device";
 
-enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3};
+enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3, FIRMWARE_BUTTON = 4};
 
 DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 {
@@ -34,19 +39,25 @@ DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
         wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
     sizer->Add(lRename, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     auto bRename = new wxButton(this, RENAME_BUTTON, L"Rename...", wxDefaultPosition, wxSize(200, -1));
-    sizer->Add(bRename, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 10);
+    sizer->Add(bRename, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
 
     auto lReset = new wxStaticText(this, wxID_ANY, FactoryResetMsg,
         wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
     sizer->Add(lReset, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
     auto bReset = new wxButton(this, FACTORY_RESET_BUTTON, L"Factory reset", wxDefaultPosition, wxSize(200, -1));
-    sizer->Add(bReset, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 10);
+    sizer->Add(bReset, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
 
     auto lReboot = new wxStaticText(this, wxID_ANY, RebootMsg,
         wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
     sizer->Add(lReboot, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
     auto bReboot = new wxButton(this, REBOOT_BUTTON, L"Bootloader mode", wxDefaultPosition, wxSize(200, -1));
-    sizer->Add(bReboot, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 10);
+    sizer->Add(bReboot, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
+
+    auto lFirmware = new wxStaticText(this, wxID_ANY, UpdateFirmwareMsg,
+        wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
+    sizer->Add(lFirmware, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
+    auto bFirmware = new wxButton(this, FIRMWARE_BUTTON, L"Update firmware...", wxDefaultPosition, wxSize(200, -1));
+    sizer->Add(bFirmware, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
 
     sizer->AddStretchSpacer();
     SetSizer(sizer);
@@ -75,10 +86,23 @@ void DeviceTab::OnReboot(wxCommandEvent& event)
     Device::SendDeviceReset();
 }
 
+void DeviceTab::OnUploadFirmware(wxCommandEvent& event)
+{
+    wxFileDialog dlg(this, L"Open XYZ file", L"", L"", L"ADP firmware (*.hex)|*.hex",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+    if (dlg.ShowModal() == wxID_CANCEL)
+        return;
+
+    // TODO: implement functionality for uploading firmware.
+    wxMessageBox(L"Not yet implemented.", L"Update firmware", wxICON_INFORMATION);
+}
+
 BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
     EVT_BUTTON(RENAME_BUTTON, DeviceTab::OnRename)
     EVT_BUTTON(FACTORY_RESET_BUTTON, DeviceTab::OnFactoryReset)
     EVT_BUTTON(REBOOT_BUTTON, DeviceTab::OnReboot)
+    EVT_BUTTON(FIRMWARE_BUTTON, DeviceTab::OnUploadFirmware)
 END_EVENT_TABLE()
 
 }; // namespace adp.
