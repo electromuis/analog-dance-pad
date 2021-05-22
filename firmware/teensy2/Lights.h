@@ -13,10 +13,11 @@
     {
         LRF_FADE_ON  = 0x1,
         LRF_FADE_OFF = 0x2,
+        LRF_FADE_DISABLED = 0x3,
     };
 	
 	typedef struct {
-		int8_t sensorNumber;
+		uint8_t sensorNumber;
 		
 		// We map from a Sensor number to a FROM-TO light number
 		uint8_t fromLight;

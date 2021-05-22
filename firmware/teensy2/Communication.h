@@ -5,7 +5,6 @@
     #include "Config/DancePadConfig.h"
     #include "Pad.h"
 	#include "Lights.h"
-    #include "Communication.h"
     #include "ConfigStore.h"
 
     // small helper macro to do x / y, but rounded up instead of floored.
@@ -37,6 +36,17 @@
 	typedef struct {
         LightConfiguration lightConfiguration;
     } __attribute__((packed)) LightsFeatureHIDReport;
-
+	
+	
+    typedef struct {
+		uint8_t usbApiVersion;
+        uint8_t buttonCount;
+        uint8_t sensorCount;
+		uint8_t maxSensorValue;
+        uint8_t maxLightRules;
+		NameAndSize boardType;
+    } __attribute__((packed)) IdentificationFeatureReport;
+	
     void Communication_WriteInputHIDReport(InputHIDReport* report);
+    void Communication_WriteIdentificationReport(IdentificationFeatureReport* report);
 #endif

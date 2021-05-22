@@ -115,6 +115,11 @@ bool Reporter::Get(LightsReport& report)
 	return GetFeatureReport(myHid, report, L"GetLightsReport");
 }
 
+bool Reporter::Get(IdentificationReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
+}
+
 void Reporter::SendReset()
 {
 	WriteData(myHid, REPORT_RESET, L"SendResetReport", false);

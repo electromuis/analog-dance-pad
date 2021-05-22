@@ -145,7 +145,7 @@ void Lights_Update()
 	{
 		LightRule light = LIGHT_CONF.lightRules[s];
 		
-		if(light.sensorNumber == 0) {
+		if(light.sensorNumber == 0 || light.flags & LRF_FADE_DISABLED) {
 			continue;
 		}
 		

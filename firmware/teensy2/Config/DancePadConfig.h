@@ -1,5 +1,10 @@
 #ifndef _DANCE_PAD_CONFIG_H_
 #define _DANCE_PAD_CONFIG_H_
+    //Version 2 since Kauhsa's initial version will be considered version 1
+    #define USB_API_VERSION 2
+
+    #define MAX_SENSOR_VALUE 1024
+
     // this value doesn't mean we're actively using all these buttons.
     // it's just what we report and is technically possible to use.
     // for now, should be divisible by 8.
@@ -11,6 +16,5 @@
 	
 	#define MAX_LIGHT_RULES 16
 
-    // don't actually use ACD values that are read.
-    #define ADC_TEST_MODE 0
+    #define BOARD_TYPE "fsrminipad";
 #endif

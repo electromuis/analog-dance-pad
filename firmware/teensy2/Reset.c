@@ -1,7 +1,15 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <LUFA/Drivers/USB/USB.h>
 #include "Reset.h"
+
+void Reconnect_Usb(void) {
+    //Reconnect to usb
+    USB_Detach();
+    _delay_ms(5);
+    USB_Attach();
+}
 
 void Reset_JumpToBootloader(void) {
     // see https://www.pjrc.com/teensy/jump_to_bootloader.html

@@ -34,7 +34,7 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
 static const Configuration DEFAULT_CONFIGURATION = {
     .padConfiguration = {
         .sensorThresholds = { [0 ... SENSOR_COUNT - 1] = 400 },
-        .releaseMultiplier = 0.9,
+        .releaseMultiplier = 0.95,
         .sensorToButtonMapping = { [0 ... SENSOR_COUNT - 1] = 0xFF }
     },
     .nameAndSize = {

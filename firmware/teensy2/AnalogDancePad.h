@@ -33,6 +33,7 @@
         #include <string.h>
 
         #include "Descriptors.h"
+        #include "ConfigStore.h"
 
         #include <LUFA/Drivers/Board/LEDs.h>
         #include <LUFA/Drivers/USB/USB.h>
@@ -56,5 +57,7 @@
                                                   const uint8_t ReportType,
                                                   const void* ReportData,
                                                   const uint16_t ReportSize);
+
+        static Configuration configuration;
 #endif
 

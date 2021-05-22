@@ -112,14 +112,15 @@ public:
 		unique_ptr<Reporter>& reporter,
 		const char* path,
 		const NameReport& name,
-		const PadConfigurationReport& config)
+		const PadConfigurationReport& config,
+		const IdentificationReport& identification)
 		: myReporter(move(reporter))
 		, myPath(path)
 	{
 		UpdateName(name);
 		myPad.maxNameLength = MAX_NAME_LENGTH;
-		myPad.numButtons = MAX_BUTTON_COUNT;
-		myPad.numSensors = MAX_SENSOR_COUNT;
+		myPad.numButtons = identification.buttonCount;
+		myPad.numSensors = identification.sensorCount;
 		UpdatePadConfiguration(config);
 		myPollingData.lastUpdate = system_clock::now();
 	}
@@ -132,11 +133,11 @@ public:
 
 	void UpdatePadConfiguration(const PadConfigurationReport& report)
 	{
-		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+		for (int i = 0; i < myPad.numSensors; ++i)
 		{
 			auto buttonMapping = (unsigned int)report.sensorToButtonMapping[i];
 			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(report.sensorThresholds[i]));
-			mySensors[i].button = (buttonMapping >= MAX_BUTTON_COUNT ? 0 : (buttonMapping + 1));
+			mySensors[i].button = (buttonMapping >= myPad.numButtons ? 0 : (buttonMapping + 1));
 		}
 		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
 	}
@@ -155,7 +156,7 @@ public:
 			{
 			case ReadDataResult::SUCCESS:
 				pressedButtons |= ReadU16LE(report.buttonBits);
-				for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+				for (int i = 0; i < myPad.numSensors; ++i)
 					aggregateValues[i] += ReadU16LE(report.sensorValues[i]);
 				++inputsRead;
 				break;
@@ -171,7 +172,7 @@ public:
 
 		if (inputsRead > 0)
 		{
-			for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+			for (int i = 0; i < myPad.numSensors; ++i)
 			{
 				auto button = mySensors[i].button;
 				auto value = (double)aggregateValues[i] / (double)inputsRead;
@@ -239,9 +240,11 @@ public:
 		myReporter->SendFactoryReset();
 		
 		// Wait for the controller to process the report
-		this_thread::sleep_for(2ms);
+		//this_thread::sleep_for(2ms);
 
 		// Fetch fresh config from device, and load it into our memory
+		
+		/*
 		NameReport name;
 		PadConfigurationReport padConfiguration;
 
@@ -257,12 +260,13 @@ public:
 		PrintPadConfigurationReport(padConfiguration);
 
 		myChanges |= DCF_DEVICE | DCF_BUTTON_MAPPING | DCF_NAME;
+		*/
 	}
 
 	bool SendPadConfiguration()
 	{
 		PadConfigurationReport report;
-		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+		for (int i = 0; i < myPad.numSensors; ++i)
 		{
 			report.sensorThresholds[i] = WriteU16LE(ToDeviceSensorValue(mySensors[i].threshold));
 			report.sensorToButtonMapping[i] = (mySensors[i].button == 0) ? 0xFF : (mySensors[i].button - 1);
@@ -298,7 +302,7 @@ public:
 
 	const SensorState* Sensor(int index)
 	{
-		return (index >= 0 && index < MAX_SENSOR_COUNT) ? (mySensors + index) : nullptr;
+		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
 	}
 
 	DeviceChanges PopChanges()
@@ -413,6 +417,7 @@ public:
 		auto reporter = make_unique<Reporter>(hid);
 		NameReport name;
 		PadConfigurationReport padConfiguration;
+		IdentificationReport padIdentification;
 		if (!reporter->Get(name) || !reporter->Get(padConfiguration))
 		{
 			AddIncompatibleDevice(deviceInfo);
@@ -420,12 +425,27 @@ public:
 			return false;
 		}
 
+
+		// The other checks were fine, which means the pad doesn't support identification yet. Loading defaults
+		if (!reporter->Get(padIdentification))
+		{
+			padIdentification.usbApiVersion = 1;
+			padIdentification.buttonCount = MAX_BUTTON_COUNT;
+			padIdentification.sensorCount = MAX_SENSOR_COUNT;
+			padIdentification.maxSensorValue = MAX_SENSOR_VALUE;
+			padIdentification.maxLightRules = 0;
+
+			const char boardType[] = "unknown";
+			padIdentification.boardTypeSize = sizeof(boardType) - 1;
+			strcpy(padIdentification.boardType, boardType);
+		}
+
 		// If the device supports light configuration, read lights.
 
 		//LightsReport lights;
 		//bool supportsLight = GetFeatureReport(hid, lights);
 
-		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration);
+		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);
 
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %s", device->State().name.data());

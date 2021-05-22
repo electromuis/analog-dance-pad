@@ -29,13 +29,15 @@ enum ReportId
 	REPORT_NAME               = 0x5,
 	REPORT_UNUSED_JOYSTICK    = 0x6,
 	REPORT_LIGHTS             = 0x7,
-	REPORT_FACTORY_RESET	  = 0x8
+	REPORT_FACTORY_RESET	  = 0x8,
+	REPORT_IDENTIFICATION	  = 0x9
 };
 
 enum LightRuleFlags
 {
 	LRF_FADE_ON = 0x1,
 	LRF_FADE_OFF = 0x2,
+	LRF_FADE_DISABLED = 0x3
 };
 
 enum class ReadDataResult
@@ -89,6 +91,19 @@ struct LightsReport
 	LightRule lightRules[MAX_LIGHT_RULES];
 };
 
+struct IdentificationReport
+{
+	uint8_t reportId = REPORT_IDENTIFICATION;
+	uint8_t usbApiVersion;
+	uint8_t buttonCount;
+	uint8_t sensorCount;
+	uint8_t maxSensorValue;
+	uint8_t maxLightRules;
+	
+	uint8_t boardTypeSize;
+	char boardType[MAX_NAME_LENGTH];
+};
+
 #pragma pack()
 
 class Reporter
@@ -101,6 +116,7 @@ public:
 	bool Get(PadConfigurationReport& report);
 	bool Get(NameReport& report);
 	bool Get(LightsReport& report);
+	bool Get(IdentificationReport& report);
 
 	void SendReset();
 	void SendFactoryReset();

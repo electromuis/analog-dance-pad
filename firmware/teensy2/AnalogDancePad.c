@@ -33,7 +33,6 @@
 #include "Descriptors.h"
 #include "Pad.h"
 #include "Reset.h"
-#include "ConfigStore.h"
 #include "Lights.h"
 
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
@@ -58,8 +57,6 @@ USB_ClassInfo_HID_Device_t Generic_HID_Interface =
                 .PrevReportINBufferSize       = sizeof(PrevHIDReportBuffer),
             },
     };
-
-static Configuration configuration;
 
 /** Main program entry point. This routine contains the overall program flow, including initial
  *  setup of all components and the main program loop.
@@ -159,6 +156,10 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
         memcpy(&lightsHidReport->lightConfiguration, &configuration.lightConfiguration, sizeof (lightsHidReport->lightConfiguration));
         *ReportSize = sizeof (LightsFeatureHIDReport);
     }
+    else if (*ReportID == IDENTIFICATION_REPORT_ID) {
+        Communication_WriteIdentificationReport(ReportData);
+        *ReportSize = sizeof(IdentificationFeatureReport);
+    }
     
     return true;
 }
@@ -188,6 +189,7 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     } else if (ReportID == FACTORY_RESET_REPORT_ID) {
         ConfigStore_FactoryDefaults(&configuration);
         ConfigStore_StoreConfiguration(&configuration);
+        Reconnect_Usb();
     } else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport)) {
         const NameFeatureHIDReport* nameHidReport = ReportData;
         memcpy(&configuration.nameAndSize, &nameHidReport->nameAndSize, sizeof (configuration.nameAndSize));
