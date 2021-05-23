@@ -3,6 +3,7 @@
 #include "Config/DancePadConfig.h"
 #include "Communication.h"
 #include "Pad.h"
+#include "Lights.h"
 
 const char boardType[] = BOARD_TYPE;
 
@@ -26,9 +27,9 @@ void Communication_WriteIdentificationReport(IdentificationFeatureReport* Report
     ReportData->usbApiVersion = USB_API_VERSION;
     ReportData->buttonCount = BUTTON_COUNT;
     ReportData->sensorCount = SENSOR_COUNT;
-    ReportData->maxLightRules = MAX_LIGHT_RULES;
+    ReportData->ledCount = LED_COUNT;
     ReportData->maxSensorValue = MAX_SENSOR_VALUE;
 
-    ReportData->boardType.size = sizeof(boardType) - 1; // -1 becuase null terminated
+    ReportData->boardType.size = sizeof(boardType) - 1; // -1 because null terminated.
     strcpy(ReportData->boardType.name, boardType);
 }
