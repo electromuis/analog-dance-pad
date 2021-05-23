@@ -1,5 +1,6 @@
 #include "wx/sizer.h"
 #include "wx/panel.h"
+#include "wx/button.h"
 #include "wx/statbox.h"
 #include "wx/stattext.h"
 #include "wx/dcbuffer.h"
@@ -18,15 +19,22 @@ static wxColour ToWx(color24 color)
     return wxColour(color.red, color.green, color.blue);
 }
 
+enum Ids { ADD_LIGHT_SETTINGS_BUTTON = 1, DELETE_LIGHT_SETTINGS_BUTTON = 2 };
+
+// ====================================================================================================================
+// Color setting gradient.
+// ====================================================================================================================
+
 class ColorSettingGradient : public wxWindow
 {
 public:
-    ColorSettingGradient(wxWindow* owner, wxPoint position, color24 c1, color24 c2)
-        : wxWindow(owner, wxID_ANY, position, wxSize(100, 30), wxBG_STYLE_PAINT)
+    ColorSettingGradient(wxWindow* owner, wxPoint position, wxSize size, wxString label, color24 c1, color24 c2)
+        : wxWindow(owner, wxID_ANY, position, size)
+        , myLabel(label)
+        , myStartColor(c1)
+        , myEndColor(c2)
+        , myIsFadeEnabled(false)
     {
-        myStartColor = c1;
-        myEndColor = c2;
-        myIsFadeEnabled = false;
     }
 
     void EnableFade(bool enabled)
@@ -41,9 +49,14 @@ public:
         wxBufferedPaintDC dc(this);
 
         auto startColor = ToWx(myStartColor);
+        auto centerColor = startColor;
         if (myIsFadeEnabled)
         {
             auto endColor = ToWx(myEndColor);
+            centerColor = wxColour(
+                (startColor.Red()   + endColor.Red())   / 2,
+                (startColor.Green() + endColor.Green()) / 2,
+                (startColor.Blue()  + endColor.Blue())  / 2);
 
             // Gradient.
             dc.SetPen(wxPen(wxColour(100, 100, 100), 1));
@@ -79,6 +92,12 @@ public:
             rect.Deflate(1);
             dc.DrawRectangle(rect);
         }
+
+        // Label text.
+        auto rect = wxRect(size.x / 2 - 20, 5, 40, 20);
+        bool isBright = centerColor.GetLuminance() > 0.5;
+        dc.SetTextForeground(isBright ? *wxBLACK : *wxWHITE);
+        dc.DrawLabel(myLabel, rect, wxALIGN_CENTER);
     }
 
     void OnClick(wxMouseEvent& event)
@@ -121,6 +140,7 @@ private:
     bool myIsFadeEnabled;
     color24 myStartColor;
     color24 myEndColor;
+    wxString myLabel;
 };
 
 BEGIN_EVENT_TABLE(ColorSettingGradient, wxWindow)
@@ -128,56 +148,99 @@ BEGIN_EVENT_TABLE(ColorSettingGradient, wxWindow)
     EVT_LEFT_DOWN(ColorSettingGradient::OnClick)
 END_EVENT_TABLE()
 
+// ====================================================================================================================
+// Light settings panel.
+// ====================================================================================================================
+
 class LightSettingsPanel : public wxPanel
 {
 public:
-    LightSettingsPanel(wxWindow* owner)
-        : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(300, 100))
+    LightSettingsPanel(LightsTab* owner, int index)
+        : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(310, 100))
+        , myOwner(owner)
+        , myIndex(index)
     {
-        auto box = new wxStaticBox(this, wxID_ANY, wxEmptyString, wxPoint(0, 0), wxSize(300, 100));
-        myOnSetting = new ColorSettingGradient(box, wxPoint(10, 10), { 20, 100, 20 }, { 40, 200, 40 });
-        myOffSetting = new ColorSettingGradient(box, wxPoint(120, 10), { 80, 80, 80 }, { 20, 0, 0 });
+        auto sGrad = wxSize(120, 30);
+        myOnSetting = new ColorSettingGradient(this, wxPoint(10, 10), sGrad, L"ON", { 20, 100, 20 }, { 40, 200, 40 });
+        myOffSetting = new ColorSettingGradient(this, wxPoint(140, 10), sGrad, L"OFF", { 80, 80, 80 }, { 20, 0, 0 });
 
-        myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade on", wxPoint(10, 45), wxSize(100, 20));
+        myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(45, 45), wxSize(50, 20));
         myFadeOnBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOnToggled, this);
 
-        myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade off", wxPoint(120, 45), wxSize(100, 20));
+        myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(175, 45), wxSize(50, 20));
         myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOffToggled, this);
+
+        myDeleteButton = new wxButton(this, DELETE_LIGHT_SETTINGS_BUTTON, L"\u2715", wxPoint(270, 10), wxSize(30, 30));
     }
 
-    void OnFadeOnToggled(wxCommandEvent& event);
-    void OnFadeOffToggled(wxCommandEvent& event);
+    void OnFadeOnToggled(wxCommandEvent& event)
+    {
+        myOnSetting->EnableFade(myFadeOnBox->IsChecked());
+    }
+
+    void OnFadeOffToggled(wxCommandEvent& event)
+    {
+        myOffSetting->EnableFade(myFadeOffBox->IsChecked());
+    }
+
+    void OnDelete(wxCommandEvent& event)
+    {
+        myOwner->DeleteLightSettings(myIndex);
+    }
+
+    DECLARE_EVENT_TABLE()
 
 private:
+    int myIndex;
+    LightsTab* myOwner;
     ColorSettingGradient* myOnSetting;
     ColorSettingGradient* myOffSetting;
     wxCheckBox* myFadeOnBox;
     wxCheckBox* myFadeOffBox;
+    wxButton* myDeleteButton;
 };
 
-void LightSettingsPanel::OnFadeOnToggled(wxCommandEvent& event)
-{
-    myOnSetting->EnableFade(myFadeOnBox->IsChecked());
-}
+BEGIN_EVENT_TABLE(LightSettingsPanel, wxWindow)
+    EVT_BUTTON(DELETE_LIGHT_SETTINGS_BUTTON, LightSettingsPanel::OnDelete)
+END_EVENT_TABLE()
 
-void LightSettingsPanel::OnFadeOffToggled(wxCommandEvent& event)
-{
-    myOffSetting->EnableFade(myFadeOffBox->IsChecked());
-}
+// ====================================================================================================================
+// Lights tab.
+// ====================================================================================================================
 
 const wchar_t* LightsTab::Title = L"Lights";
 
-LightsTab::LightsTab(wxWindow* owner) : BaseTab(owner)
+LightsTab::LightsTab(wxWindow* owner)
+    : wxScrolledWindow(owner, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL)
+    , myNumLightSettings(0)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
-
-    for (int i = 0; i < 3; ++i)
-    {
-        auto item = new LightSettingsPanel(this);
-        sizer->Add(item, 0, wxEXPAND, 5);
-    }
+    auto bRule = new wxButton(this, ADD_LIGHT_SETTINGS_BUTTON, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
+    sizer->Add(bRule, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
 
     SetSizer(sizer);
+
+    for (int i = 0; i < 4; ++i)
+        OnAddLightSettings(wxCommandEvent());
+
+    SetScrollRate(5, 5);
 }
+
+void LightsTab::OnAddLightSettings(wxCommandEvent& event)
+{
+    auto sizer = GetSizer();
+    auto settings = new LightSettingsPanel(this, myNumLightSettings);
+    sizer->Insert(myNumLightSettings, settings);
+    ++myNumLightSettings;
+    FitInside();
+}
+
+void LightsTab::DeleteLightSettings(int index)
+{
+}
+
+BEGIN_EVENT_TABLE(LightsTab, wxWindow)
+    EVT_BUTTON(ADD_LIGHT_SETTINGS_BUTTON, LightsTab::OnAddLightSettings)
+END_EVENT_TABLE()
 
 }; // namespace adp.

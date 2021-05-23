@@ -30,7 +30,8 @@ const wchar_t* DeviceTab::Title = L"Device";
 
 enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3, FIRMWARE_BUTTON = 4};
 
-DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
+DeviceTab::DeviceTab(wxWindow* owner)
+    : wxWindow(owner, wxID_ANY)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
     sizer->AddStretchSpacer();

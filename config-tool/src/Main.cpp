@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "wx/wx.h"
 #include "wx/notebook.h"
 
@@ -30,11 +32,10 @@ public:
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
-        myTabs->AddPage(new AboutTab(myTabs), AboutTab::Title);
-        myTabs->AddPage(new LogTab(myTabs), LogTab::Title);
+        AddTab(0, new AboutTab(myTabs), AboutTab::Title);
+        AddTab(1, new LogTab(myTabs), LogTab::Title);
         sizer->Add(myTabs, 1, wxEXPAND);
         SetSizer(sizer);
-
         UpdatePages();
 
         myUpdateTimer = make_unique<UpdateTimer>(this);
@@ -60,13 +61,13 @@ public:
 
         if (changes)
         {
-            for (size_t i = 0; i < myTabs->GetPageCount(); ++i)
-                ((BaseTab*)myTabs->GetPage(i))->HandleChanges(changes);
+            for (auto tab : myTabList)
+                tab->HandleChanges(changes);
         }
 
-        auto page = (BaseTab*)myTabs->GetCurrentPage();
-        if (page)
-            page->Tick();
+        auto activeTab = GetActiveTab();
+        if (activeTab)
+            activeTab->Tick();
     }
 
 private:
@@ -74,19 +75,22 @@ private:
     {
         // Delete all pages except "About" and "Log" at the end.
         while (myTabs->GetPageCount() > 2)
+        {
+            myTabList.erase(myTabList.begin());
             myTabs->DeletePage(0);
+        }
 
         auto pad = Device::Pad();
         if (pad)
         {
-            myTabs->InsertPage(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
-            myTabs->InsertPage(1, new MappingTab(myTabs, pad), MappingTab::Title);
-            myTabs->InsertPage(2, new LightsTab(myTabs), LightsTab::Title);
-            myTabs->InsertPage(3, new DeviceTab(myTabs), DeviceTab::Title);
+            AddTab(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
+            AddTab(1, new MappingTab(myTabs, pad), MappingTab::Title);
+            AddTab(2, new LightsTab(myTabs), LightsTab::Title);
+            AddTab(3, new DeviceTab(myTabs), DeviceTab::Title);
         }
         else
         {
-            myTabs->InsertPage(0, new IdleTab(myTabs), IdleTab::Title, true);
+            AddTab(0, new IdleTab(myTabs), IdleTab::Title, true);
         }
     }
 
@@ -108,6 +112,23 @@ private:
             SetStatusText(wxEmptyString, 1);
     }
 
+    void AddTab(int index, BaseTab* tab, const wchar_t* title, bool select = false)
+    {
+        myTabs->InsertPage(index, tab->GetWindow(), title, select);
+        myTabList.insert(myTabList.begin() + index, tab);
+    }
+
+    BaseTab* GetActiveTab()
+    {
+        auto page = myTabs->GetCurrentPage();
+        for (auto tab : myTabList)
+        {
+            if (tab->GetWindow() == page)
+                return tab;
+        }
+        return nullptr;
+    }
+
     struct UpdateTimer : public wxTimer
     {
         UpdateTimer(MainWindow* owner) : owner(owner) {}
@@ -117,6 +138,7 @@ private:
 
     // BasicDrawPane* myDrawPane;
     wxNotebook* myTabs;
+    vector<BaseTab*> myTabList;
     unique_ptr<wxTimer> myUpdateTimer;
 };
 

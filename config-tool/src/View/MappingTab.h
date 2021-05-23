@@ -1,20 +1,19 @@
 #pragma once
 
-#include "View/BaseTab.h"
+#include <string>
+#include <vector>
 
+#include "wx/window.h"
 #include "wx/dataview.h"
 #include "wx/combobox.h"
 
 #include "View/BaseTab.h"
 
-#include <string>
-#include <vector>
-
 namespace adp {
 
 class HorizontalSensorBar;
 
-class MappingTab : public BaseTab
+class MappingTab : public BaseTab, public wxWindow
 {
 public:
     static const wchar_t* Title;
@@ -23,6 +22,8 @@ public:
 
     void HandleChanges(DeviceChanges changes) override;
     void Tick() override;
+
+    wxWindow* GetWindow() override { return this; }
 
 private:
     std::vector<wxComboBox*> myButtonBoxes;

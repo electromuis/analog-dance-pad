@@ -1,5 +1,6 @@
 #pragma once
 
+#include "wx/window.h"
 #include "wx/sizer.h"
 #include "wx/slider.h"
 
@@ -13,7 +14,7 @@ namespace adp {
 
 class SensorDisplay;
 
-class SensitivityTab : public BaseTab
+class SensitivityTab : public BaseTab, public wxWindow
 {
 public:
     static const wchar_t* Title;
@@ -26,6 +27,8 @@ public:
     double ReleaseThreshold() const;
 
     void OnReleaseThresholdChanged(wxCommandEvent& event);
+
+    wxWindow* GetWindow() override { return this; }
 
 private:
     void UpdateDisplays();

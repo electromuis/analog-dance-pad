@@ -7,7 +7,8 @@ namespace adp {
 
 const wchar_t* IdleTab::Title = L"Idle";
 
-IdleTab::IdleTab(wxWindow* owner) : BaseTab(owner)
+IdleTab::IdleTab(wxWindow* owner)
+    : wxWindow(owner, wxID_ANY)
 {
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     auto text = new wxStaticText(

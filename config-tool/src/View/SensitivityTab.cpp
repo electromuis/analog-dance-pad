@@ -143,7 +143,8 @@ static const wchar_t* ReleaseMsg =
 
 const wchar_t* SensitivityTab::Title = L"Sensitivity";
 
-SensitivityTab::SensitivityTab(wxWindow* owner, const PadState* pad) : BaseTab(owner)
+SensitivityTab::SensitivityTab(wxWindow* owner, const PadState* pad)
+    : wxWindow(owner, wxID_ANY)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
 
