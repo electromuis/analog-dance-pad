@@ -2,6 +2,7 @@
 
 #include "stdint.h"
 #include <string>
+#include "Model/Firmware.h"
 
 namespace adp {
 
@@ -28,6 +29,7 @@ struct PadState
 	int numButtons = 0;
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
+	enum BoardType boardType = BOARD_UNKNOWN;
 };
 
 class Device

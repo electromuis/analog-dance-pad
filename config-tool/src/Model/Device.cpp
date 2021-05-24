@@ -4,6 +4,8 @@
 #include "hidapi.h"
 #include "utils.h"
 
+#include "Model/Firmware.h"
+
 #include <memory>
 #include <algorithm>
 #include <map>
@@ -121,6 +123,7 @@ public:
 		myPad.maxNameLength = MAX_NAME_LENGTH;
 		myPad.numButtons = identification.buttonCount;
 		myPad.numSensors = identification.sensorCount;
+		myPad.boardType = ParseBoardType(identification.boardType);
 		UpdatePadConfiguration(config);
 		myPollingData.lastUpdate = system_clock::now();
 	}

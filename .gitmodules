@@ -10,3 +10,6 @@
 [submodule "config-tool/lib/libusb"]
 	path = config-tool/lib/libusb
 	url = https://github.com/libusb/libusb
+[submodule "config-tool/lib/serial"]
+	path = config-tool/lib/serial
+	url = https://github.com/wjwwood/serial

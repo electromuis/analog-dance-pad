@@ -1,11 +1,14 @@
 cmake_minimum_required (VERSION 3.6)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_GENERATOR_PLATFORM win32)
 project(adp-tool)
 
 set(wxBUILD_SHARED OFF CACHE BOOL "enable X functionality")
 add_subdirectory (lib/wxwidgets)
+add_subdirectory (lib/avrdude)
 include(lib/hidapi.cmake)
+include(lib/serial.cmake)
 
 file(GLOB_RECURSE sources
      "src/*.h"
@@ -41,6 +44,7 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT $
 
 target_include_directories(${PROJECT_NAME}
 	PUBLIC "lib/wxwidgets/include"
+	PUBLIC "lib/avrdude"
 	PUBLIC "src"
 )
 
@@ -53,4 +57,6 @@ target_link_libraries(${PROJECT_NAME}
 	wx::net wx::core wx::base
 	setupapi
 	hidapi
+	avrdude
+	serial
 )

@@ -7,6 +7,7 @@
 #include "View/DeviceTab.h"
 
 #include "Model/Device.h"
+#include "Model/Firmware.h"
 
 #include <string>
 
@@ -28,7 +29,7 @@ static constexpr const wchar_t* UpdateFirmwareMsg =
 
 const wchar_t* DeviceTab::Title = L"Device";
 
-enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3, FIRMWARE_BUTTON = 4};
+enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3, FIRMWARE_BUTTON = 4, FIRMWARE_GO_BUTTON = 5};
 
 DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 {
@@ -61,6 +62,8 @@ DeviceTab::DeviceTab(wxWindow* owner) : BaseTab(owner)
 
     sizer->AddStretchSpacer();
     SetSizer(sizer);
+
+    firmwareDialog = new FirmwareDialog("Firmware updater");
 }
 
 void DeviceTab::OnRename(wxCommandEvent& event)
@@ -94,8 +97,11 @@ void DeviceTab::OnUploadFirmware(wxCommandEvent& event)
     if (dlg.ShowModal() == wxID_CANCEL)
         return;
 
+    firmwareDialog->BindFile((dlg.GetPath().ToStdWstring()));
+    firmwareDialog->Show();
+
     // TODO: implement functionality for uploading firmware.
-    wxMessageBox(L"Not yet implemented.", L"Update firmware", wxICON_INFORMATION);
+    //wxMessageBox(L"Not yet implemented.", L"Update firmware", wxICON_INFORMATION);
 }
 
 BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
@@ -103,6 +109,50 @@ BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
     EVT_BUTTON(FACTORY_RESET_BUTTON, DeviceTab::OnFactoryReset)
     EVT_BUTTON(REBOOT_BUTTON, DeviceTab::OnReboot)
     EVT_BUTTON(FIRMWARE_BUTTON, DeviceTab::OnUploadFirmware)
+END_EVENT_TABLE()
+
+FirmwareDialog::FirmwareDialog(const wxString& title)
+    : wxDialog(NULL, -1, title, wxDefaultPosition, wxSize(500, 400))
+{
+    auto topSizer = new wxBoxSizer(wxVERTICAL);
+
+    auto rowSizer = new wxBoxSizer(wxHORIZONTAL);
+    
+    auto lStatus = new wxStaticText(this, wxID_ANY, L"Status: ", wxDefaultPosition, wxDefaultSize);
+    rowSizer->Add(lStatus, 0, 0, 0);
+    tStatus = new wxStaticText(this, wxID_ANY, L"waiting", wxDefaultPosition, wxDefaultSize);
+    rowSizer->Add(tStatus, 0, 0, 0);
+
+    topSizer->Add(rowSizer);
+
+    progressBar = new wxGauge(this, wxID_ANY, 1, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL | wxGA_SMOOTH);
+    topSizer->Add(progressBar, 0, 0, 20);
+
+    auto bGo = new wxButton(this, FIRMWARE_GO_BUTTON, L"Start", wxDefaultPosition, wxSize(200, -1));
+    topSizer->Add(bGo);
+
+    SetSizerAndFit(topSizer);
+}
+
+void FirmwareDialog::OnOpen(wxCommandEvent& event)
+{
+
+}
+
+void FirmwareDialog::OnGo(wxCommandEvent& event)
+{
+    UploadFirmware(boundFile);
+}
+
+
+void FirmwareDialog::BindFile(wstring file)
+{
+    boundFile = file;
+}
+
+
+BEGIN_EVENT_TABLE(FirmwareDialog, wxDialog)
+    EVT_BUTTON(FIRMWARE_GO_BUTTON, FirmwareDialog::OnGo)
 END_EVENT_TABLE()
 
 }; // namespace adp.
