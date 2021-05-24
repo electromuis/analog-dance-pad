@@ -49,7 +49,8 @@ END_EVENT_TABLE()
 
 const wchar_t* MappingTab::Title = L"Mapping";
 
-MappingTab::MappingTab(wxWindow* owner, const PadState* pad) : BaseTab(owner)
+MappingTab::MappingTab(wxWindow* owner, const PadState* pad)
+    : wxWindow(owner, wxID_ANY)
 {
     wxArrayString options;
     options.Add(L"-");

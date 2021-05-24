@@ -97,9 +97,8 @@ struct IdentificationReport
 	uint8_t usbApiVersion;
 	uint8_t buttonCount;
 	uint8_t sensorCount;
+	uint8_t ledCount;
 	uint8_t maxSensorValue;
-	uint8_t maxLightRules;
-	
 	uint8_t boardTypeSize;
 	char boardType[MAX_NAME_LENGTH];
 };

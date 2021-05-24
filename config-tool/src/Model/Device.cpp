@@ -429,15 +429,14 @@ public:
 		}
 
 
-		// The other checks were fine, which means the pad doesn't support identification yet. Loading defaults
+		// The other checks were fine, which means the pad doesn't support identification yet. Loading defaults.
 		if (!reporter->Get(padIdentification))
 		{
 			padIdentification.usbApiVersion = 1;
 			padIdentification.buttonCount = MAX_BUTTON_COUNT;
 			padIdentification.sensorCount = MAX_SENSOR_COUNT;
 			padIdentification.maxSensorValue = MAX_SENSOR_VALUE;
-			padIdentification.maxLightRules = 0;
-
+			padIdentification.ledCount = 0;
 			const char boardType[] = "unknown";
 			padIdentification.boardTypeSize = sizeof(boardType) - 1;
 			strcpy(padIdentification.boardType, boardType);

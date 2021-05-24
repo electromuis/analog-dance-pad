@@ -19,6 +19,7 @@ struct Pens
 {
 	static const wxPen& Black1px();
 	static const wxPen& White1px();
+	static const wxPen& Transparent1px();
 };
 
 struct Files

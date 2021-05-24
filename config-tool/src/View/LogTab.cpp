@@ -8,7 +8,8 @@ namespace adp {
 
 const wchar_t* LogTab::Title = L"Log";
 
-LogTab::LogTab(wxWindow* owner) : BaseTab(owner)
+LogTab::LogTab(wxWindow* owner)
+    : wxWindow(owner, wxID_ANY)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
     myText = new wxTextCtrl(

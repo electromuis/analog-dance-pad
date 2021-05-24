@@ -34,11 +34,13 @@ struct PenData
 {
 	wxPen Black1px = wxPen(*wxBLACK, 1);
 	wxPen White1px = wxPen(*wxWHITE, 1);
+	wxPen Transparent1px = *wxTRANSPARENT_PEN;
 };
 static PenData* pens;
 
 PEN(Black1px)
 PEN(White1px)
+PEN(Transparent1px)
 
 // ====================================================================================================================
 // Files.

@@ -6,12 +6,12 @@
 
 namespace adp {
 
-class BaseTab : public wxWindow
+class BaseTab
 {
 public:
-    BaseTab(wxWindow* owner) : wxWindow(owner, wxID_ANY) {}
-
     virtual ~BaseTab() {}
+
+    virtual wxWindow* GetWindow() = 0;
 
     virtual void HandleChanges(DeviceChanges changes) {}
 

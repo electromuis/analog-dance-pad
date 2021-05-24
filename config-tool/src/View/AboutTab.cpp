@@ -12,7 +12,7 @@ namespace adp {
 const wchar_t* AboutTab::Title = L"About";
 
 AboutTab::AboutTab(wxWindow* owner)
-    : BaseTab(owner)
+    : wxWindow(owner, wxID_ANY)
 {
     wxImage logo(Files::Icon64(), wxBITMAP_TYPE_PNG);
 
