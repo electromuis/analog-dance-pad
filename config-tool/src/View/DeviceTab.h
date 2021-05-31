@@ -16,14 +16,14 @@ class FirmwareDialog : public wxDialog
 public:
     FirmwareDialog(const wxString& title);
 
+    void UpdateFirmware(wstring file);
     void OnOpen(wxCommandEvent& event);
     void OnGo(wxCommandEvent& event);
-    void BindFile(wstring file);
 
 private:
     wxStaticText* tStatus;
     wxGauge* progressBar;
-    wstring boundFile;
+    FirmwareUploader uploader;
 
     DECLARE_EVENT_TABLE()
 };

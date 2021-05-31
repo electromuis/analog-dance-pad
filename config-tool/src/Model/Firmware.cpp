@@ -7,13 +7,10 @@
 #include <algorithm>
 #include <fstream>
 
-#include "serial/serial.h"
 #include "wx/string.h"
-#include "avrdude-slic3r.hpp"
+#include "wx/event.h"
 
-using namespace serial;
 using namespace chrono;
-using namespace Slic3r;
 
 namespace adp {
 
@@ -25,35 +22,34 @@ enum AvrdudeEvent
 	AE_EXIT,
 };
 
-enum AvrDudeComplete
-{
-	AC_NONE,
-	AC_SUCCESS,
-	AC_FAILURE,
-	AC_USER_CANCELLED,
-};
-
 BoardType ParseBoardType(const std::string& str)
 {
 	if (str == "fsrminipad") { return BOARD_FSRMINIPAD; }
 	else { return BOARD_UNKNOWN; }
 }
 
-bool UploadFirmware(wstring fileName)
+FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 {
+	firmwareFile = fileName;
+
 	auto pad = Device::Pad();
 	if (pad == NULL) {
-		return false;
+		errorMessage = L"No compatible board connected";
+		return FLASHRESULT_FAILURE;
 	}
 
 	BoardType boardType = BOARD_UNKNOWN;
-	ifstream firmwareFile(fileName);
-	if (!firmwareFile.is_open()) {
-		return false;
+	
+	//todo fix linux
+#ifdef _MSC_VER
+	ifstream fileStream = ifstream(firmwareFile);
+	if (!fileStream.is_open()) {
+		errorMessage = L"Could not read firmware file";
+		return FLASHRESULT_FAILURE;
 	}
 
 	string line;
-	while (getline(firmwareFile, line)) {
+	while (getline(fileStream, line)) {
 		if (line.size() > 0 && line.substr(0, 1) == ";") {
 			BoardType foundType = ParseBoardType(line.substr(1));
 			if (foundType != BOARD_UNKNOWN) {
@@ -62,15 +58,19 @@ bool UploadFirmware(wstring fileName)
 			}
 		}
 	}
-	firmwareFile.close();
+	fileStream.close();
+#else
+	return FLASHRESULT_FAILURE;
+#endif
 
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
-		// In the future make it a user decicion to override
-		return false;
+		if (!ignoreBoardType) {
+			errorMessage = L"Your firmware does not seem compatible with the detected hardware";
+			return FLASHRESULT_FAILURE;
+		}
 	}
 
 	vector<PortInfo> oldPorts = list_ports();
-	PortInfo newPort;
 	bool foundNewPort = false;
 	auto startTime = system_clock::now();
 
@@ -80,7 +80,8 @@ bool UploadFirmware(wstring fileName)
 	{
 		auto timeSpent = duration_cast<std::chrono::seconds>(system_clock::now() - startTime);
 		if (timeSpent.count() > 10) {
-			return false;
+			errorMessage = L"Could not find the device in bootloader mode";
+			return FLASHRESULT_FAILURE;
 		}
 
 		this_thread::sleep_for(10ms);
@@ -99,43 +100,64 @@ bool UploadFirmware(wstring fileName)
 
 			if (!found) {
 				foundNewPort = true;
-				newPort = port;
+				comPort = port;
 				break;
 			}
 		}	
 	}
 
-	AvrDude avrdude;
+	return WriteFirmware();
+}
+
+FlashResult FirmwareUploader::WriteFirmware()
+{
+	if (avrdude == NULL) {
+		avrdude = new AvrDude();
+	}
+
+	auto comPort = this->comPort.port;
+	auto firmwareFile = this->firmwareFile;
 
 	avrdude
-		.on_run([newPort, fileName](AvrDude::Ptr avrdude) {
-			std::vector<std::string> args{ {
-				"-v",
-				"-p", "atmega32u4",
-				"-c", "avr109",
-				"-P", newPort.port,
-				"-b", "115200",
-				"-D",	
-				"-U", wxString::Format("flash:w:1:%s:i", fileName).ToStdString(),
-			} };
+		->on_run([comPort, firmwareFile](AvrDude::Ptr avrdude) {
+		std::vector<std::string> args{ {
+			"-v",
+			"-p", "atmega32u4",
+			"-c", "avr109",
+			"-P", comPort,
+			"-b", "115200",
+			"-D",
+			"-U", wxString::Format("flash:w:1:%s:i", firmwareFile).ToStdString(),
+		} };
 
-			avrdude->push_args(std::move(args));
+		avrdude->push_args(std::move(args));
 
-			Log::Write(L"Prepared avrdude args");
-		})
+		Log::Write(L"Prepared avrdude args");
+			})
 		.on_message([](const char* msg, unsigned /* size */) {
-			auto wxmsg = wxString::FromUTF8(msg);
-			//Log::Write(L"avrdude: " + wxmsg);
-		})
-		.on_progress([](const char* /* task */, unsigned progress) {
-			Log::Write(wxString::Format("Progress: %i", progress).c_str());
-		})
+				auto wxmsg = wxString::FromUTF8(msg);
+				//Log::Write(L"avrdude: " + wxmsg);
+			})
+		.on_progress([](const char* task, unsigned progress) {
+		Log::Write(wxString::Format("Task: %s Progress: %i", task, progress).c_str());
+
+			})
 		.on_complete([]() {
-			Log::Write(L"avrdude done");
-		})
+				Log::Write(L"avrdude done");
+			})
 		.run();
 
-	return true;
+		return FLASHRESULT_SUCCESS;
+}
+
+void FirmwareUploader::SetIgnoreBoardType(bool ignoreBoardType)
+{
+	this->ignoreBoardType = ignoreBoardType;
+}
+
+void FirmwareUploader::SetEventHandler(wxEvtHandler* handler)
+{
+	this->eventHandler = handler;
 }
 
 }; // namespace adp.

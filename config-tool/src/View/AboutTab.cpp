@@ -14,7 +14,11 @@ const wchar_t* AboutTab::Title = L"About";
 AboutTab::AboutTab(wxWindow* owner)
     : wxWindow(owner, wxID_ANY)
 {
+    //todo fix linux
+
+#ifdef _MSC_VER
     wxImage logo(Files::Icon64(), wxBITMAP_TYPE_PNG);
+
 
     auto logoBitmap = new wxGenericStaticBitmap(this, wxID_ANY, wxBitmap(logo));
     auto topText = new wxStaticText(this, wxID_ANY, L"FSR Mini Pad Config Tool");
@@ -28,6 +32,8 @@ AboutTab::AboutTab(wxWindow* owner)
     sizer->AddStretchSpacer();
 
     SetSizer(sizer);
+
+#endif
 }
 
 }; // namespace adp.

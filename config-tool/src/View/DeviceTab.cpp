@@ -98,7 +98,7 @@ void DeviceTab::OnUploadFirmware(wxCommandEvent& event)
     if (dlg.ShowModal() == wxID_CANCEL)
         return;
 
-    firmwareDialog->BindFile((dlg.GetPath().ToStdWstring()));
+    firmwareDialog->UpdateFirmware((dlg.GetPath().ToStdWstring()));
     firmwareDialog->Show();
 
     // TODO: implement functionality for uploading firmware.
@@ -133,27 +133,28 @@ FirmwareDialog::FirmwareDialog(const wxString& title)
     topSizer->Add(bGo);
 
     SetSizerAndFit(topSizer);
+
+    uploader.SetEventHandler(this);
+}
+
+void FirmwareDialog::UpdateFirmware(wstring file)
+{
+    Show();
+    uploader.UpdateFirmware(file);
 }
 
 void FirmwareDialog::OnOpen(wxCommandEvent& event)
 {
-
+    
 }
 
 void FirmwareDialog::OnGo(wxCommandEvent& event)
 {
-    UploadFirmware(boundFile);
+    //UploadFirmware(boundFile);
 }
-
-
-void FirmwareDialog::BindFile(wstring file)
-{
-    boundFile = file;
-}
-
 
 BEGIN_EVENT_TABLE(FirmwareDialog, wxDialog)
-    EVT_BUTTON(FIRMWARE_GO_BUTTON, FirmwareDialog::OnGo)
+    //EVT_BUTTON(FIRMWARE_GO_BUTTON, FirmwareDialog::OnGo)
 END_EVENT_TABLE()
 
 }; // namespace adp.

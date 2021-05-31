@@ -220,8 +220,11 @@ LightsTab::LightsTab(wxWindow* owner)
 
     SetSizer(sizer);
 
+    //todo fix linux
+#ifdef _MSC_VER
     for (int i = 0; i < 4; ++i)
         OnAddLightSettings(wxCommandEvent());
+#endif
 
     SetScrollRate(5, 5);
 }

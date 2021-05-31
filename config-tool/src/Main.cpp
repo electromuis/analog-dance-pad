@@ -165,9 +165,13 @@ public:
         wxImage::AddHandler(new wxPNGHandler());
 
         wxIconBundle icons;
+
+        //todo fix linux
+#ifdef _MSC_VER
         icons.AddIcon(Files::Icon16(), wxBITMAP_TYPE_PNG);
         icons.AddIcon(Files::Icon32(), wxBITMAP_TYPE_PNG);
         icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
+#endif // _MSC_VER
 
         myWindow = new MainWindow();
         myWindow->SetIcons(icons);
@@ -189,6 +193,7 @@ public:
 private:
     MainWindow* myWindow;
 };
-wxIMPLEMENT_APP(Application);
 
 }; // namespace adp.
+
+wxIMPLEMENT_APP(adp::Application);

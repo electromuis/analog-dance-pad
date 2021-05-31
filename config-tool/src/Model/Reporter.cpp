@@ -1,6 +1,9 @@
 #include "reporter.h"
 #include "log.h"
 #include "utils.h"
+#include <cstring>
+
+using namespace std;
 
 namespace adp {
 
