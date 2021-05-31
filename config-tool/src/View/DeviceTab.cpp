@@ -29,7 +29,7 @@ static constexpr const wchar_t* UpdateFirmwareMsg =
 
 const wchar_t* DeviceTab::Title = L"Device";
 
-enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3, FIRMWARE_BUTTON = 4, FIRMWARE_GO_BUTTON = 5};
+enum Ids { RENAME_BUTTON = 1, FACTORY_RESET_BUTTON = 2, REBOOT_BUTTON = 3, FIRMWARE_BUTTON = 4, FIRMWARE_CANCEL_BUTTON = 5};
 
 DeviceTab::DeviceTab(wxWindow* owner)
     : wxWindow(owner, wxID_ANY)
@@ -99,7 +99,6 @@ void DeviceTab::OnUploadFirmware(wxCommandEvent& event)
         return;
 
     firmwareDialog->UpdateFirmware((dlg.GetPath().ToStdWstring()));
-    firmwareDialog->Show();
 
     // TODO: implement functionality for uploading firmware.
     //wxMessageBox(L"Not yet implemented.", L"Update firmware", wxICON_INFORMATION);
@@ -113,7 +112,7 @@ BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
 END_EVENT_TABLE()
 
 FirmwareDialog::FirmwareDialog(const wxString& title)
-    : wxDialog(NULL, -1, title, wxDefaultPosition, wxSize(500, 400))
+    : wxDialog(NULL, -1, title, wxDefaultPosition, wxSize(1000, 300))
 {
     auto topSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -121,16 +120,13 @@ FirmwareDialog::FirmwareDialog(const wxString& title)
     
     auto lStatus = new wxStaticText(this, wxID_ANY, L"Status: ", wxDefaultPosition, wxDefaultSize);
     rowSizer->Add(lStatus, 0, 0, 0);
-    tStatus = new wxStaticText(this, wxID_ANY, L"waiting", wxDefaultPosition, wxDefaultSize);
-    rowSizer->Add(tStatus, 0, 0, 0);
+    statusText = new wxStaticText(this, wxID_ANY, L"waiting", wxDefaultPosition, wxDefaultSize);
+    rowSizer->Add(statusText, 0, 0, 0);
 
-    topSizer->Add(rowSizer);
+    topSizer->Add(rowSizer, 1, wxALIGN_CENTER_HORIZONTAL);
 
-    progressBar = new wxGauge(this, wxID_ANY, 1, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL | wxGA_SMOOTH);
-    topSizer->Add(progressBar, 0, 0, 20);
-
-    auto bGo = new wxButton(this, FIRMWARE_GO_BUTTON, L"Start", wxDefaultPosition, wxSize(200, -1));
-    topSizer->Add(bGo);
+    progressBar = new wxGauge(this, wxID_ANY, 1, wxDefaultPosition, wxSize(-1, 30), wxGA_HORIZONTAL | wxGA_SMOOTH);
+    topSizer->Add(progressBar, 0, wxEXPAND, 50);
 
     SetSizerAndFit(topSizer);
 
@@ -139,22 +135,60 @@ FirmwareDialog::FirmwareDialog(const wxString& title)
 
 void FirmwareDialog::UpdateFirmware(wstring file)
 {
+    tasksCompleted = 0;
+    tasksTodo = 4;
+    progressBar->SetRange(100 * tasksTodo);
+    progressBar->SetValue(0);
+    SetStatus("Waiting");
+
+    if (uploader.UpdateFirmware(file) == FLASHRESULT_FAILURE) {
+        wxMessageBox(uploader.GetErrorMessage(), L"Update firmware", wxICON_ERROR);
+        return;
+    }
+
     Show();
-    uploader.UpdateFirmware(file);
 }
 
-void FirmwareDialog::OnOpen(wxCommandEvent& event)
+void FirmwareDialog::SetStatus(wxString status)
 {
-    
+    statusText->SetLabel(status);
 }
 
-void FirmwareDialog::OnGo(wxCommandEvent& event)
+void FirmwareDialog::OnAvrdude(wxCommandEvent& event)
 {
-    //UploadFirmware(boundFile);
+    static string lastTask = "";
+
+    switch (event.GetExtraLong()) {
+        case AE_MESSAGE:
+
+            break;
+        case AE_PROGRESS:
+            if (event.GetString() != lastTask) {
+                SetStatus(event.GetString());
+
+                tasksCompleted++;
+                lastTask = event.GetString();
+            }
+
+            progressBar->SetValue(tasksCompleted * 100 + event.GetInt());
+
+            break;
+        case AE_EXIT:
+            Done();
+            break;
+    }
+}
+
+void FirmwareDialog::Done()
+{
+    progressBar->SetValue(progressBar->GetRange());
+    SetStatus("Done");
+    wxMessageBox("The selected firmware has been written to the device", L"Update firmware", wxICON_INFORMATION);
+    Hide();
 }
 
 BEGIN_EVENT_TABLE(FirmwareDialog, wxDialog)
-    //EVT_BUTTON(FIRMWARE_GO_BUTTON, FirmwareDialog::OnGo)
+    EVT_COMMAND(0, EVT_AVRDUDE, FirmwareDialog::OnAvrdude)
 END_EVENT_TABLE()
 
 }; // namespace adp.

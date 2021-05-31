@@ -14,13 +14,7 @@ using namespace chrono;
 
 namespace adp {
 
-enum AvrdudeEvent
-{
-	AE_MESSAGE,
-	AE_PROGRESS,
-	AE_STATUS,
-	AE_EXIT,
-};
+wxDEFINE_EVENT(EVT_AVRDUDE, wxCommandEvent);
 
 BoardType ParseBoardType(const std::string& str)
 {
@@ -30,6 +24,8 @@ BoardType ParseBoardType(const std::string& str)
 
 FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 {
+	errorMessage = L"";
+
 	firmwareFile = fileName;
 
 	auto pad = Device::Pad();
@@ -40,9 +36,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 	BoardType boardType = BOARD_UNKNOWN;
 	
-	//todo fix linux
-#ifdef _MSC_VER
-	ifstream fileStream = ifstream(firmwareFile);
+	ifstream fileStream = ifstream(firmwareFile, std::ios::in | std::ios::binary);
 	if (!fileStream.is_open()) {
 		errorMessage = L"Could not read firmware file";
 		return FLASHRESULT_FAILURE;
@@ -59,9 +53,6 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 		}
 	}
 	fileStream.close();
-#else
-	return FLASHRESULT_FAILURE;
-#endif
 
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
 		if (!ignoreBoardType) {
@@ -111,43 +102,72 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 FlashResult FirmwareUploader::WriteFirmware()
 {
-	if (avrdude == NULL) {
-		avrdude = new AvrDude();
-	}
+	AvrDude avrdude;
 
 	auto comPort = this->comPort.port;
 	auto firmwareFile = this->firmwareFile;
+	auto eventHandler = this->eventHandler;
 
 	avrdude
-		->on_run([comPort, firmwareFile](AvrDude::Ptr avrdude) {
-		std::vector<std::string> args{ {
-			"-v",
-			"-p", "atmega32u4",
-			"-c", "avr109",
-			"-P", comPort,
-			"-b", "115200",
-			"-D",
-			"-U", wxString::Format("flash:w:1:%s:i", firmwareFile).ToStdString(),
-		} };
+		.on_run([comPort, firmwareFile, this](AvrDude::Ptr avrdude) {
+			this->myAvrdude = std::move(avrdude);
 
-		avrdude->push_args(std::move(args));
+			std::vector<std::string> args{ {
+				"-v",
+				"-p", "atmega32u4",
+				"-c", "avr109",
+				"-P", comPort,
+				"-b", "115200",
+				"-D",
+				"-U", wxString::Format("flash:w:1:%s:i", firmwareFile).ToStdString(),
+			} };
 
-		Log::Write(L"Prepared avrdude args");
-			})
-		.on_message([](const char* msg, unsigned /* size */) {
-				auto wxmsg = wxString::FromUTF8(msg);
-				//Log::Write(L"avrdude: " + wxmsg);
-			})
-		.on_progress([](const char* task, unsigned progress) {
-		Log::Write(wxString::Format("Task: %s Progress: %i", task, progress).c_str());
+			this->myAvrdude->push_args(std::move(args));
+		})
+		.on_message([eventHandler](const char* msg, unsigned size) {
+			auto wxmsg = wxString::FromUTF8(msg);
+			Log::Write(L"avrdude: " + wxmsg);
 
-			})
-		.on_complete([]() {
-				Log::Write(L"avrdude done");
-			})
+			if (eventHandler) {
+				auto evt = new wxCommandEvent(EVT_AVRDUDE);
+				evt->SetExtraLong(AE_MESSAGE);
+				evt->SetString(std::move(wxmsg));
+				wxQueueEvent(eventHandler, evt);
+			}
+		})
+		.on_progress([eventHandler](const char* task, unsigned progress) {
+			Log::Write(wxString::Format("Task: %s Progress: %i", task, progress).c_str());
+			auto wxmsg = wxString::FromUTF8(task);
+			
+			if (eventHandler) {
+				auto evt = new wxCommandEvent(EVT_AVRDUDE);
+				evt->SetExtraLong(AE_PROGRESS);
+				evt->SetInt(progress);
+				evt->SetString(wxmsg);
+				wxQueueEvent(eventHandler, evt);
+			}
+		})
+		.on_complete([eventHandler, this]() {
+			Log::Write(L"avrdude done");
+
+			if (eventHandler) {
+				auto evt = new wxCommandEvent(EVT_AVRDUDE);
+				evt->SetExtraLong(AE_EXIT);
+				evt->SetInt(this->myAvrdude->exit_code());
+				wxQueueEvent(eventHandler, evt);
+			}
+
+			this->WritingDone();
+		})
 		.run();
 
-		return FLASHRESULT_SUCCESS;
+	return FLASHRESULT_RUNNING;
+}
+
+void FirmwareUploader::WritingDone()
+{
+	//if (myAvrdude) { myAvrdude->join(); }
+	//myAvrdude.reset();
 }
 
 void FirmwareUploader::SetIgnoreBoardType(bool ignoreBoardType)
@@ -158,6 +178,11 @@ void FirmwareUploader::SetIgnoreBoardType(bool ignoreBoardType)
 void FirmwareUploader::SetEventHandler(wxEvtHandler* handler)
 {
 	this->eventHandler = handler;
+}
+
+wstring FirmwareUploader::GetErrorMessage()
+{
+	return errorMessage;
 }
 
 }; // namespace adp.

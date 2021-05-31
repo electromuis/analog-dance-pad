@@ -17,13 +17,17 @@ public:
     FirmwareDialog(const wxString& title);
 
     void UpdateFirmware(wstring file);
-    void OnOpen(wxCommandEvent& event);
-    void OnGo(wxCommandEvent& event);
 
 private:
-    wxStaticText* tStatus;
+    void OnAvrdude(wxCommandEvent& event);
+    void SetStatus(wxString status);
+    void Done();
+
+    wxStaticText* statusText;
     wxGauge* progressBar;
     FirmwareUploader uploader;
+    int tasksCompleted;
+    int tasksTodo;
 
     DECLARE_EVENT_TABLE()
 };
