@@ -24,12 +24,13 @@ void Communication_WriteInputHIDReport(InputHIDReport* report) {
 }
 
 void Communication_WriteIdentificationReport(IdentificationFeatureReport* ReportData) {
-    ReportData->usbApiVersion = USB_API_VERSION;
+    ReportData->firmwareVersionMajor = FIRMWARE_VERSION_MAJOR;
+    ReportData->firmwareVersionMinor = FIRMWARE_VERSION_MINOR;
+    
     ReportData->buttonCount = BUTTON_COUNT;
     ReportData->sensorCount = SENSOR_COUNT;
     ReportData->ledCount = LED_COUNT;
     ReportData->maxSensorValue = MAX_SENSOR_VALUE;
 
-    ReportData->boardType.size = sizeof(boardType) - 1; // -1 because null terminated.
-    strcpy(ReportData->boardType.name, boardType);
+    strcpy(ReportData->boardType, boardType);
 }

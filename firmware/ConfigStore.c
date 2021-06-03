@@ -17,36 +17,66 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
 // where actual configration is stored
 #define CONFIGURATION_ADDRESS ((void *) (MAGIC_BYTES_ADDRESS + sizeof (magicBytes)))
 
-#define DEFAULT_NAME "Untitled FSR Device"
+#if defined(BOARD_TYPE_FSRMINIPAD)
+	#define DEFAULT_NAME "FSR Mini pad"
+#else
+	#define DEFAULT_NAME "Untitled FSR Device"
+#endif
 
-#define DEFAULT_LIGHT_RULE(sensor, lfrom, lto) \
-    {                                          \
-        .sensorNumber = sensor,                \
-        .fromLight = lfrom,                    \
-        .toLight = lto,                        \
-        .onColor = {255, 0, 0},                \
-        .offColor = {0, 0, 255},               \
-        .onFadeColor = {0, 0, 0},              \
-        .offFadeColor = {0, 0, 0},             \
-        .flags = 0,                            \
+#define DEFAULT_LIGHT_RULE_1(sensor, lfrom, lto) \
+    {                                            \
+        .sensorNumber = sensor,                  \
+        .fromLight = lfrom,                      \
+        .toLight = lto,                          \
+        .onColor = {255, 255, 255},              \
+        .offColor = {2, 0, 0},                   \
+        .onFadeColor = {0, 0, 0},                \
+        .offFadeColor = {255, 0, 0},             \
+        .flags = LRF_FADE_OFF                    \
+    }
+
+#define DEFAULT_LIGHT_RULE_2(sensor, lfrom, lto) \
+    {                                            \
+        .sensorNumber = sensor,                  \
+        .fromLight = lfrom,                      \
+        .toLight = lto,                          \
+        .onColor = {255, 255, 255},              \
+        .offColor = {0, 0, 2},                   \
+        .onFadeColor = {0, 0, 0},                \
+        .offFadeColor = {0, 0, 255},             \
+        .flags = LRF_FADE_OFF                    \
     }
 
 static const Configuration DEFAULT_CONFIGURATION = {
     .padConfiguration = {
         .sensorThresholds = { [0 ... SENSOR_COUNT - 1] = 400 },
         .releaseMultiplier = 0.95,
-        .sensorToButtonMapping = { [0 ... SENSOR_COUNT - 1] = 0xFF }
+        .sensorToButtonMapping = {
+#if defined(BOARD_TYPE_FSRMINIPAD)
+			[0 ... 1] = 0xFF,
+			[2] = 0,
+			[3] = 1,
+			[4] = 2,
+			[5] = 3,
+			[6 ... SENSOR_COUNT - 1] = 0xFF
+#else
+			[0 ... SENSOR_COUNT - 1] = 0xFF 
+#endif
+		}
     },
     .nameAndSize = {
         .size = sizeof(DEFAULT_NAME) - 1, // we don't care about the null at the end.
         .name = DEFAULT_NAME
     },
 	.lightConfiguration = {
-        .lightRules = {
-            DEFAULT_LIGHT_RULE(2, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
-            DEFAULT_LIGHT_RULE(5, PANEL_LEDS * 1, PANEL_LEDS * 2), // DOWN
-            DEFAULT_LIGHT_RULE(3, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
-            DEFAULT_LIGHT_RULE(4, PANEL_LEDS * 2, PANEL_LEDS * 3), // RIGHT
+        .lightRules =
+		{	
+#if defined(BOARD_TYPE_FSRMINIPAD)
+            DEFAULT_LIGHT_RULE_1(2, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
+            DEFAULT_LIGHT_RULE_2(5, PANEL_LEDS * 1, PANEL_LEDS * 2), // DOWN
+            DEFAULT_LIGHT_RULE_2(3, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
+            DEFAULT_LIGHT_RULE_1(4, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
+#endif
         }
 	}
 };

@@ -1,5 +1,5 @@
-[submodule "firmware/teensy2/lufa"]
-	path = firmware/teensy2/lufa
+[submodule "firmware/lufa"]
+	path = firmware/lufa
 	url = https://github.com/abcminiuser/lufa
 [submodule "adp-tool/lib/hidapi"]
 	path = adp-tool/lib/hidapi

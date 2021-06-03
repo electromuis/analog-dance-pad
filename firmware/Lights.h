@@ -1,8 +1,6 @@
 #ifndef _LIGHTS_H_
 #define _LIGHTS_H_
-	#define LED_PANELS 4
-	#define PANEL_LEDS 8
-	#define LED_COUNT (LED_PANELS * PANEL_LEDS)
+	#include "Config/DancePadConfig.h"
 	
 	typedef struct
 	{
@@ -13,7 +11,7 @@
     {
         LRF_FADE_ON  = 0x1,
         LRF_FADE_OFF = 0x2,
-        LRF_FADE_DISABLED = 0x3,
+        LRF_DISABLED = 0x4
     };
 	
 	typedef struct {
