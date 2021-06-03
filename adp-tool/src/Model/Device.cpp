@@ -123,7 +123,12 @@ public:
 		myPad.maxNameLength = MAX_NAME_LENGTH;
 		myPad.numButtons = identification.buttonCount;
 		myPad.numSensors = identification.sensorCount;
-		myPad.boardType = ParseBoardType(identification.boardType);
+
+		auto buffer = (char*)calloc(BOARD_TYPE_LENGTH + 1, sizeof(char));
+		memcpy(buffer, identification.boardType, sizeof(BOARD_TYPE_LENGTH));
+		myPad.boardType = ParseBoardType(buffer);
+		free(buffer);
+
 		UpdatePadConfiguration(config);
 		myPollingData.lastUpdate = system_clock::now();
 	}
