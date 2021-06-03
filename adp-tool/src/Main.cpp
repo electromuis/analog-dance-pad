@@ -73,6 +73,14 @@ public:
             activeTab->Tick();
     }
 
+    void OnClose(wxCloseEvent& event)
+    {
+        myUpdateTimer->Stop();
+        event.Skip(); // Default handler will close window.
+    }
+
+    DECLARE_EVENT_TABLE()
+
 private:
     void UpdatePages()
     {
@@ -143,6 +151,10 @@ private:
     vector<BaseTab*> myTabList;
     unique_ptr<wxTimer> myUpdateTimer;
 };
+
+BEGIN_EVENT_TABLE(MainWindow, wxFrame)
+    EVT_CLOSE(MainWindow::OnClose)
+END_EVENT_TABLE()
 
 // ====================================================================================================================
 // Application.
