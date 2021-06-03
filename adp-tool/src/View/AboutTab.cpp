@@ -1,0 +1,42 @@
+#include "wx/mstream.h"
+#include "wx/sizer.h"
+#include "wx/stattext.h"
+#include "wx/generic/statbmpg.h"
+
+#include "Assets/Assets.h"
+
+#include "View/AboutTab.h"
+
+namespace adp {
+
+const wchar_t* AboutTab::Title = L"About";
+
+AboutTab::AboutTab(wxWindow* owner, const wchar_t* versionString)
+    : wxWindow(owner, wxID_ANY)
+{
+    //todo fix linux
+
+#ifdef _MSC_VER
+    wxImage logo(Files::Icon64(), wxBITMAP_TYPE_PNG);
+
+    auto logoBitmap = new wxGenericStaticBitmap(this, wxID_ANY, wxBitmap(logo));
+<<<<<<< HEAD:config-tool/src/View/AboutTab.cpp
+    auto topText = new wxStaticText(this, wxID_ANY, versionString);
+=======
+    auto topText = new wxStaticText(this, wxID_ANY, L"ADP Tool");
+>>>>>>> c7f7c93a2f3e053ff796ba7e34acb00b38b50155:adp-tool/src/View/AboutTab.cpp
+    auto bottomText = new wxStaticText(this, wxID_ANY, L"\xA9 Bram van de Wetering 2021");
+
+    auto sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->AddStretchSpacer();
+    sizer->Add(logoBitmap, 0, wxALIGN_CENTER_HORIZONTAL);
+    sizer->Add(topText, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 10);
+    sizer->Add(bottomText, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 5);
+    sizer->AddStretchSpacer();
+
+    SetSizer(sizer);
+
+#endif
+}
+
+}; // namespace adp.
