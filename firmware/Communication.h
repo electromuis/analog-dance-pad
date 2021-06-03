@@ -44,7 +44,7 @@
         uint8_t buttonCount;
         uint8_t sensorCount;
         uint8_t ledCount;
-		uint8_t maxSensorValue;
+		uint16_t maxSensorValue;
 		char    boardType[32];
     } __attribute__((packed)) IdentificationFeatureReport;
 	
