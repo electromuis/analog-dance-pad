@@ -19,3 +19,4 @@ firmware/teensy2/build/vs2019/
 firmware/teensy2/build/.vs
 firmware/teensy2/.vs
 firmware/teensy2/lufa
+adp-tool/build/

@@ -17,6 +17,8 @@
 #include "Model/Log.h"
 
 namespace adp {
+	
+static const wchar_t* TOOL_NAME = L"ADP Tool";
 
 // ====================================================================================================================
 // Main window.
@@ -25,15 +27,10 @@ namespace adp {
 class MainWindow : public wxFrame
 {
 public:
-<<<<<<< HEAD:config-tool/src/Main.cpp
     MainWindow(const wchar_t* versionString)
-        : wxFrame(nullptr, wxID_ANY, "FSR Mini Pad Config", wxDefaultPosition, wxSize(500, 500))
-=======
-    MainWindow() : wxFrame(nullptr, wxID_ANY, "ADP Tool", wxDefaultPosition, wxSize(500, 500))
->>>>>>> c7f7c93a2f3e053ff796ba7e34acb00b38b50155:adp-tool/src/Main.cpp
+        : wxFrame(nullptr, wxID_ANY, TOOL_NAME, wxDefaultPosition, wxSize(500, 500))
     {
         SetMinClientSize(wxSize(400, 400));
-
         SetStatusBar(CreateStatusBar(2));
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
@@ -161,8 +158,8 @@ public:
 
         Log::Init();
 
-        auto versionString = L"FSR Mini Pad Config Tool "
-            + to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
+        auto versionString = wstring(TOOL_NAME) + L" " +
+            to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
 
         auto now = wxDateTime::Now().FormatISOCombined(' ');
         Log::Writef(L"Application started: %s - %s", versionString.data(), now.wc_str());
