@@ -15,7 +15,9 @@ namespace adp {
 
 enum BoardType {
 	BOARD_UNKNOWN,
-	BOARD_FSRMINIPAD
+	BOARD_FSRMINIPAD,
+	BOARD_TEENSY2,
+	BOARD_LEONARDO
 };
 
 enum FlashResult

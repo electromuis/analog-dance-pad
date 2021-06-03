@@ -19,6 +19,8 @@ wxDEFINE_EVENT(EVT_AVRDUDE, wxCommandEvent);
 BoardType ParseBoardType(const std::string& str)
 {
 	if (str == "fsrminipad") { return BOARD_FSRMINIPAD; }
+	if (str == "teensy2") { return BOARD_TEENSY2; }
+	if (str == "leonardo") { return BOARD_LEONARDO; }
 	else { return BOARD_UNKNOWN; }
 }
 
@@ -57,7 +59,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
 		if (!ignoreBoardType) {
 			errorMessage = L"Your firmware does not seem compatible with the detected hardware";
-			return FLASHRESULT_FAILURE;
+			//return FLASHRESULT_FAILURE;
 		}
 	}
 
