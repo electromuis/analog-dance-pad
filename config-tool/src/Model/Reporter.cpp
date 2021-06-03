@@ -113,11 +113,6 @@ bool Reporter::Get(NameReport& report)
 	return GetFeatureReport(myHid, report, L"GetNameReport");
 }
 
-bool Reporter::Get(LightsReport& report)
-{
-	return GetFeatureReport(myHid, report, L"GetLightsReport");
-}
-
 bool Reporter::Get(IdentificationReport& report)
 {
 	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
@@ -146,11 +141,6 @@ bool Reporter::Send(const PadConfigurationReport& report)
 bool Reporter::Send(const NameReport& report)
 {
 	return SendFeatureReport(myHid, report, L"SendNameReport");
-}
-
-bool Reporter::Send(const LightsReport& report)
-{
-	return SendFeatureReport(myHid, report, L"SendLightsReport");
 }
 
 }; // namespace adp.

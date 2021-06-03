@@ -11,7 +11,7 @@ namespace adp {
 
 const wchar_t* AboutTab::Title = L"About";
 
-AboutTab::AboutTab(wxWindow* owner)
+AboutTab::AboutTab(wxWindow* owner, const wchar_t* versionString)
     : wxWindow(owner, wxID_ANY)
 {
     //todo fix linux
@@ -19,9 +19,8 @@ AboutTab::AboutTab(wxWindow* owner)
 #ifdef _MSC_VER
     wxImage logo(Files::Icon64(), wxBITMAP_TYPE_PNG);
 
-
     auto logoBitmap = new wxGenericStaticBitmap(this, wxID_ANY, wxBitmap(logo));
-    auto topText = new wxStaticText(this, wxID_ANY, L"FSR Mini Pad Config Tool");
+    auto topText = new wxStaticText(this, wxID_ANY, versionString);
     auto bottomText = new wxStaticText(this, wxID_ANY, L"\xA9 Bram van de Wetering 2021");
 
     auto sizer = new wxBoxSizer(wxVERTICAL);

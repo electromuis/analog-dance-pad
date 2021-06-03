@@ -432,20 +432,15 @@ public:
 		// The other checks were fine, which means the pad doesn't support identification yet. Loading defaults.
 		if (!reporter->Get(padIdentification))
 		{
-			padIdentification.usbApiVersion = 1;
+			padIdentification.firmwareMajor = WriteU16LE(0);
+			padIdentification.firmwareMinor = WriteU16LE(0);
 			padIdentification.buttonCount = MAX_BUTTON_COUNT;
 			padIdentification.sensorCount = MAX_SENSOR_COUNT;
-			padIdentification.maxSensorValue = MAX_SENSOR_VALUE;
 			padIdentification.ledCount = 0;
-			const char boardType[] = "unknown";
-			padIdentification.boardTypeSize = sizeof(boardType) - 1;
-			strcpy(padIdentification.boardType, boardType);
+			padIdentification.maxSensorValue = WriteU16LE(MAX_SENSOR_VALUE);
+			memset(padIdentification.boardType, 0, BOARD_TYPE_LENGTH);
+			strcpy_s(padIdentification.boardType, "unknown");
 		}
-
-		// If the device supports light configuration, read lights.
-
-		//LightsReport lights;
-		//bool supportsLight = GetFeatureReport(hid, lights);
 
 		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);
 

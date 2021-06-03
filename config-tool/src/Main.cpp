@@ -3,6 +3,7 @@
 #include "wx/wx.h"
 #include "wx/notebook.h"
 
+#include "Adp.h"
 #include "Assets/Assets.h"
 
 #include "View/IdleTab.h"
@@ -24,7 +25,8 @@ namespace adp {
 class MainWindow : public wxFrame
 {
 public:
-    MainWindow() : wxFrame(nullptr, wxID_ANY, "FSR Mini Pad Config", wxDefaultPosition, wxSize(500, 500))
+    MainWindow(const wchar_t* versionString)
+        : wxFrame(nullptr, wxID_ANY, "FSR Mini Pad Config", wxDefaultPosition, wxSize(500, 500))
     {
         SetMinClientSize(wxSize(400, 400));
 
@@ -32,7 +34,7 @@ public:
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
-        AddTab(0, new AboutTab(myTabs), AboutTab::Title);
+        AddTab(0, new AboutTab(myTabs, versionString), AboutTab::Title);
         AddTab(1, new LogTab(myTabs), LogTab::Title);
         sizer->Add(myTabs, 1, wxEXPAND);
         SetSizer(sizer);
@@ -85,8 +87,7 @@ private:
         {
             AddTab(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
             AddTab(1, new MappingTab(myTabs, pad), MappingTab::Title);
-            AddTab(2, new LightsTab(myTabs), LightsTab::Title);
-            AddTab(3, new DeviceTab(myTabs), DeviceTab::Title);
+            AddTab(2, new DeviceTab(myTabs), DeviceTab::Title);
         }
         else
         {
@@ -156,8 +157,11 @@ public:
 
         Log::Init();
 
+        auto versionString = L"FSR Mini Pad Config Tool "
+            + to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
+
         auto now = wxDateTime::Now().FormatISOCombined(' ');
-        Log::Writef(L"Application started: %s", now.wc_str());
+        Log::Writef(L"Application started: %s - %s", versionString.data(), now.wc_str());
 
         Assets::Init();
         Device::Init();
@@ -173,10 +177,9 @@ public:
         icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
 #endif // _MSC_VER
 
-        myWindow = new MainWindow();
+        myWindow = new MainWindow(versionString.data());
         myWindow->SetIcons(icons);
         myWindow->Show();
-
 
         return true;
     }
