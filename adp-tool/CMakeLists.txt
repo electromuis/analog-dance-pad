@@ -23,28 +23,11 @@ file(GLOB_RECURSE sources
      "src/*.cpp"
 )
 
-list(APPEND ${sources} lib/hidapi/windows/hid.c)
+if(WIN32)
+	list(APPEND sources "src/Assets/Resource.rc")
+endif()
 
-add_executable (${PROJECT_NAME} WIN32
-	${sources}
-	
-#	src/Main.cpp
-#	src/Model/Device.cpp
-#	src/Model/Log.cpp
-#	src/Model/Reporter.cpp
-#	src/Model/Utils.cpp
-#	src/View/AboutTab.cpp
-#	src/View/DeviceTab.cpp
-#	src/View/IdleTab.cpp
-#	src/View/LightsTab.cpp
-#	src/View/LogTab.cpp
-#	src/View/MappingTab.cpp
-#	src/View/SensitivityTab.cpp
-	
-#	src/Assets/Assets.cpp
-	
-#	lib/hidapi/windows/hid.c
-)
+add_executable (${PROJECT_NAME} WIN32 ${sources})
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${sources})
 

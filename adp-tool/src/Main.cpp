@@ -24,7 +24,7 @@ namespace adp {
 class MainWindow : public wxFrame
 {
 public:
-    MainWindow() : wxFrame(nullptr, wxID_ANY, "FSR Mini Pad Config", wxDefaultPosition, wxSize(500, 500))
+    MainWindow() : wxFrame(nullptr, wxID_ANY, "ADP Tool", wxDefaultPosition, wxSize(500, 500))
     {
         SetMinClientSize(wxSize(400, 400));
 

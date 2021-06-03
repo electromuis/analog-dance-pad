@@ -136,7 +136,6 @@ FlashResult FirmwareUploader::WriteFirmware()
 			}
 		})
 		.on_progress([eventHandler](const char* task, unsigned progress) {
-			Log::Write(wxString::Format("Task: %s Progress: %i", task, progress).c_str());
 			auto wxmsg = wxString::FromUTF8(task);
 			
 			if (eventHandler) {

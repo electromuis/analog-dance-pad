@@ -21,7 +21,7 @@ AboutTab::AboutTab(wxWindow* owner)
 
 
     auto logoBitmap = new wxGenericStaticBitmap(this, wxID_ANY, wxBitmap(logo));
-    auto topText = new wxStaticText(this, wxID_ANY, L"FSR Mini Pad Config Tool");
+    auto topText = new wxStaticText(this, wxID_ANY, L"ADP Tool");
     auto bottomText = new wxStaticText(this, wxID_ANY, L"\xA9 Bram van de Wetering 2021");
 
     auto sizer = new wxBoxSizer(wxVERTICAL);
