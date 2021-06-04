@@ -111,9 +111,10 @@ END_EVENT_TABLE()
 FirmwareDialog::FirmwareDialog(const wxString& title)
     : wxDialog(NULL, -1, title, wxDefaultPosition, wxSize(1000, 300))
 {
-    wxFont status_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-    status_font.MakeBold();
-    SetFont(status_font);
+    auto font = GetFont();
+    font.MakeBold();
+    font.MakeLarger();
+    
     EnableCloseButton(false);
 
     auto topSizer = new wxBoxSizer(wxVERTICAL);

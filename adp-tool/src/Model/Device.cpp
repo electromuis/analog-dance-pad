@@ -1,8 +1,8 @@
-#include "device.h"
-#include "reporter.h"
-#include "log.h"
+#include "Device.h"
+#include "Reporter.h"
+#include "Log.h"
 #include "hidapi.h"
-#include "utils.h"
+#include "Utils.h"
 
 #include "Model/Firmware.h"
 
@@ -420,7 +420,7 @@ public:
 			padIdentification.ledCount = 0;
 			padIdentification.maxSensorValue = WriteU16LE(MAX_SENSOR_VALUE);
 			memset(padIdentification.boardType, 0, BOARD_TYPE_LENGTH);
-			strcpy_s(padIdentification.boardType, "unknown");
+			strcpy(padIdentification.boardType, "unknown");
 		}
 
 		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);

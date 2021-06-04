@@ -58,7 +58,10 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 	BoardType boardType = BOARD_UNKNOWN;
 	
-	ifstream fileStream = ifstream(firmwareFile, std::ios::in | std::ios::binary);
+	ifstream fileStream;
+	string fileNameThin(fileName.begin(), fileName.end());
+	fileStream.open(fileNameThin);
+
 	if (!fileStream.is_open()) {
 		errorMessage = L"Could not read firmware file";
 		flashResult = FLASHRESULT_FAILURE;
@@ -198,7 +201,7 @@ FlashResult FirmwareUploader::WriteFirmware()
 
 
 	// Wait a bit since the COM port might still be initializing
-	this_thread::sleep_for(100ms);
+	this_thread::sleep_for(500ms);
 
 	avrdude.run();
 

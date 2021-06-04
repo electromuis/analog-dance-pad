@@ -1,6 +1,6 @@
 #pragma once
 
-#include "log.h"
+#include "Log.h"
 
 #include <stdarg.h>
 #include <stdio.h>

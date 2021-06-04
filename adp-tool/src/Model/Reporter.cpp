@@ -1,6 +1,6 @@
-#include "reporter.h"
-#include "log.h"
-#include "utils.h"
+#include "Reporter.h"
+#include "Log.h"
+#include "Utils.h"
 #include <cstring>
 
 using namespace std;
