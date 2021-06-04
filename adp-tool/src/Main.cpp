@@ -177,7 +177,7 @@ public:
             to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
 
         auto now = wxDateTime::Now().FormatISOCombined(' ');
-        Log::Writef(L"Application started: %s - %s", versionString.data(), now.wc_str());
+        Log::Writef(L"Application started: %ls - %ls", versionString.data(), now.wc_str());
 
         Assets::Init();
         Device::Init();

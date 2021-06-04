@@ -228,7 +228,7 @@ public:
 		auto name = narrow(rawName, wcslen(rawName));
 		if (name.size() > sizeof(report.name))
 		{
-			Log::Writef(L"SetName :: name '%s' exceeds %i chars and was not set", rawName, MAX_NAME_LENGTH);
+			Log::Writef(L"SetName :: name '%ls' exceeds %i chars and was not set", rawName, MAX_NAME_LENGTH);
 			return false;
 		}
 
@@ -257,14 +257,14 @@ public:
 			report.sensorToButtonMapping[i] = (mySensors[i].button == 0) ? 0xFF : (mySensors[i].button - 1);
 		}
 		report.releaseThreshold = WriteF32LE((float)myPad.releaseThreshold);
-		
+
 		bool sendResult = myReporter->Send(report);
-		
+
 		// Wait for the controller to process the report
 		this_thread::sleep_for(2ms);
 
 		bool getResult = myReporter->Get(report);
-		
+
 		myHasUnsavedChanges = true;
 		UpdatePadConfiguration(report);
 		return sendResult && getResult;
@@ -343,7 +343,7 @@ public:
 		{
 			if (!ContainsDevice(foundDevices, it->first))
 			{
-				Log::Writef(L"ConnectionManager :: failed device removed (%s)", it->second.data());
+				Log::Writef(L"ConnectionManager :: failed device removed (%ls)", it->second.data());
 				it = myFailedDevices.erase(it);
 			}
 			else ++it;
@@ -384,7 +384,7 @@ public:
 		auto hid = hid_open_path(deviceInfo->path);
 		if (!hid)
 		{
-			Log::Writef(L"ConnectionManager :: hid_open failed (%s)", hid_error(nullptr));
+			Log::Writef(L"ConnectionManager :: hid_open failed (%ls) :: %ls", hid_error(nullptr), deviceInfo->path);
 			AddIncompatibleDevice(deviceInfo);
 			return false;
 		}
@@ -427,12 +427,12 @@ public:
 		auto boardTypeString = BoardTypeToString(device->State().boardType);
 
 		Log::Write(L"ConnectionManager :: new device connected [");
-		Log::Writef(L"  Name: %s", device->State().name.data());
-		Log::Writef(L"  Product: %s", deviceInfo->product_string);
-		Log::Writef(L"  Manufacturer: %s", deviceInfo->manufacturer_string);
-		Log::Writef(L"  Board: %s", boardTypeString.c_str());
-		Log::Writef(L"  Firmware version: v%i.%i", padIdentification.firmwareMajor, padIdentification.firmwareMinor);
-		Log::Writef(L"  Path: %s", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+		Log::Writef(L"  Name: %ls", device->State().name.data());
+		Log::Writef(L"  Product: %ls", deviceInfo->product_string);
+		Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
+		Log::Writef(L"  Board: %ls", boardTypeString.c_str());
+		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentification.firmwareMajor), ReadU16LE(padIdentification.firmwareMinor));
+		Log::Writef(L"  Path: %ls", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
 		Log::Write(L"]");
 		PrintPadConfigurationReport(padConfiguration);
 

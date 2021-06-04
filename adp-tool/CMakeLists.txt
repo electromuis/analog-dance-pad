@@ -61,7 +61,7 @@ set(LIBRARIES
 if(WIN32)
 	list(APPEND LIBRARIES setupapi)
 elseif(UNIX)
-	list(APPEND LIBRARIES udev)
+	list(APPEND LIBRARIES udev X11)
 endif()
 
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})

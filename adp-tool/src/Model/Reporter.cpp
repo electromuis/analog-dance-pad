@@ -18,18 +18,22 @@ static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
 	buffer[0] = report.reportId;
 
 	auto size = sizeof(T);
+	auto expectedSize = sizeof(T);
+	#if _WIN32
+        expectedSize ++;
+	#endif
 
 	int bytesRead = hid_get_feature_report(hid, buffer, sizeof(buffer));
-	if (bytesRead == size + 1)
+	if (bytesRead == expectedSize)
 	{
 		memcpy(&report, buffer, size);
 		return true;
 	}
 
 	if (bytesRead < 0)
-		Log::Writef(L"%s :: hid_get_feature_report failed (%s)", name, hid_error(hid));
+		Log::Writef(L"%ls :: hid_get_feature_report failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef(L"%s :: unexpected number of bytes read (%i)", name, bytesRead);
+		Log::Writef(L"%ls :: unexpected number of bytes read (%i) expected (%i)", name, bytesRead, expectedSize);
 	return false;
 }
 
@@ -67,9 +71,9 @@ static ReadDataResult ReadData(hid_device* hid, T& report, const wchar_t* name)
 		return ReadDataResult::NO_DATA;
 
 	if (bytesRead < 0)
-		Log::Writef(L"%s :: hid_read failed (%s)", name, hid_error(hid));
+		Log::Writef(L"%ls :: hid_read failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef(L"%s :: unexpected number of bytes read (%i)", name, bytesRead);
+		Log::Writef(L"%ls :: unexpected number of bytes read (%i)", name, bytesRead);
 
 	return ReadDataResult::FAILURE;
 }
@@ -79,10 +83,10 @@ static bool WriteData(hid_device* hid, uint8_t reportId, const wchar_t* name, bo
 	int bytesWritten = hid_write(hid, &reportId, sizeof(reportId));
 	if (bytesWritten > 0 || !performErrorCheck)
 	{
-		Log::Writef(L"%s :: done", name);
+		Log::Writef(L"%ls :: done", name);
 		return true;
 	}
-	Log::Writef(L"%s :: hid_write failed (%s)", name, hid_error(hid));
+	Log::Writef(L"%ls :: hid_write failed (%ls)", name, hid_error(hid));
 	return false;
 }
 

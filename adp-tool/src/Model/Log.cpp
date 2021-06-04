@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Log.h"
 
 #include <stdarg.h>
@@ -35,12 +33,11 @@ void Log::Writef(const wchar_t* format, ...)
 	wchar_t buffer[256];
 	va_list args;
 	va_start(args, format);
-	//todo fix linux
 
-#ifdef _MSC_VER
-	size_t len = vswprintf_s(buffer, format, args);
+	size_t len = vswprintf(buffer, 256, format, args);
 	messages->emplace_back((const wchar_t*)buffer, len);
-#endif // _MSC_VER
+	
+	va_end (args);
 }
 
 int Log::NumMessages()
