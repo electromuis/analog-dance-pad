@@ -27,11 +27,12 @@ static const wchar_t* TOOL_NAME = L"ADP Tool";
 class MainWindow : public wxFrame
 {
 public:
-    MainWindow(const wchar_t* versionString)
+    MainWindow(const wchar_t* versionString, wxApp* appPointer)
         : wxFrame(nullptr, wxID_ANY, TOOL_NAME, wxDefaultPosition, wxSize(500, 500))
     {
         SetMinClientSize(wxSize(400, 400));
         SetStatusBar(CreateStatusBar(2));
+        app = appPointer;
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
@@ -77,6 +78,7 @@ public:
     {
         myUpdateTimer->Stop();
         event.Skip(); // Default handler will close window.
+        app->ExitMainLoop();
     }
 
     DECLARE_EVENT_TABLE()
@@ -150,6 +152,7 @@ private:
     wxNotebook* myTabs;
     vector<BaseTab*> myTabList;
     unique_ptr<wxTimer> myUpdateTimer;
+    wxApp* app;
 };
 
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
@@ -190,7 +193,7 @@ public:
         icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
 #endif // _MSC_VER
 
-        myWindow = new MainWindow(versionString.data());
+        myWindow = new MainWindow(versionString.data(), this);
         myWindow->SetIcons(icons);
         myWindow->Show();
 
