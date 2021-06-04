@@ -40,6 +40,7 @@
         #include <LUFA/Platform/Platform.h>
 
         void SetupHardware(void);
+		void SetupConfiguration(void);
 
         void EVENT_USB_Device_Connect(void);
         void EVENT_USB_Device_Disconnect(void);

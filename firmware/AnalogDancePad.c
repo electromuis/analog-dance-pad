@@ -66,9 +66,7 @@ int main(void)
     SetupHardware();
     GlobalInterruptEnable();
     ConfigStore_LoadConfiguration(&configuration);
-    Pad_Initialize(&configuration.padConfiguration);
-    Lights_UpdateConfiguration(&configuration.lightConfiguration);
-	Lights_Update();
+    SetupConfiguration();
 
     for (;;)
     {
@@ -101,6 +99,12 @@ void SetupHardware(void)
 
     /* Hardware Initialization */
     USB_Init();
+}
+
+void SetupConfiguration()
+{
+	Pad_Initialize(&configuration.padConfiguration);
+    Lights_UpdateConfiguration(&configuration.lightConfiguration);
 }
 
 /** Event handler for the library USB Configuration Changed event. */
@@ -189,6 +193,9 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     } else if (ReportID == FACTORY_RESET_REPORT_ID) {
         ConfigStore_FactoryDefaults(&configuration);
         ConfigStore_StoreConfiguration(&configuration);
+		
+		SetupConfiguration();
+		
         Reconnect_Usb();
     } else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport)) {
         const NameFeatureHIDReport* nameHidReport = ReportData;
@@ -196,5 +203,6 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     } else if (ReportID == LIGHTS_REPORT_ID && ReportSize == sizeof (LightsFeatureHIDReport)) {
         const LightsFeatureHIDReport* lightsHidReport = ReportData;
         memcpy(&configuration.lightConfiguration, &lightsHidReport->lightConfiguration, sizeof (configuration.lightConfiguration));
+		Lights_UpdateConfiguration(&lightsHidReport->lightConfiguration);
     }
 }

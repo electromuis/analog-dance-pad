@@ -17,10 +17,12 @@ static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
 	uint8_t buffer[MAX_REPORT_SIZE];
 	buffer[0] = report.reportId;
 
+	auto size = sizeof(T);
+
 	int bytesRead = hid_get_feature_report(hid, buffer, sizeof(buffer));
-	if (bytesRead == sizeof(T) + 1)
+	if (bytesRead == size + 1)
 	{
-		memcpy(&report, buffer, sizeof(T));
+		memcpy(&report, buffer, size);
 		return true;
 	}
 

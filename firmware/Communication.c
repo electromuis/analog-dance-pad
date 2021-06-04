@@ -32,5 +32,6 @@ void Communication_WriteIdentificationReport(IdentificationFeatureReport* Report
     ReportData->ledCount = LED_COUNT;
     ReportData->maxSensorValue = MAX_SENSOR_VALUE;
 
+	memset(ReportData->boardType, 0, sizeof(ReportData->boardType));
     strcpy(ReportData->boardType, boardType);
 }

@@ -125,7 +125,7 @@ public:
 		myPad.numSensors = identification.sensorCount;
 
 		auto buffer = (char*)calloc(BOARD_TYPE_LENGTH + 1, sizeof(char));
-		memcpy(buffer, identification.boardType, sizeof(BOARD_TYPE_LENGTH));
+		memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
 		myPad.boardType = ParseBoardType(buffer);
 		free(buffer);
 
@@ -246,29 +246,6 @@ public:
 	{
 		// Have the device load up and save its defaults
 		myReporter->SendFactoryReset();
-		
-		// Wait for the controller to process the report
-		//this_thread::sleep_for(2ms);
-
-		// Fetch fresh config from device, and load it into our memory
-		
-		/*
-		NameReport name;
-		PadConfigurationReport padConfiguration;
-
-		if (!myReporter->Get(name) || !myReporter->Get(padConfiguration)) {
-			Log::Writef(L"FactoryReset :: failed fetching configuration after sending FactoryReset");
-			return;
-		}
-
-		
-		UpdateName(name);
-		UpdatePadConfiguration(padConfiguration);
-
-		PrintPadConfigurationReport(padConfiguration);
-
-		myChanges |= DCF_DEVICE | DCF_BUTTON_MAPPING | DCF_NAME;
-		*/
 	}
 
 	bool SendPadConfiguration()
@@ -433,7 +410,6 @@ public:
 			return false;
 		}
 
-
 		// The other checks were fine, which means the pad doesn't support identification yet. Loading defaults.
 		if (!reporter->Get(padIdentification))
 		{
@@ -448,11 +424,14 @@ public:
 		}
 
 		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);
+		auto boardTypeString = BoardTypeToString(device->State().boardType);
 
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %s", device->State().name.data());
 		Log::Writef(L"  Product: %s", deviceInfo->product_string);
 		Log::Writef(L"  Manufacturer: %s", deviceInfo->manufacturer_string);
+		Log::Writef(L"  Board: %s", boardTypeString.c_str());
+		Log::Writef(L"  Firmware version: v%i.%i", padIdentification.firmwareMajor, padIdentification.firmwareMinor);
 		Log::Writef(L"  Path: %s", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
 		Log::Write(L"]");
 		PrintPadConfigurationReport(padConfiguration);

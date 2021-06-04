@@ -14,7 +14,7 @@ IdleTab::IdleTab(wxWindow* owner)
     auto text = new wxStaticText(
         this,
         wxID_ANY,
-        "Connect an FSR Mini Pad to continue.",
+        "Connect an ADP enabled device to continue.",
         wxDefaultPosition,
         wxDefaultSize,
         wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);

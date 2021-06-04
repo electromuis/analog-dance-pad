@@ -99,9 +99,6 @@ void DeviceTab::OnUploadFirmware(wxCommandEvent& event)
         return;
 
     firmwareDialog->UpdateFirmware((dlg.GetPath().ToStdWstring()));
-
-    // TODO: implement functionality for uploading firmware.
-    //wxMessageBox(L"Not yet implemented.", L"Update firmware", wxICON_INFORMATION);
 }
 
 BEGIN_EVENT_TABLE(DeviceTab, wxWindow)
@@ -114,6 +111,11 @@ END_EVENT_TABLE()
 FirmwareDialog::FirmwareDialog(const wxString& title)
     : wxDialog(NULL, -1, title, wxDefaultPosition, wxSize(1000, 300))
 {
+    wxFont status_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+    status_font.MakeBold();
+    SetFont(status_font);
+    EnableCloseButton(false);
+
     auto topSizer = new wxBoxSizer(wxVERTICAL);
 
     auto rowSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -135,13 +137,29 @@ FirmwareDialog::FirmwareDialog(const wxString& title)
 
 void FirmwareDialog::UpdateFirmware(wstring file)
 {
+    uploader.SetIgnoreBoardType(false);
     tasksCompleted = 0;
     tasksTodo = 4;
     progressBar->SetRange(100 * tasksTodo);
     progressBar->SetValue(0);
     SetStatus("Waiting");
 
-    if (uploader.UpdateFirmware(file) == FLASHRESULT_FAILURE) {
+    FlashResult result = uploader.UpdateFirmware(file);
+
+    if (result == FLASHRESULT_FAILURE_BOARDTYPE) {
+        int answer = wxMessageBox(L"The selected firmware seems incompatible with your device. Continue anyway?\n" + uploader.GetErrorMessage(),
+            L"Update firmware", wxYES_NO | wxICON_WARNING);
+
+        if (answer == wxYES) {
+            uploader.SetIgnoreBoardType(true);
+            FlashResult result = uploader.UpdateFirmware(file);
+        }
+        else {
+            return;
+        }
+    }
+
+    if (result == FLASHRESULT_FAILURE) {
         wxMessageBox(uploader.GetErrorMessage(), L"Update firmware", wxICON_ERROR);
         return;
     }
@@ -159,7 +177,9 @@ void FirmwareDialog::OnAvrdude(wxCommandEvent& event)
     static string lastTask = "";
 
     switch (event.GetExtraLong()) {
-        case AE_MESSAGE:
+        case AE_START:
+            SetStatus("Starting");
+            lastTask = "";
 
             break;
         case AE_PROGRESS:
@@ -181,10 +201,16 @@ void FirmwareDialog::OnAvrdude(wxCommandEvent& event)
 
 void FirmwareDialog::Done()
 {
-    progressBar->SetValue(progressBar->GetRange());
-    SetStatus("Done");
-    wxMessageBox("The selected firmware has been written to the device", L"Update firmware", wxICON_INFORMATION);
-    Hide();
+    if (uploader.GetFlashResult() != FLASHRESULT_SUCCESS) {
+        SetStatus("Failed");
+        wxMessageBox(uploader.GetErrorMessage(), L"Update firmware", wxICON_ERROR);
+        Hide();
+    }
+    else {
+        SetStatus("Done");
+        wxMessageBox("The selected firmware has been written to the device", L"Update firmware", wxICON_INFORMATION);
+        Hide();
+    }
 }
 
 BEGIN_EVENT_TABLE(FirmwareDialog, wxDialog)

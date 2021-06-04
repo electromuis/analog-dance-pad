@@ -22,14 +22,17 @@ enum BoardType {
 
 enum FlashResult
 {
+	FLASHRESULT_NOTHING,
 	FLASHRESULT_SUCCESS,
 	FLASHRESULT_FAILURE,
+	FLASHRESULT_FAILURE_BOARDTYPE,
 	FLASHRESULT_RUNNING,
 	FLASHRESULT_CANCELLED
 };
 
 enum AvrdudeEvent
 {
+	AE_START,
 	AE_MESSAGE,
 	AE_PROGRESS,
 	AE_STATUS,
@@ -44,8 +47,9 @@ public:
 	FlashResult UpdateFirmware(wstring fileName);
 	void SetEventHandler(wxEvtHandler* handler);
 	void SetIgnoreBoardType(bool ignoreBoardType);
-	void WritingDone();
+	void WritingDone(int exitCode);
 	wstring GetErrorMessage();
+	FlashResult GetFlashResult();
 
 	AvrDude::Ptr myAvrdude;
 
@@ -56,10 +60,12 @@ private:
 	wstring firmwareFile;
 	wxEvtHandler* eventHandler;
 	wstring errorMessage;
+	FlashResult flashResult = FLASHRESULT_NOTHING;
 	bool ignoreBoardType = false;
 };
 
 
 enum BoardType ParseBoardType(const std::string& str);
+wstring BoardTypeToString(BoardType boardType);
 
 }; // namespace adp.

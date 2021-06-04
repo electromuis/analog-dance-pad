@@ -137,6 +137,7 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
 
 void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
     memcpy(&LIGHT_CONF, lightConfiguration, sizeof (LightConfiguration));
+	Lights_Update();
 }
 
 void Lights_Update()

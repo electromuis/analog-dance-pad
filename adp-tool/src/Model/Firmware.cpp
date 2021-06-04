@@ -24,8 +24,27 @@ BoardType ParseBoardType(const std::string& str)
 	else { return BOARD_UNKNOWN; }
 }
 
+wstring BoardTypeToString(BoardType boardType)
+{
+	if (boardType == BOARD_FSRMINIPAD) {
+		return L"FSR Mini pad";
+	}
+
+	if (boardType == BOARD_TEENSY2) {
+		return L"Teensy 2";
+	}
+
+	if (boardType == BOARD_LEONARDO) {
+		return L"Arduino leonardo/pro micro";
+	}
+
+	return L"Unknown";
+}
+
 FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 {
+	flashResult = FLASHRESULT_NOTHING;
+
 	errorMessage = L"";
 
 	firmwareFile = fileName;
@@ -33,7 +52,8 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	auto pad = Device::Pad();
 	if (pad == NULL) {
 		errorMessage = L"No compatible board connected";
-		return FLASHRESULT_FAILURE;
+		flashResult = FLASHRESULT_FAILURE;
+		return flashResult;
 	}
 
 	BoardType boardType = BOARD_UNKNOWN;
@@ -41,13 +61,19 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	ifstream fileStream = ifstream(firmwareFile, std::ios::in | std::ios::binary);
 	if (!fileStream.is_open()) {
 		errorMessage = L"Could not read firmware file";
-		return FLASHRESULT_FAILURE;
+		flashResult = FLASHRESULT_FAILURE;
+		return flashResult;
 	}
 
 	string line;
 	while (getline(fileStream, line)) {
 		if (line.size() > 0 && line.substr(0, 1) == ";") {
-			BoardType foundType = ParseBoardType(line.substr(1));
+			line = line.substr(1);
+			if (line.substr(line.length() - 1, line.length()) == "\r") {
+				line = line.substr(0, line.length() -1);
+			}
+
+			BoardType foundType = ParseBoardType(line);
 			if (foundType != BOARD_UNKNOWN) {
 				boardType = foundType;
 				break;
@@ -58,8 +84,9 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
 		if (!ignoreBoardType) {
-			errorMessage = L"Your firmware does not seem compatible with the detected hardware";
-			//return FLASHRESULT_FAILURE;
+			errorMessage = L"Selected: " + BoardTypeToString(boardType) + ", connected: " + BoardTypeToString(pad->boardType);
+			flashResult = FLASHRESULT_FAILURE_BOARDTYPE;
+			return flashResult;
 		}
 	}
 
@@ -74,7 +101,8 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 		auto timeSpent = duration_cast<std::chrono::seconds>(system_clock::now() - startTime);
 		if (timeSpent.count() > 10) {
 			errorMessage = L"Could not find the device in bootloader mode";
-			return FLASHRESULT_FAILURE;
+			flashResult = FLASHRESULT_FAILURE;
+			return flashResult;
 		}
 
 		this_thread::sleep_for(10ms);
@@ -111,7 +139,7 @@ FlashResult FirmwareUploader::WriteFirmware()
 	auto eventHandler = this->eventHandler;
 
 	avrdude
-		.on_run([comPort, firmwareFile, this](AvrDude::Ptr avrdude) {
+		.on_run([eventHandler, comPort, firmwareFile, this](AvrDude::Ptr avrdude) {
 			this->myAvrdude = std::move(avrdude);
 
 			std::vector<std::string> args{ {
@@ -125,6 +153,12 @@ FlashResult FirmwareUploader::WriteFirmware()
 			} };
 
 			this->myAvrdude->push_args(std::move(args));
+
+			if (eventHandler) {
+				auto evt = new wxCommandEvent(EVT_AVRDUDE);
+				evt->SetExtraLong(AE_START);
+				wxQueueEvent(eventHandler, evt);
+			}
 		})
 		.on_message([eventHandler](const char* msg, unsigned size) {
 			auto wxmsg = wxString::FromUTF8(msg);
@@ -151,22 +185,37 @@ FlashResult FirmwareUploader::WriteFirmware()
 		.on_complete([eventHandler, this]() {
 			Log::Write(L"avrdude done");
 
+			int exitCode = this->myAvrdude->exit_code();
+			this->WritingDone(exitCode);
+
 			if (eventHandler) {
 				auto evt = new wxCommandEvent(EVT_AVRDUDE);
 				evt->SetExtraLong(AE_EXIT);
-				evt->SetInt(this->myAvrdude->exit_code());
+				evt->SetInt(exitCode);
 				wxQueueEvent(eventHandler, evt);
 			}
+		});
 
-			this->WritingDone();
-		})
-		.run();
 
-	return FLASHRESULT_RUNNING;
+	// Wait a bit since the COM port might still be initializing
+	this_thread::sleep_for(100ms);
+
+	avrdude.run();
+
+	flashResult = FLASHRESULT_RUNNING;
+	return flashResult;
 }
 
-void FirmwareUploader::WritingDone()
+void FirmwareUploader::WritingDone(int exitCode)
 {
+	if (exitCode == 0) {
+		flashResult = FLASHRESULT_SUCCESS;
+	}
+	else {
+		errorMessage = L"Flashing failed, see log tab for more details.";
+		flashResult = FLASHRESULT_FAILURE;
+	}
+
 	//if (myAvrdude) { myAvrdude->join(); }
 	//myAvrdude.reset();
 }
@@ -184,6 +233,11 @@ void FirmwareUploader::SetEventHandler(wxEvtHandler* handler)
 wstring FirmwareUploader::GetErrorMessage()
 {
 	return errorMessage;
+}
+
+FlashResult FirmwareUploader::GetFlashResult()
+{
+	return flashResult;
 }
 
 }; // namespace adp.
