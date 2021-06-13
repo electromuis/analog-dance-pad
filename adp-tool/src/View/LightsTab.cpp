@@ -1,16 +1,22 @@
+#include "Adp.h"
+
 #include "wx/sizer.h"
 #include "wx/panel.h"
 #include "wx/button.h"
 #include "wx/statbox.h"
 #include "wx/stattext.h"
+#include "wx/combobox.h"
 #include "wx/dcbuffer.h"
 #include "wx/checkbox.h"
 #include "wx/colordlg.h"
-
-#include "View/LightsTab.h"
-#include "Assets/Assets.h"
+#include "wx/spinctrl.h"
+#include "wx/statline.h"
 
 #include "Model/Reporter.h"
+
+#include "Assets/Assets.h"
+
+#include "View/LightsTab.h"
 
 namespace adp {
 
@@ -19,7 +25,12 @@ static wxColour ToWx(color24 color)
     return wxColour(color.red, color.green, color.blue);
 }
 
-enum Ids { ADD_LIGHT_SETTINGS_BUTTON = 1, DELETE_LIGHT_SETTINGS_BUTTON = 2 };
+enum Ids {
+    ADD_LIGHT_SETTING = 1,
+    DELETE_LIGHT_SETTING = 2,
+    ADD_LED_SETTING = 3,
+    DELETE_LED_SETTING = 4,
+};
 
 // ====================================================================================================================
 // Color setting gradient.
@@ -149,28 +160,137 @@ BEGIN_EVENT_TABLE(ColorSettingGradient, wxWindow)
 END_EVENT_TABLE()
 
 // ====================================================================================================================
+// LED settings panel.
+// ====================================================================================================================
+
+class LedSettingsPanel : public wxPanel
+{
+public:
+    LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow)
+        : wxPanel(ownerAsWindow, wxID_ANY, wxDefaultPosition, wxSize(400, 25))
+        , myOwner(owner)
+    {
+        auto pad = Device::Pad();
+
+        wxArrayString options;
+        for (int i = 1; i < pad->numSensors; ++i)
+            options.Add(wxString::Format("Sensor %i", i));
+
+        auto box = new wxComboBox(this, 0, options[0],
+            wxPoint(0, 0), wxSize(100, 25), options, wxCB_READONLY);
+        box->Bind(wxEVT_COMBOBOX, &LedSettingsPanel::OnSensorChanged, this);
+
+        auto lfrom = new wxStaticText(
+            this, wxID_ANY, L"LED", wxPoint(105, 5), wxSize(30, 25), wxALIGN_CENTRE_HORIZONTAL);
+        auto sfrom = new wxSpinCtrl(
+            this, wxID_ANY, L"", wxPoint(140, 0), wxSize(80, 25), wxSP_ARROW_KEYS, 0, 100, 0);
+        auto lto = new wxStaticText(
+            this, wxID_ANY, L"to", wxPoint(225, 5), wxSize(30, 25), wxALIGN_CENTRE_HORIZONTAL);
+        auto sto = new wxSpinCtrl(
+            this, wxID_ANY, L"", wxPoint(260, 0), wxSize(80, 25), wxSP_ARROW_KEYS, 0, 100, 0);
+
+        myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(350, 12), wxDefaultSize);
+
+        myDeleteButton = new wxButton(this, DELETE_LED_SETTING, L"\u2715", wxDefaultPosition, wxSize(25, 25));
+    }
+
+    void RecomputeLayout()
+    {
+        auto size = GetSize();
+        myDeleteButton->SetPosition(wxPoint(size.x - 25, 0));
+        myHLine->SetSize(size.x - 385, wxDefaultCoord);
+    }
+
+    void OnSensorChanged(wxCommandEvent& event)
+    {
+    }
+
+    void OnDelete(wxCommandEvent& event);
+
+    DECLARE_EVENT_TABLE()
+
+private:
+    LightSettingsPanel* myOwner;
+    wxComboBox* mySensorBox;
+    wxCheckBox* myFadeOffBox;
+    wxStaticLine* myHLine;
+    wxButton* myDeleteButton;
+    std::vector<LedSettingsPanel*> myLedSettings;
+};
+
+BEGIN_EVENT_TABLE(LedSettingsPanel, wxWindow)
+    EVT_BUTTON(DELETE_LED_SETTING, LedSettingsPanel::OnDelete)
+END_EVENT_TABLE()
+
+// ====================================================================================================================
 // Light settings panel.
 // ====================================================================================================================
 
 class LightSettingsPanel : public wxPanel
 {
 public:
-    LightSettingsPanel(LightsTab* owner, int index)
+    LightSettingsPanel(LightsTab* owner)
         : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(310, 100))
         , myOwner(owner)
-        , myIndex(index)
     {
-        auto sGrad = wxSize(120, 30);
-        myOnSetting = new ColorSettingGradient(this, wxPoint(10, 10), sGrad, L"ON", { 20, 100, 20 }, { 40, 200, 40 });
-        myOffSetting = new ColorSettingGradient(this, wxPoint(140, 10), sGrad, L"OFF", { 80, 80, 80 }, { 20, 0, 0 });
+        // Color settings and delete.
+        myOnSetting = new ColorSettingGradient(
+            this, wxPoint(0, 0), wxSize(140, 30), L"ON", { 20, 100, 20 }, { 40, 200, 40 });
+        myOffSetting = new ColorSettingGradient(
+            this, wxPoint(150, 0), wxSize(140, 30), L"OFF", { 80, 80, 80 }, { 20, 0, 0 });
 
-        myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(45, 45), wxSize(50, 20));
+        myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(0, 35), wxSize(50, 20));
         myFadeOnBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOnToggled, this);
 
-        myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(175, 45), wxSize(50, 20));
+        myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(50, 20));
         myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOffToggled, this);
 
-        myDeleteButton = new wxButton(this, DELETE_LIGHT_SETTINGS_BUTTON, L"\u2715", wxPoint(270, 10), wxSize(30, 30));
+        myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(300, 14), wxDefaultSize);
+
+        myDeleteButton =
+            new wxButton(this, DELETE_LIGHT_SETTING, L"\u2715", wxDefaultPosition, wxSize(30, 30));
+
+        // LED settings.
+        auto ledSettings = new LedSettingsPanel(this, this);
+        myLedSettings.push_back(ledSettings);
+
+        myAddLedSettingButton =
+            new wxButton(this, ADD_LED_SETTING, L"+", wxDefaultPosition, wxSize(100, 25));
+    }
+
+    void DeleteLedSetting(LedSettingsPanel* item)
+    {
+        auto it = std::find(myLedSettings.begin(), myLedSettings.end(), item);
+        if (it == myLedSettings.end())
+            return;
+
+        item->Destroy();
+        myLedSettings.erase(it);
+        myOwner->RecomputeLayout();
+    }
+
+    int GetContentHeight() const { return myLedSettings.size() * 30 + 100; }
+
+    void RecomputeLayout()
+    {
+        auto size = GetSize();
+        int contentH = 60;
+
+        for (auto item : myLedSettings)
+        {
+            int itemH = 25;
+            item->SetPosition(wxPoint(0, contentH));
+            item->SetSize(wxSize(size.x, itemH));
+            item->RecomputeLayout();
+            contentH += itemH + 5;
+        }
+
+        myDeleteButton->SetPosition(wxPoint(size.x - 30, 0));
+        myHLine->SetSize(size.x - 340, wxDefaultCoord);
+
+        myAddLedSettingButton->SetPosition(wxPoint(0, contentH));
+
+        Refresh();
     }
 
     void OnFadeOnToggled(wxCommandEvent& event)
@@ -183,26 +303,42 @@ public:
         myOffSetting->EnableFade(myFadeOffBox->IsChecked());
     }
 
+    void OnAddLedSetting(wxCommandEvent& event)
+    {
+        auto item = new LedSettingsPanel(this, this);
+        myLedSettings.push_back(item);
+        myOwner->RecomputeLayout();
+    }
+
     void OnDelete(wxCommandEvent& event)
     {
-        myOwner->DeleteLightSettings(myIndex);
+        myOwner->DeleteLightSetting(this);
     }
 
     DECLARE_EVENT_TABLE()
 
 private:
-    int myIndex;
     LightsTab* myOwner;
     ColorSettingGradient* myOnSetting;
     ColorSettingGradient* myOffSetting;
     wxCheckBox* myFadeOnBox;
     wxCheckBox* myFadeOffBox;
+    wxStaticLine* myHLine;
     wxButton* myDeleteButton;
+    wxButton* myAddLedSettingButton;
+    std::vector<LedSettingsPanel*> myLedSettings;
 };
 
 BEGIN_EVENT_TABLE(LightSettingsPanel, wxWindow)
-    EVT_BUTTON(DELETE_LIGHT_SETTINGS_BUTTON, LightSettingsPanel::OnDelete)
+    EVT_BUTTON(ADD_LED_SETTING, LightSettingsPanel::OnAddLedSetting)
+    EVT_BUTTON(DELETE_LIGHT_SETTING, LightSettingsPanel::OnDelete)
 END_EVENT_TABLE()
+
+// NOTE: defined here due to DeleteLedSetting.
+void LedSettingsPanel::OnDelete(wxCommandEvent& event)
+{
+    myOwner->DeleteLedSetting(this);
+}
 
 // ====================================================================================================================
 // Lights tab.
@@ -212,38 +348,65 @@ const wchar_t* LightsTab::Title = L"Lights";
 
 LightsTab::LightsTab(wxWindow* owner)
     : wxScrolledWindow(owner, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL)
-    , myNumLightSettings(0)
 {
-    auto sizer = new wxBoxSizer(wxVERTICAL);
-    auto bRule = new wxButton(this, ADD_LIGHT_SETTINGS_BUTTON, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
-    sizer->Add(bRule, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
-
-    SetSizer(sizer);
+    myAddSettingButton = new wxButton(this, ADD_LIGHT_SETTING, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
 
     //todo fix linux
 #ifdef _MSC_VER
-    for (int i = 0; i < 4; ++i)
-        OnAddLightSettings(wxCommandEvent());
+    OnAddLightSetting(wxCommandEvent());
 #endif
 
     SetScrollRate(5, 5);
 }
 
-void LightsTab::OnAddLightSettings(wxCommandEvent& event)
+void LightsTab::OnAddLightSetting(wxCommandEvent& event)
 {
-    auto sizer = GetSizer();
-    auto settings = new LightSettingsPanel(this, myNumLightSettings);
-    sizer->Insert(myNumLightSettings, settings);
-    ++myNumLightSettings;
-    FitInside();
+    auto item = new LightSettingsPanel(this);
+    myLightSettings.push_back(item);
+    RecomputeLayout();
 }
 
-void LightsTab::DeleteLightSettings(int index)
+void LightsTab::OnResize(wxSizeEvent& event)
 {
+    RecomputeLayout();
+}
+
+void LightsTab::DeleteLightSetting(LightSettingsPanel* item)
+{
+    auto it = std::find(myLightSettings.begin(), myLightSettings.end(), item);
+    if (it == myLightSettings.end())
+        return;
+
+    item->Destroy();
+    myLightSettings.erase(it);
+    RecomputeLayout();
+}
+
+void LightsTab::RecomputeLayout()
+{
+    auto size = GetClientSize();
+    int margin = 5;
+    int contentH = margin;
+
+    for (auto item : myLightSettings)
+    {
+        int itemH = item->GetContentHeight();
+        item->SetPosition(wxPoint(margin, contentH));
+        item->SetSize(wxSize(size.x - margin * 2, itemH));
+        item->RecomputeLayout();
+        contentH += itemH + margin * 2;
+    }
+
+    myAddSettingButton->SetPosition(wxPoint(margin, contentH));
+    myAddSettingButton->SetSize(wxSize(size.x - margin * 2, 30));
+    contentH += 30 + margin * 2;
+
+    SetVirtualSize(size.x, contentH);
 }
 
 BEGIN_EVENT_TABLE(LightsTab, wxWindow)
-    EVT_BUTTON(ADD_LIGHT_SETTINGS_BUTTON, LightsTab::OnAddLightSettings)
+    EVT_BUTTON(ADD_LIGHT_SETTING, LightsTab::OnAddLightSetting)
+    EVT_SIZE(LightsTab::OnResize)
 END_EVENT_TABLE()
 
 }; // namespace adp.

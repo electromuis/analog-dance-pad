@@ -1,3 +1,5 @@
+#include "Adp.h"
+
 #include "wx/dataview.h"
 #include "wx/dcbuffer.h"
 #include "wx/sizer.h"

@@ -1,16 +1,18 @@
-#include "Device.h"
-#include "Reporter.h"
-#include "Log.h"
-#include "hidapi.h"
-#include "Utils.h"
-
-#include "Model/Firmware.h"
+#include "Adp.h"
 
 #include <memory>
 #include <algorithm>
 #include <map>
 #include <chrono>
 #include <thread>
+
+#include "hidapi.h"
+
+#include "Model/Device.h"
+#include "Model/Reporter.h"
+#include "Model/Log.h"
+#include "Model/Utils.h"
+#include "Model/Firmware.h"
 
 using namespace std;
 using namespace chrono;
@@ -143,7 +145,7 @@ public:
 	{
 		for (int i = 0; i < myPad.numSensors; ++i)
 		{
-			auto buttonMapping = (unsigned int)report.sensorToButtonMapping[i];
+			auto buttonMapping = (uint8_t)report.sensorToButtonMapping[i];
 			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(report.sensorThresholds[i]));
 			mySensors[i].button = (buttonMapping >= myPad.numButtons ? 0 : (buttonMapping + 1));
 		}

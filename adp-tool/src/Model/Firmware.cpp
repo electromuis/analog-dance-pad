@@ -1,6 +1,4 @@
-#include "Model/Firmware.h"
-#include "Model/Device.h"
-#include "Model/Log.h"
+#include "Adp.h"
 
 #include <chrono>
 #include <thread>
@@ -9,6 +7,10 @@
 
 #include "wx/string.h"
 #include "wx/event.h"
+
+#include "Model/Firmware.h"
+#include "Model/Device.h"
+#include "Model/Log.h"
 
 using namespace chrono;
 

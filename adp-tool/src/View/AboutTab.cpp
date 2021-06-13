@@ -1,3 +1,5 @@
+#include "Adp.h"
+
 #include "wx/mstream.h"
 #include "wx/sizer.h"
 #include "wx/stattext.h"

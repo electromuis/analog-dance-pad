@@ -6,6 +6,8 @@
 
 namespace adp {
 
+class LightSettingsPanel;
+
 class LightsTab : public BaseTab, public wxScrolledWindow
 {
 public:
@@ -13,16 +15,20 @@ public:
 
     LightsTab(wxWindow* owner);
 
-    void DeleteLightSettings(int index);
+    void DeleteLightSetting(LightSettingsPanel* panel);
 
-    void OnAddLightSettings(wxCommandEvent& event);
+    void OnAddLightSetting(wxCommandEvent& event);
+    void OnResize(wxSizeEvent& event);
 
     wxWindow* GetWindow() override { return this; }
+
+    void RecomputeLayout();
 
     DECLARE_EVENT_TABLE()
 
 private:
-    int myNumLightSettings;
+    wxButton* myAddSettingButton;
+    std::vector<LightSettingsPanel*> myLightSettings;
 };
 
 }; // namespace adp.
