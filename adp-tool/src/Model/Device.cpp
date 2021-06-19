@@ -400,6 +400,8 @@ public:
 		// If both succeeded, we'll assume the device is valid.
 
 		auto reporter = make_unique<Reporter>(hid);
+		//reporter->SendReset();
+
 		NameReport name;
 		PadConfigurationReport padConfiguration;
 		IdentificationReport padIdentification;
