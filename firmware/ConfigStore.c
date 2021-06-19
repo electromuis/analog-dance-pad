@@ -72,7 +72,7 @@ static const Configuration DEFAULT_CONFIGURATION = {
         .lightRules =
 		{	
 #if defined(BOARD_TYPE_FSRMINIPAD)
-            DEFAULT_LIGHT_RULE_1(2, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
+            DEFAULT_LIGHT_RULE_1(6, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
             DEFAULT_LIGHT_RULE_2(5, PANEL_LEDS * 1, PANEL_LEDS * 2), // DOWN
             DEFAULT_LIGHT_RULE_2(3, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
             DEFAULT_LIGHT_RULE_1(4, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT

@@ -5,18 +5,20 @@
 
 // see page 308 of https://cdn.sparkfun.com/datasheets/Dev/Arduino/Boards/ATMega32U4.pdf for these
 static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
-    0b000000,
-    0b000001,
-    0b000100,
+    0b111111,
+    0b111111,
+    
+	0b000100,
     0b000101,
     0b000110,
     0b000111,
-    0b100000,
-    0b100001,
-    0b100010,
-    0b100011,
-    0b100100,
-    0b100101
+    
+	0b111111,
+    0b111111,
+    0b111111,
+    0b111111,
+    0b111111,
+    0b111111
 };
 
 void ADC_Init(void) {
@@ -30,6 +32,9 @@ void ADC_Init(void) {
 
 uint16_t ADC_Read(uint8_t sensor) {
     uint8_t pin = sensorToAnalogPin[sensor];
+	if(pin == 0b111111) {
+		return 0;
+	}
 
     // see: https://www.avrfreaks.net/comment/885267#comment-885267
     ADMUX = (ADMUX & 0xE0) | (pin & 0x1F); // select channel (MUX0-4 bits)

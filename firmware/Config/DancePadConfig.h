@@ -2,7 +2,7 @@
 #define _DANCE_PAD_CONFIG_H_
     //Version 2 since Kauhsa's initial version will be considered version 0
     #define FIRMWARE_VERSION_MAJOR 1
-    #define FIRMWARE_VERSION_MINOR 0
+    #define FIRMWARE_VERSION_MINOR 1
 
     #define MAX_SENSOR_VALUE 1024
 
