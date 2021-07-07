@@ -77,9 +77,8 @@
         #define LIGHT_RULE_REPORT_ID             0x7
         #define FACTORY_RESET_REPORT_ID          0x8
         #define IDENTIFICATION_REPORT_ID         0x9
-        #define SELECT_LIGHT_RULE_REPORT_ID      0xA
-        #define LED_MAPPING_REPORT_ID            0xB
-        #define SELECT_LED_MAPPING_REPORT_ID     0xC
+        #define LED_MAPPING_REPORT_ID            0xA
+        #define SET_PROPERTY_REPORT_ID           0xB
 
     /* Macros: */
         /** Endpoint address of the Generic HID reporting IN endpoint. */

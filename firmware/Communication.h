@@ -34,20 +34,24 @@
     } __attribute__((packed)) NameFeatureHIDReport;
 	
 	typedef struct {
-        LightRule lightRule;
+        uint8_t index;
+        LightRule rule;
     } __attribute__((packed)) LightRuleHIDReport;
 
     typedef struct {
         uint8_t index;
-    } __attribute__((packed)) SelectLightRuleHIDReport;
-
-    typedef struct {
-        LedMapping ledMapping;
+        LedMapping mapping;
     } __attribute__((packed)) LedMappingHIDReport;
 
     typedef struct {
-        uint8_t index;
-    } __attribute__((packed)) SelectLedMappingHIDReport;
+        enum
+        {
+            SELECTED_LIGHT_RULE_INDEX = 0,
+            SELECTED_LED_MAPPING_INDEX = 1,
+        } PropertyId;
+        uint32_t propertyId;
+        uint32_t propertyValue;
+    }; __attribute__((packed)) SetPropertyHIDReport;
 
     typedef struct {
 		uint16_t firmwareVersionMajor;
@@ -61,4 +65,5 @@
 	
     void Communication_WriteInputHIDReport(InputHIDReport* report);
     void Communication_WriteIdentificationReport(IdentificationFeatureReport* report);
+    void Communication_
 #endif

@@ -127,9 +127,8 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
   _delay_us(80);  // Send the reset signal.
 }
 
-rgb_color colors[LED_COUNT];
-
-LightConfiguration LIGHT_CONF;
+static rgb_color LED_COLORS[LED_COUNT];
+static LightConfiguration LIGHT_CONF;
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -142,59 +141,61 @@ void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
 
 void Lights_Update()
 {
-	for (uint8_t s = 0; s < MAX_LIGHT_RULES; s++)
+	for (uint8_t m = 0; m < MAX_LED_MAPPINGS; ++m)
 	{
-		LightRule light = LIGHT_CONF.lightRules[s];
+        const LedMapping* mapping = &LIGHT_CONF.ledMapping[m];
+
+        if (!(mapping->flags & LMF_ENABLED))
+            continue;
+
+        const LightRule* rule = &LIGHT_CONF.lightRules[mapping->lightRuleIndex];
+
+        if (!(rule->flags & LRF_ENABLED))
+            continue;
 		
-		if(light.sensorNumber == 0 || (light.flags & LRF_DISABLED)) {
-			continue;
-		}
-		
-		int8_t sensor = light.sensorNumber - 1;
-		
-		uint16_t sensorValue = PAD_STATE.sensorValues[sensor];
-		uint16_t sensorThreshold = PAD_CONF.sensorThresholds[sensor];
+		uint16_t sensorValue = PAD_STATE.sensorValues[mapping->sensorIndex];
+		uint16_t sensorThreshold = PAD_CONF.sensorThresholds[mapping->sensorIndex];
 		
 		bool sensorState = sensorValue > sensorThreshold;
 		
 		rgb_color color;
 		
 		if(sensorState == true) {
-			if(light.flags & LRF_FADE_ON) {
+			if(rule->flags & LRF_FADE_ON) {
 				uint16_t sensorThreshold2 = sensorThreshold * 2;
 				
 				if(sensorValue <= sensorThreshold2) {				
 					color = (rgb_color) {	
-						map(sensorValue, sensorThreshold, sensorThreshold2, light.onColor.red, 		light.onFadeColor.red),
-						map(sensorValue, sensorThreshold, sensorThreshold2, light.onColor.green,	light.onFadeColor.green),
-						map(sensorValue, sensorThreshold, sensorThreshold2, light.onColor.blue, 	light.onFadeColor.blue)
+						map(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor.red,   rule->onFadeColor.red),
+						map(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor.green, rule->onFadeColor.green),
+						map(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor.blue,  rule->onFadeColor.blue)
 					};
 				}
 				else {
-					color = light.onFadeColor;
+					color = rule->onFadeColor;
 				}
 			}
 			else {
-				color = light.onColor;
+				color = rule->onColor;
 			}
 		}
 		else {
 			if(light.flags & LRF_FADE_OFF) {
 				color = (rgb_color) {	
-					map(sensorValue, 0, sensorThreshold, light.offColor.red, 	light.offFadeColor.red),
-					map(sensorValue, 0, sensorThreshold, light.offColor.green,	light.offFadeColor.green),
-					map(sensorValue, 0, sensorThreshold, light.offColor.blue, 	light.offFadeColor.blue)
+					map(sensorValue, 0, sensorThreshold, rule->offColor.red,   rule->offFadeColor.red),
+					map(sensorValue, 0, sensorThreshold, rule->offColor.green, rule->offFadeColor.green),
+					map(sensorValue, 0, sensorThreshold, rule->offColor.blue,  rule->offFadeColor.blue)
 				};
 			}
 			else {
-				color = light.offColor;
+				color = rule->offColor;
 			}
 		}
 		
-		for (uint8_t led = light.fromLight; led < light.toLight; led ++) {
-			colors[led] = color;
+		for (uint8_t led = mapping->ledIndexBegin; led < mapping->ledIndexEnd; ++led) {
+            LED_COLORS[led] = color;
 		}
 	}
 	
-	led_strip_write(colors, LED_COUNT);
+	led_strip_write(LED_COLORS, LED_COUNT);
 }
