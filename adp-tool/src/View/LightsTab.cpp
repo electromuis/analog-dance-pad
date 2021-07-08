@@ -20,7 +20,7 @@
 
 namespace adp {
 
-static wxColour ToWx(color24 color)
+static wxColour ToWx(RgbColor color)
 {
     return wxColour(color.red, color.green, color.blue);
 }
@@ -39,12 +39,19 @@ enum Ids {
 class ColorSettingGradient : public wxWindow
 {
 public:
-    ColorSettingGradient(wxWindow* owner, wxPoint position, wxSize size, wxString label, color24 c1, color24 c2)
+    ColorSettingGradient(
+        wxWindow* owner,
+        wxPoint position,
+        wxSize size,
+        wxString label,
+        RgbColor c1,
+        RgbColor c2,
+        bool fade)
         : wxWindow(owner, wxID_ANY, position, size)
         , myLabel(label)
         , myStartColor(c1)
         , myEndColor(c2)
-        , myIsFadeEnabled(false)
+        , myIsFadeEnabled(fade)
     {
     }
 
@@ -128,7 +135,7 @@ public:
         }
     }
 
-    bool ShowPicker(color24& color)
+    bool ShowPicker(RgbColor& color)
     {
         wxColourData data;
         data.SetColour(ToWx(color));
@@ -149,8 +156,8 @@ public:
 
 private:
     bool myIsFadeEnabled;
-    color24 myStartColor;
-    color24 myEndColor;
+    RgbColor myStartColor;
+    RgbColor myEndColor;
     wxString myLabel;
 };
 
@@ -166,14 +173,14 @@ END_EVENT_TABLE()
 class LedSettingsPanel : public wxPanel
 {
 public:
-    LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow)
+    LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow, const LedMapping& mapping)
         : wxPanel(ownerAsWindow, wxID_ANY, wxDefaultPosition, wxSize(400, 25))
         , myOwner(owner)
     {
         auto pad = Device::Pad();
 
         wxArrayString options;
-        for (int i = 1; i < pad->numSensors; ++i)
+        for (int i = 1; i <= pad->numSensors; ++i)
             options.Add(wxString::Format("Sensor %i", i));
 
         auto box = new wxComboBox(this, 0, options[0],
@@ -188,6 +195,10 @@ public:
             this, wxID_ANY, L"to", wxPoint(225, 5), wxSize(30, 25), wxALIGN_CENTRE_HORIZONTAL);
         auto sto = new wxSpinCtrl(
             this, wxID_ANY, L"", wxPoint(260, 0), wxSize(80, 25), wxSP_ARROW_KEYS, 0, 100, 0);
+
+        sfrom->SetValue(mapping.ledIndexBegin);
+        sto->SetValue(mapping.ledIndexEnd);
+        box->SetSelection(mapping.sensorIndex);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(350, 12), wxDefaultSize);
 
@@ -229,21 +240,23 @@ END_EVENT_TABLE()
 class LightSettingsPanel : public wxPanel
 {
 public:
-    LightSettingsPanel(LightsTab* owner)
+    LightSettingsPanel(LightsTab* owner, const LightRule& rule)
         : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(310, 100))
         , myOwner(owner)
     {
         // Color settings and delete.
         myOnSetting = new ColorSettingGradient(
-            this, wxPoint(0, 0), wxSize(140, 30), L"ON", { 20, 100, 20 }, { 40, 200, 40 });
+            this, wxPoint(0, 0), wxSize(140, 30), L"ON", rule.onColor, rule.onFadeColor, rule.fadeOn);
         myOffSetting = new ColorSettingGradient(
-            this, wxPoint(150, 0), wxSize(140, 30), L"OFF", { 80, 80, 80 }, { 20, 0, 0 });
+            this, wxPoint(150, 0), wxSize(140, 30), L"OFF", rule.offColor, rule.offFadeColor, rule.fadeOff);
 
         myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(0, 35), wxSize(50, 20));
         myFadeOnBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOnToggled, this);
+        myFadeOnBox->SetValue(rule.fadeOn);
 
         myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(50, 20));
         myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOffToggled, this);
+        myFadeOffBox->SetValue(rule.fadeOff);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(300, 14), wxDefaultSize);
 
@@ -251,8 +264,11 @@ public:
             new wxButton(this, DELETE_LIGHT_SETTING, L"\u2715", wxDefaultPosition, wxSize(30, 30));
 
         // LED settings.
-        auto ledSettings = new LedSettingsPanel(this, this);
-        myLedSettings.push_back(ledSettings);
+        for (auto& mapping : rule.ledMappings)
+        {
+            auto item = new LedSettingsPanel(this, this, mapping);
+            myLedSettings.push_back(item);
+        }
 
         myAddLedSettingButton =
             new wxButton(this, ADD_LED_SETTING, L"+", wxDefaultPosition, wxSize(100, 25));
@@ -305,9 +321,10 @@ public:
 
     void OnAddLedSetting(wxCommandEvent& event)
     {
-        auto item = new LedSettingsPanel(this, this);
-        myLedSettings.push_back(item);
-        myOwner->RecomputeLayout();
+        // TODO: implement
+        // auto item = new LedSettingsPanel(this, this);
+        // myLedSettings.push_back(item);
+        // myOwner->RecomputeLayout();
     }
 
     void OnDelete(wxCommandEvent& event)
@@ -346,24 +363,35 @@ void LedSettingsPanel::OnDelete(wxCommandEvent& event)
 
 const wchar_t* LightsTab::Title = L"Lights";
 
-LightsTab::LightsTab(wxWindow* owner)
+LightsTab::LightsTab(wxWindow* owner, const LightsState* lights)
     : wxScrolledWindow(owner, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL)
 {
     myAddSettingButton = new wxButton(this, ADD_LIGHT_SETTING, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
 
     //todo fix linux
 #ifdef _MSC_VER
-    OnAddLightSetting(wxCommandEvent());
+    UpdateSettings(lights);
 #endif
 
     SetScrollRate(5, 5);
 }
 
+void LightsTab::UpdateSettings(const LightsState* lights)
+{
+    for (auto& rule : lights->lightRules)
+    {
+        auto item = new LightSettingsPanel(this, rule);
+        myLightSettings.push_back(item);
+    }
+    RecomputeLayout();
+}
+
 void LightsTab::OnAddLightSetting(wxCommandEvent& event)
 {
-    auto item = new LightSettingsPanel(this);
-    myLightSettings.push_back(item);
-    RecomputeLayout();
+    // TODO: implement
+    // auto item = new LightSettingsPanel(this);
+    // myLightSettings.push_back(item);
+    // RecomputeLayout();
 }
 
 void LightsTab::OnResize(wxSizeEvent& event)

@@ -2,6 +2,7 @@
 
 #include "stdint.h"
 #include <string>
+
 #include "Model/Firmware.h"
 
 namespace adp {
@@ -11,19 +12,15 @@ enum DeviceChangeFlags
 	DCF_DEVICE         = 1 << 0,
 	DCF_BUTTON_MAPPING = 1 << 1,
 	DCF_NAME           = 1 << 2,
+	DCF_LIGHTS         = 1 << 3,
 };
 typedef int32_t DeviceChanges;
 
-enum LedMappingFlags
+struct RgbColor
 {
-	LMF_ENABLED = 1 << 0,
-};
-
-enum LightRuleFlags
-{
-	LRF_ENABLED  = 1 << 0,
-	LRF_FADE_ON  = 1 << 1,
-	LRF_FADE_OFF = 1 << 2,
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
 };
 
 struct SensorState
@@ -41,7 +38,32 @@ struct PadState
 	int numButtons = 0;
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
-	enum BoardType boardType = BOARD_UNKNOWN;
+	BoardType boardType = BOARD_UNKNOWN;
+};
+
+struct LedMapping
+{
+	int index;
+	int sensorIndex;
+	int ledIndexBegin;
+	int ledIndexEnd;
+};
+
+struct LightRule
+{
+	int index;
+	bool fadeOn;
+	bool fadeOff;
+	RgbColor onColor;
+	RgbColor offColor;
+	RgbColor onFadeColor;
+	RgbColor offFadeColor;
+	std::vector<LedMapping> ledMappings;
+};
+
+struct LightsState
+{
+	std::vector<LightRule> lightRules;
 };
 
 class Device
@@ -56,6 +78,8 @@ public:
 	static int PollingRate();
 
 	static const PadState* Pad();
+
+	static const LightsState* Lights();
 
 	static const SensorState* Sensor(int sensorIndex);
 

@@ -29,6 +29,18 @@ constexpr HidIdentifier HID_IDS[] = { {0x1209, 0xb196}, {0x03eb, 0x204f} };
 
 static_assert(sizeof(float) == sizeof(uint32_t), "32-bit float required");
 
+enum LedMappingFlags
+{
+	LMF_ENABLED = 1 << 0,
+};
+
+enum LightRuleFlags
+{
+	LRF_ENABLED = 1 << 0,
+	LRF_FADE_ON = 1 << 1,
+	LRF_FADE_OFF = 1 << 2,
+};
+
 // ====================================================================================================================
 // Helper functions.
 // ====================================================================================================================
@@ -91,6 +103,16 @@ static int ToDeviceSensorValue(double normalizedValue)
 	return max(0, min(MAX_SENSOR_VALUE, mapped));
 }
 
+static RgbColor ToRgbColor(color24 color)
+{
+	return { color.red, color.green, color.blue };
+}
+
+static color24 ToColor24(RgbColor color)
+{
+	return { color.red, color.green, color.blue };
+}
+
 static void PrintPadConfigurationReport(const PadConfigurationReport& padConfiguration)
 {
 	Log::Write(L"pad configuration [");
@@ -151,7 +173,9 @@ public:
 		const char* path,
 		const NameReport& name,
 		const PadConfigurationReport& config,
-		const IdentificationReport& identification)
+		const IdentificationReport& identification,
+		const vector<LightRuleReport>& lightRules,
+		const vector<LedMappingReport>& ledMappings)
 		: myReporter(move(reporter))
 		, myPath(path)
 	{
@@ -166,6 +190,7 @@ public:
 		free(buffer);
 
 		UpdatePadConfiguration(config);
+		UpdateLightsConfiguration(lightRules, ledMappings);
 		myPollingData.lastUpdate = system_clock::now();
 	}
 
@@ -184,6 +209,35 @@ public:
 			mySensors[i].button = (buttonMapping >= myPad.numButtons ? 0 : (buttonMapping + 1));
 		}
 		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
+	}
+
+	void UpdateLightsConfiguration(const vector<LightRuleReport>& lightRules, const vector<LedMappingReport>& ledMappings)
+	{
+		for (auto& in : lightRules)
+		{
+			auto& out = myLights.lightRules.emplace_back();
+			out.index = in.index;
+			out.fadeOn = (in.flags & LRF_FADE_ON) != 0;
+			out.fadeOff = (in.flags & LRF_FADE_OFF) != 0;
+			out.onColor = ToRgbColor(in.onColor);
+			out.onFadeColor = ToRgbColor(in.onFadeColor);
+			out.offColor = ToRgbColor(in.offColor);
+			out.offFadeColor = ToRgbColor(in.offFadeColor);
+		}
+		for (auto& in : ledMappings)
+		{
+			for (auto& rule : myLights.lightRules)
+			{
+				if (rule.index != in.lightRuleIndex)
+					continue;
+
+				auto& out = rule.ledMappings.emplace_back();
+				out.index = in.index;
+				out.sensorIndex = in.sensorIndex;
+				out.ledIndexBegin = in.ledIndexBegin;
+				out.ledIndexEnd = in.ledIndexEnd;
+			}
+		}
 	}
 
 	bool UpdateSensorValues()
@@ -321,6 +375,8 @@ public:
 
 	const PadState& State() const { return myPad; }
 
+	const LightsState& Lights() const { return myLights; }
+
 	const SensorState* Sensor(int index)
 	{
 		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
@@ -337,6 +393,7 @@ private:
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
 	PadState myPad;
+	LightsState myLights;
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
@@ -460,6 +517,8 @@ public:
 		}
 
 		// If we got some lights, try to read the light rules.
+		vector<LightRuleReport> lightRules;
+		vector<LedMappingReport> ledMappings;
 		if (padIdentification.ledCount > 0)
 		{
 			SetPropertyReport selectReport;
@@ -470,7 +529,10 @@ public:
 			{
 				selectReport.propertyValue = WriteU32LE(i);
 				if (reporter->Send(selectReport) && reporter->Get(lightReport) && (lightReport.flags & LRF_ENABLED))
+				{
 					PrintLightRuleReport(lightReport);
+					lightRules.push_back(lightReport);
+				}
 			}
 
 			LedMappingReport ledReport;
@@ -479,13 +541,23 @@ public:
 			{
 				selectReport.propertyValue = WriteU32LE(i);
 				if (reporter->Send(selectReport) && reporter->Get(ledReport) && (ledReport.flags & LMF_ENABLED))
+				{
 					PrintLedMappingReport(ledReport);
+					ledMappings.push_back(ledReport);
+				}
 			}
 		}
 
-		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);
-		auto boardTypeString = BoardTypeToString(device->State().boardType);
+		auto device = new PadDevice(
+			reporter,
+			deviceInfo->path,
+			name,
+			padConfiguration,
+			padIdentification,
+			lightRules,
+			ledMappings);
 
+		auto boardTypeString = BoardTypeToString(device->State().boardType);
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %ls", device->State().name.data());
 		Log::Writef(L"  Product: %ls", deviceInfo->product_string);
@@ -580,6 +652,12 @@ const PadState* Device::Pad()
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? &device->State() : nullptr;
+}
+
+const LightsState* Device::Lights()
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? &device->Lights() : nullptr;
 }
 
 const SensorState* Device::Sensor(int sensorIndex)

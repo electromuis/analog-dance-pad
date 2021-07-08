@@ -100,7 +100,11 @@ private:
             AddTab(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
             AddTab(1, new MappingTab(myTabs, pad), MappingTab::Title);
             AddTab(2, new DeviceTab(myTabs), DeviceTab::Title);
-            AddTab(3, new LightsTab(myTabs), LightsTab::Title);
+            auto lights = Device::Lights();
+            if (lights)
+            {
+                AddTab(3, new LightsTab(myTabs, lights), LightsTab::Title);
+            }
         }
         else
         {
