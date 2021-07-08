@@ -161,7 +161,7 @@ bool CALLBACK_HID_Device_CreateHIDReport(
     else if (*ReportID == NAME_REPORT_ID)
     {
         NameFeatureHIDReport* report = ReportData;
-        memcpy(&report->nameAndSize, &configuration.nameAndSize, sizeof (nameHidReport->nameAndSize));
+        memcpy(&report->nameAndSize, &configuration.nameAndSize, sizeof (report->nameAndSize));
         *ReportSize = sizeof (NameFeatureHIDReport);
     }
     else if (*ReportID == LIGHT_RULE_REPORT_ID)
@@ -183,9 +183,9 @@ bool CALLBACK_HID_Device_CreateHIDReport(
         LedMappingHIDReport* report = ReportData;
         report->index = LIGHT_CONF.selectedLedMappingIndex;
         if (report->index < MAX_LED_MAPPINGS)
-            memcpy(&report->rule, &LIGHT_CONF.ledMappings[report->index], sizeof(LedMapping));
+            memcpy(&report->mapping, &LIGHT_CONF.ledMappings[report->index], sizeof(LedMapping));
         else
-            memset(&report->rule, 0, sizeof(LedMapping));
+            memset(&report->mapping, 0, sizeof(LedMapping));
     }
 
     return true;
@@ -207,9 +207,9 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
 {
     if (ReportID == PAD_CONFIGURATION_REPORT_ID && ReportSize == sizeof (PadConfigurationFeatureHIDReport))
     {
-        const PadConfigurationFeatureHIDReport* configurationHidReport = ReportData;
-        memcpy(&configuration.padConfiguration, &configurationHidReport->configuration, sizeof (configuration.padConfiguration));
-        Pad_UpdateConfiguration(&configurationHidReport->configuration);
+        const PadConfigurationFeatureHIDReport* report = ReportData;
+        memcpy(&configuration.padConfiguration, &report->configuration, sizeof (configuration.padConfiguration));
+        Pad_UpdateConfiguration(&report->configuration);
     }
     else if (ReportID == RESET_REPORT_ID)
     {
@@ -228,25 +228,39 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     }
     else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport))
     {
-        const NameFeatureHIDReport* nameHidReport = ReportData;
-        memcpy(&configuration.nameAndSize, &nameHidReport->nameAndSize, sizeof (configuration.nameAndSize));
+        const NameFeatureHIDReport* report = ReportData;
+        memcpy(&configuration.nameAndSize, &report->nameAndSize, sizeof (configuration.nameAndSize));
     }
-    else if (*ReportID == LIGHT_RULE_REPORT_ID && ReportSize == sizeof (LightRuleHIDReport))
+    else if (ReportID == LIGHT_RULE_REPORT_ID && ReportSize == sizeof (LightRuleHIDReport))
     {
-        LightRuleHIDReport* report = ReportData;
-        memcpy(&report->rule, &LIGHT_CONF.lightRules[report->index], sizeof(LightRule));
+        const LightRuleHIDReport* report = ReportData;
+        if (report->index < MAX_LIGHT_RULES)
+        {
+            memcpy(&configuration.lightConfiguration.lightRules[report->index], &report->rule, sizeof(LightRule));
+            Lights_UpdateConfiguration(&configuration.lightConfiguration);
+        }
     }
-    else if (*ReportID == LED_MAPPING_REPORT_ID && ReportSize == sizeof(LedMappingHIDReport))
+    else if (ReportID == LED_MAPPING_REPORT_ID && ReportSize == sizeof(LedMappingHIDReport))
     {
-        LedMappingHIDReport* report = ReportData;
-        memcpy(&report->mapping, &LIGHT_CONF.ledMappings[report->index], sizeof(LedMapping));
+        const LedMappingHIDReport* report = ReportData;
+        if (report->index < MAX_LED_MAPPINGS)
+        {
+            memcpy(&configuration.lightConfiguration.ledMappings[report->index], &report->mapping, sizeof(LedMapping));
+            Lights_UpdateConfiguration(&configuration.lightConfiguration);
+        }
     }
     else if (ReportID == SET_PROPERTY_REPORT_ID && ReportSize == sizeof (SetPropertyHIDReport))
     {
         const SetPropertyHIDReport* report = ReportData;
-        if (report->propertyId == SetPropertyHIDReport::SELECTED_LIGHT_RULE_INDEX)
+        switch (report->propertyId)
+        {
+        case SPID_SELECTED_LIGHT_RULE_INDEX:
             LIGHT_CONF.selectedLightRuleIndex = (uint8_t)report->propertyValue;
-        else if (report->propertyId == SetPropertyHIDReport::SELECTED_LED_MAPPING_INDEX)
+            break;
+
+        case SPID_SELECTED_LED_MAPPING_INDEX:
             LIGHT_CONF.selectedLedMappingIndex = (uint8_t)report->propertyValue;
+            break;
+        }
     }
 }

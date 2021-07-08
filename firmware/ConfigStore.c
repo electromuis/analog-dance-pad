@@ -45,7 +45,7 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
     {                                                   \
         .lightRuleIndex = rule,                         \
         .sensorIndex = sensor,                          \
-        .ledIndexBegin = ledBegin,                      \
+        .ledIndexBegin = lbegin,                        \
         .ledIndexEnd = lend,                            \
     }
 
@@ -75,8 +75,7 @@ static const Configuration DEFAULT_CONFIGURATION = {
         .selectedLedMappingIndex = 0,
 #if defined(BOARD_TYPE_FSRMINIPAD)
         .lightRules =
-		{	
-
+		{
             DEFAULT_LIGHT_RULE_1, // LEFT & RIGHT
             DEFAULT_LIGHT_RULE_2, // DOWN & UP
         },

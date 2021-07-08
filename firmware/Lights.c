@@ -127,8 +127,9 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
   _delay_us(80);  // Send the reset signal.
 }
 
+LightConfiguration LIGHT_CONF;
+
 static rgb_color LED_COLORS[LED_COUNT];
-static LightConfiguration LIGHT_CONF;
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -143,7 +144,7 @@ void Lights_Update()
 {
 	for (uint8_t m = 0; m < MAX_LED_MAPPINGS; ++m)
 	{
-        const LedMapping* mapping = &LIGHT_CONF.ledMapping[m];
+        const LedMapping* mapping = &LIGHT_CONF.ledMappings[m];
 
         if (!(mapping->flags & LMF_ENABLED))
             continue;
@@ -180,7 +181,7 @@ void Lights_Update()
 			}
 		}
 		else {
-			if(light.flags & LRF_FADE_OFF) {
+			if(rule->flags & LRF_FADE_OFF) {
 				color = (rgb_color) {	
 					map(sensorValue, 0, sensorThreshold, rule->offColor.red,   rule->offFadeColor.red),
 					map(sensorValue, 0, sensorThreshold, rule->offColor.green, rule->offFadeColor.green),

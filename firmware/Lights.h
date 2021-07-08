@@ -46,8 +46,8 @@ typedef struct
     LedMapping ledMappings[MAX_LED_MAPPINGS];
 } __attribute__((packed)) LightConfiguration;
 
-void Lights_UpdateConfiguration(const LightConfiguration* configuration);
-void Lights_Update();
+void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration);
+void Lights_Update(void);
 
 extern LightConfiguration LIGHT_CONF;
 

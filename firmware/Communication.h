@@ -43,15 +43,14 @@
         LedMapping mapping;
     } __attribute__((packed)) LedMappingHIDReport;
 
+    // IDS used by SetPropertyHIDReport.
+    #define SPID_SELECTED_LIGHT_RULE_INDEX  0
+    #define SPID_SELECTED_LED_MAPPING_INDEX 1
+
     typedef struct {
-        enum
-        {
-            SELECTED_LIGHT_RULE_INDEX = 0,
-            SELECTED_LED_MAPPING_INDEX = 1,
-        } PropertyId;
         uint32_t propertyId;
         uint32_t propertyValue;
-    }; __attribute__((packed)) SetPropertyHIDReport;
+    } __attribute__((packed)) SetPropertyHIDReport;
 
     typedef struct {
 		uint16_t firmwareVersionMajor;
@@ -65,5 +64,4 @@
 	
     void Communication_WriteInputHIDReport(InputHIDReport* report);
     void Communication_WriteIdentificationReport(IdentificationFeatureReport* report);
-    void Communication_
 #endif
