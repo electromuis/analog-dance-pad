@@ -127,6 +127,16 @@ bool Reporter::Get(IdentificationReport& report)
 	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
 }
 
+bool Reporter::Get(LightRuleReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetLightRuleReport");
+}
+
+bool Reporter::Get(LedMappingReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetLedMappingReport");
+}
+
 void Reporter::SendReset()
 {
 	WriteData(myHid, REPORT_RESET, L"SendResetReport", false);
@@ -150,6 +160,21 @@ bool Reporter::Send(const PadConfigurationReport& report)
 bool Reporter::Send(const NameReport& report)
 {
 	return SendFeatureReport(myHid, report, L"SendNameReport");
+}
+
+bool Reporter::Send(const LightRuleReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendLightRuleReport");
+}
+
+bool Reporter::Send(const LedMappingReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendLedMappingReport");
+}
+
+bool Reporter::Send(const SetPropertyReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendSetPropertyReport");
 }
 
 }; // namespace adp.

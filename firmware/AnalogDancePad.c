@@ -172,6 +172,7 @@ bool CALLBACK_HID_Device_CreateHIDReport(
             memcpy(&report->rule, &LIGHT_CONF.lightRules[report->index], sizeof(LightRule));
         else
             memset(&report->rule, 0, sizeof(LightRule));
+        *ReportSize = sizeof(LightRuleHIDReport);
     }
     else if (*ReportID == IDENTIFICATION_REPORT_ID)
     {
@@ -186,6 +187,7 @@ bool CALLBACK_HID_Device_CreateHIDReport(
             memcpy(&report->mapping, &LIGHT_CONF.ledMappings[report->index], sizeof(LedMapping));
         else
             memset(&report->mapping, 0, sizeof(LedMapping));
+        *ReportSize = sizeof(LedMappingHIDReport);
     }
 
     return true;

@@ -32,17 +32,18 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
         .flags = LRF_ENABLED | LRF_FADE_OFF \
     }
 
-#define DEFAULT_LIGHT_RULE_2                \
-    {                                       \
-        .onColor = {100, 100, 100},         \
-        .offColor = {0, 0, 2},              \
-        .onFadeColor = {0, 0, 0},           \
-        .offFadeColor = {0, 0, 255},        \
-        .flags = LRF_ENABLED | LRF_FADE_OFF \
+#define DEFAULT_LIGHT_RULE_2                 \
+    {                                        \
+        .flags = LRF_ENABLED | LRF_FADE_OFF, \
+        .onColor = {100, 100, 100},          \
+        .offColor = {0, 0, 2},               \
+        .onFadeColor = {0, 0, 0},            \
+        .offFadeColor = {0, 0, 255},         \
     }
 
 #define DEFAULT_LED_MAPPING(rule, sensor, lbegin, lend) \
     {                                                   \
+        .flags = LMF_ENABLED,                           \
         .lightRuleIndex = rule,                         \
         .sensorIndex = sensor,                          \
         .ledIndexBegin = lbegin,                        \

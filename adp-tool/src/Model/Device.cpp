@@ -43,9 +43,14 @@ static int ReadU16LE(uint16_le u16)
 	return u16.bytes[0] | u16.bytes[1] << 8;
 }
 
+static uint32_t ReadU32LE(uint32_le u32)
+{
+	return u32.bytes[0] | (u32.bytes[1] << 8) | (u32.bytes[2] << 16) | (u32.bytes[3] << 24);
+}
+
 static float ReadF32LE(float32_le f32)
 {
-	uint32_t u32 = f32.bytes[0] | (f32.bytes[1] << 8) | (f32.bytes[2] << 16) | (f32.bytes[3] << 24);
+	uint32_t u32 = ReadU32LE(f32.bits);
 	return *reinterpret_cast<float*>(&u32);
 }
 
@@ -57,15 +62,20 @@ static uint16_le WriteU16LE(int value)
 	return u16;
 }
 
+static uint32_le WriteU32LE(uint32_t value)
+{
+	uint32_le u32;
+	u32.bytes[0] = value & 0xFF;
+	u32.bytes[1] = (value >> 8) & 0xFF;
+	u32.bytes[2] = (value >> 16) & 0xFF;
+	u32.bytes[3] = (value >> 24) & 0xFF;
+	return u32;
+}
+
 static float32_le WriteF32LE(float value)
 {
-	float32_le f32;
 	uint32_t u32 = *reinterpret_cast<uint32_t*>(&value);
-	f32.bytes[0] = u32 & 0xFF;
-	f32.bytes[1] = (u32 >> 8) & 0xFF;
-	f32.bytes[2] = (u32 >> 16) & 0xFF;
-	f32.bytes[3] = (u32 >> 24) & 0xFF;
-	return f32;
+	return { WriteU32LE(u32) };
 }
 
 template <typename T>
@@ -92,6 +102,30 @@ static void PrintPadConfigurationReport(const PadConfigurationReport& padConfigu
 		Log::Writef(L"    sensorThresholds: %i", ReadU16LE(padConfiguration.sensorThresholds[i]));
 	}
 	Log::Write(L"  ]");
+	Log::Write(L"]");
+}
+
+static void PrintLightRuleReport(const LightRuleReport& r)
+{
+	Log::Write(L"light rule [");
+	Log::Writef(L"  index: %i", r.index);
+	Log::Writef(L"  flags: %i", r.flags);
+	Log::Writef(L"  onColor: [R%i G%i B%i]", r.onColor.red, r.onColor.green, r.onColor.blue);
+	Log::Writef(L"  offColor: [R%i G%i B%i]", r.offColor.red, r.offColor.green, r.offColor.blue);
+	Log::Writef(L"  onFadeColor: [R%i G%i B%i]", r.onFadeColor.red, r.onFadeColor.green, r.onFadeColor.blue);
+	Log::Writef(L"  offFadeColor: [R%i G%i B%i]", r.offFadeColor.red, r.offFadeColor.green, r.offFadeColor.blue);
+	Log::Write(L"]");
+}
+
+static void PrintLedMappingReport(const LedMappingReport& r)
+{
+	Log::Write(L"led mapping [");
+	Log::Writef(L"  index: %i", r.index);
+	Log::Writef(L"  flags: %i", r.flags);
+	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
+	Log::Writef(L"  sensorIndex: %i", r.sensorIndex);
+	Log::Writef(L"  ledIndexBegin: %i", r.ledIndexBegin);
+	Log::Writef(L"  ledIndexEnd: %i", r.ledIndexEnd);
 	Log::Write(L"]");
 }
 
@@ -423,6 +457,30 @@ public:
 			padIdentification.maxSensorValue = WriteU16LE(MAX_SENSOR_VALUE);
 			memset(padIdentification.boardType, 0, BOARD_TYPE_LENGTH);
 			strcpy(padIdentification.boardType, "unknown");
+		}
+
+		// If we got some lights, try to read the light rules.
+		if (padIdentification.ledCount > 0)
+		{
+			SetPropertyReport selectReport;
+
+			LightRuleReport lightReport;
+			selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LIGHT_RULE_INDEX);
+			for (int i = 0; i < MAX_LIGHT_RULES; ++i)
+			{
+				selectReport.propertyValue = WriteU32LE(i);
+				if (reporter->Send(selectReport) && reporter->Get(lightReport) && (lightReport.flags & LRF_ENABLED))
+					PrintLightRuleReport(lightReport);
+			}
+
+			LedMappingReport ledReport;
+			selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LED_MAPPING_INDEX);
+			for (int i = 0; i < MAX_LED_MAPPINGS; ++i)
+			{
+				selectReport.propertyValue = WriteU32LE(i);
+				if (reporter->Send(selectReport) && reporter->Get(ledReport) && (ledReport.flags & LMF_ENABLED))
+					PrintLedMappingReport(ledReport);
+			}
 		}
 
 		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);

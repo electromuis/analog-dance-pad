@@ -14,6 +14,18 @@ enum DeviceChangeFlags
 };
 typedef int32_t DeviceChanges;
 
+enum LedMappingFlags
+{
+	LMF_ENABLED = 1 << 0,
+};
+
+enum LightRuleFlags
+{
+	LRF_ENABLED  = 1 << 0,
+	LRF_FADE_ON  = 1 << 1,
+	LRF_FADE_OFF = 1 << 2,
+};
+
 struct SensorState
 {
 	double threshold = 0.0;

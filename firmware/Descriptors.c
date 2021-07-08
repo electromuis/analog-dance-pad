@@ -165,6 +165,7 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM GenericReport[] =
             HID_RI_REPORT_COUNT(8, sizeof(SetPropertyHIDReport)),
             HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
         HID_RI_END_COLLECTION(0),
+
     HID_RI_END_COLLECTION(0)
 };
 
