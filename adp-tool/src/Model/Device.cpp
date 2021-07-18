@@ -219,56 +219,62 @@ public:
 		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
 	}
 
-	LightRule& GetLightRule(int lightRuleIndex)
-	{
-		for (auto& r : myLights.lightRules)
-		{
-			if (r.index == lightRuleIndex)
-				return r;
-		}
-		return myLights.lightRules.emplace_back();
-	}
-
 	void UpdateLightRule(const LightRuleReport& report)
 	{
-		auto& rule = GetLightRule(report.index);
-		rule.index = report.index;
-		rule.fadeOn = (report.flags & LRF_FADE_ON) != 0;
-		rule.fadeOff = (report.flags & LRF_FADE_OFF) != 0;
-		rule.onColor = ToRgbColor(report.onColor);
-		rule.onFadeColor = ToRgbColor(report.onFadeColor);
-		rule.offColor = ToRgbColor(report.offColor);
-		rule.offFadeColor = ToRgbColor(report.offFadeColor);
-	}
-
-	LedMapping* GetLedMapping(int lightRuleIndex, int ledMappingIndex)
-	{
-		for (auto& r : myLights.lightRules)
+		if (report.flags & LRF_ENABLED)
 		{
-			if (r.index != lightRuleIndex)
-				continue;
-
-			for (auto& m : r.ledMappings)
+			LightRule* rule = nullptr;
+			for (auto& r : myLights.lightRules)
 			{
-				if (m.index == ledMappingIndex)
-					return &m;
+				if (r.index == report.index)
+					rule = &r;
 			}
-			return &r.ledMappings.emplace_back();
+			auto out = rule ? rule : &myLights.lightRules.emplace_back();
+			out->index = report.index;
+			out->fadeOn = (report.flags & LRF_FADE_ON) != 0;
+			out->fadeOff = (report.flags & LRF_FADE_OFF) != 0;
+			out->onColor = ToRgbColor(report.onColor);
+			out->onFadeColor = ToRgbColor(report.onFadeColor);
+			out->offColor = ToRgbColor(report.offColor);
+			out->offFadeColor = ToRgbColor(report.offFadeColor);
 		}
-		return nullptr;
+		else
+		{
+			auto& v = myLights.lightRules;
+			for (auto it = v.begin(); it != v.end();)
+				it = (it->index == report.index) ? v.erase(it) : (it + 1);
+		}
 	}
 
 	void UpdateLedMapping(const LedMappingReport& report)
 	{
-		auto mapping = GetLedMapping(report.lightRuleIndex, report.index);
-		if (!mapping)
-			return;
+		for (auto& r : myLights.lightRules)
+		{
+			if (r.index != report.lightRuleIndex)
+				continue;
 
-		mapping->index = report.index;
-		mapping->lightRuleIndex = report.lightRuleIndex;
-		mapping->sensorIndex = report.sensorIndex;
-		mapping->ledIndexBegin = report.ledIndexBegin;
-		mapping->ledIndexEnd = report.ledIndexEnd;
+			if (report.flags & LMF_ENABLED)
+			{
+				LedMapping* mapping = nullptr;
+				for (auto& m : r.ledMappings)
+				{
+					if (m.index == report.index)
+						mapping = &m;
+				}
+				auto out = mapping ? mapping : &r.ledMappings.emplace_back();
+				out->index = report.index;
+				out->lightRuleIndex = report.lightRuleIndex;
+				out->sensorIndex = report.sensorIndex;
+				out->ledIndexBegin = report.ledIndexBegin;
+				out->ledIndexEnd = report.ledIndexEnd;
+			}
+			else
+			{
+				auto& v = r.ledMappings;
+				for (auto it = v.begin(); it != v.end();)
+					it = (it->index == report.index) ? v.erase(it) : (it + 1);
+			}
+		}
 	}
 
 	void UpdateLightsConfiguration(const vector<LightRuleReport>& lightRules, const vector<LedMappingReport>& ledMappings)
