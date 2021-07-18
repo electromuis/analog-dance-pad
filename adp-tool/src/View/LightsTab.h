@@ -20,6 +20,8 @@ public:
     void OnAddLightSetting(wxCommandEvent& event);
     void OnResize(wxSizeEvent& event);
 
+    void ReindexAll();
+
     wxWindow* GetWindow() override { return this; }
 
     void RecomputeLayout();

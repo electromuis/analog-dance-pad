@@ -233,6 +233,7 @@ public:
 
 				auto& out = rule.ledMappings.emplace_back();
 				out.index = in.index;
+				out.lightRuleIndex = rule.index;
 				out.sensorIndex = in.sensorIndex;
 				out.ledIndexBegin = in.ledIndexBegin;
 				out.ledIndexEnd = in.ledIndexEnd;
@@ -330,6 +331,110 @@ public:
 		return result;
 	}
 
+	bool SendLedMapping(LedMapping mapping)
+	{
+		LedMappingReport report;
+
+		report.index = mapping.index;
+		report.lightRuleIndex = mapping.lightRuleIndex;
+		report.flags = LMF_ENABLED;
+		report.ledIndexBegin = mapping.ledIndexBegin;
+		report.ledIndexEnd = mapping.ledIndexEnd;
+		report.sensorIndex = mapping.sensorIndex;
+
+		bool sendResult = myReporter->Send(report);
+
+		SetPropertyReport selectReport;
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LED_MAPPING_INDEX);
+		selectReport.propertyValue = WriteU32LE(mapping.index);
+		bool indexResult = myReporter->Send(selectReport);
+
+		LedMappingReport ledReport;
+		bool getResult = myReporter->Get(ledReport);
+
+		myChanges |= DCF_LIGHTS;
+		myHasUnsavedChanges = true;
+
+		return indexResult && sendResult && getResult;
+	}
+
+	bool DisableLedMapping(int ledMappingIndex)
+	{
+		LedMappingReport report;
+
+		report.index = ledMappingIndex;
+		report.flags = 0;
+
+		bool sendResult = myReporter->Send(report);
+		
+		SetPropertyReport selectReport;
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LED_MAPPING_INDEX);
+		selectReport.propertyValue = WriteU32LE(ledMappingIndex);
+		bool indexResult = myReporter->Send(selectReport);
+
+		bool getResult = myReporter->Get(report);
+
+		myChanges |= DCF_LIGHTS;
+		myHasUnsavedChanges = true;
+
+		return indexResult && sendResult && getResult;
+	}
+
+	bool SendLightRule(LightRule rule)
+	{
+		LightRuleReport report;
+
+		report.index = rule.index;
+		report.flags = LRF_ENABLED;
+		if (rule.fadeOn) {
+			report.flags = report.flags | LRF_FADE_ON;
+		}
+		if (rule.fadeOff) {
+			report.flags = report.flags | LRF_FADE_OFF;
+		}
+
+		report.onColor = ToColor24(rule.onColor);
+		report.offColor = ToColor24(rule.offColor);
+		report.onFadeColor = ToColor24(rule.onFadeColor);
+		report.offFadeColor = ToColor24(rule.offFadeColor);
+
+		bool sendResult = myReporter->Send(report);
+
+		SetPropertyReport selectReport;
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LIGHT_RULE_INDEX);
+		selectReport.propertyValue = WriteU32LE(rule.index);
+		bool indexResult = myReporter->Send(selectReport);
+
+		bool getResult = myReporter->Get(report);
+
+		myChanges |= DCF_LIGHTS;
+		myHasUnsavedChanges = true;
+
+		return indexResult && sendResult && getResult;
+	}
+
+	bool DisableLightRule(int lightRuleIndex)
+	{
+		LightRuleReport report;
+
+		report.index = lightRuleIndex;
+		report.flags = 0;
+
+		bool sendResult = myReporter->Send(report);
+
+		SetPropertyReport selectReport;
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LIGHT_RULE_INDEX);
+		selectReport.propertyValue = WriteU32LE(lightRuleIndex);
+		bool indexResult = myReporter->Send(selectReport);
+
+		bool getResult = myReporter->Get(report);
+
+		myChanges |= DCF_LIGHTS;
+		myHasUnsavedChanges = true;
+
+		return indexResult && sendResult && getResult;
+	}
+
 	void Reset() { myReporter->SendReset(); }
 
 	void FactoryReset()
@@ -349,9 +454,6 @@ public:
 		report.releaseThreshold = WriteF32LE((float)myPad.releaseThreshold);
 
 		bool sendResult = myReporter->Send(report);
-
-		// Wait for the controller to process the report
-		this_thread::sleep_for(2ms);
 
 		bool getResult = myReporter->Get(report);
 
@@ -528,7 +630,9 @@ public:
 			for (int i = 0; i < MAX_LIGHT_RULES; ++i)
 			{
 				selectReport.propertyValue = WriteU32LE(i);
-				if (reporter->Send(selectReport) && reporter->Get(lightReport) && (lightReport.flags & LRF_ENABLED))
+				bool sendResult = reporter->Send(selectReport);
+
+				if (sendResult && reporter->Get(lightReport) && (lightReport.flags & LRF_ENABLED))
 				{
 					PrintLightRuleReport(lightReport);
 					lightRules.push_back(lightReport);
@@ -540,7 +644,9 @@ public:
 			for (int i = 0; i < MAX_LED_MAPPINGS; ++i)
 			{
 				selectReport.propertyValue = WriteU32LE(i);
-				if (reporter->Send(selectReport) && reporter->Get(ledReport) && (ledReport.flags & LMF_ENABLED))
+				bool sendResult = reporter->Send(selectReport);
+
+				if (sendResult && reporter->Get(ledReport) && (ledReport.flags & LMF_ENABLED))
 				{
 					PrintLedMappingReport(ledReport);
 					ledMappings.push_back(ledReport);
@@ -688,6 +794,30 @@ bool Device::SetDeviceName(const wchar_t* name)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->SendName(name) : false;
+}
+
+bool Device::SendLedMapping(LedMapping mapping)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SendLedMapping(mapping) : false;
+}
+
+bool Device::DisableLedMapping(int ledMappingIndex)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->DisableLedMapping(ledMappingIndex) : false;
+}
+
+bool Device::SendLightRule(LightRule rule)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SendLightRule(rule) : false;
+}
+
+bool Device::DisableLightRule(int lightRuleIndex)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->DisableLightRule(lightRuleIndex) : false;
 }
 
 void Device::SendDeviceReset()

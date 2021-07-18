@@ -44,6 +44,7 @@ struct PadState
 struct LedMapping
 {
 	int index;
+	int lightRuleIndex;
 	int sensorIndex;
 	int ledIndexBegin;
 	int ledIndexEnd;
@@ -90,6 +91,14 @@ public:
 	static bool SetButtonMapping(int sensorIndex, int button);
 
 	static bool SetDeviceName(const wchar_t* name);
+
+	static bool SendLedMapping(LedMapping mapping);
+
+	static bool DisableLedMapping(int ledMappingIndex);
+
+	static bool SendLightRule(LightRule rule);
+
+	static bool DisableLightRule(int lightRuleIndex);
 
 	static void SendDeviceReset();
 

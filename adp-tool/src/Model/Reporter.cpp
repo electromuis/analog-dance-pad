@@ -1,6 +1,8 @@
 #include "Adp.h"
 
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 #include "Model/Reporter.h"
 #include "Model/Log.h"
@@ -43,6 +45,11 @@ static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
 template <typename T>
 static bool SendFeatureReport(hid_device* hid, const T& report, const wchar_t* name)
 {
+	using namespace std::chrono_literals;
+
+	// Wait for the controller to get into a ready state
+	std::this_thread::sleep_for(2ms);
+
 	int bytesWritten = hid_send_feature_report(hid, (const unsigned char*)&report, sizeof(T));
 	if (bytesWritten == sizeof(T))
 	{
