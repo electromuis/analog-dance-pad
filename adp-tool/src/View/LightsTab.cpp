@@ -1,5 +1,7 @@
 #include "Adp.h"
 
+#include <set>
+
 #include "wx/sizer.h"
 #include "wx/panel.h"
 #include "wx/button.h"
@@ -19,6 +21,7 @@
 
 #include "View/LightsTab.h"
 
+
 namespace adp {
 
 wxDEFINE_EVENT(EVT_COLOR_CHANGED, wxCommandEvent);
@@ -28,11 +31,12 @@ static wxColour ToWx(RgbColor color)
     return wxColour(color.red, color.green, color.blue);
 }
 
-enum Ids {
-    ADD_LIGHT_SETTING = 1,
+enum Ids
+{
+    ADD_LIGHT_SETTING    = 1,
     DELETE_LIGHT_SETTING = 2,
-    ADD_LED_SETTING = 3,
-    DELETE_LED_SETTING = 4,
+    ADD_LED_SETTING      = 3,
+    DELETE_LED_SETTING   = 4,
 };
 
 // ====================================================================================================================
@@ -197,6 +201,8 @@ public:
     LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow, const LedMapping& mapping)
         : wxPanel(ownerAsWindow, wxID_ANY, wxDefaultPosition, wxSize(400, 25))
         , myOwner(owner)
+        , myLedMappingIndex(mapping.index)
+        , myLightRuleIndex(mapping.lightRuleIndex)
     {
         auto pad = Device::Pad();
 
@@ -223,10 +229,8 @@ public:
         mySensorFrom->SetValue(mapping.ledIndexBegin);
         mySensorTo->SetValue(mapping.ledIndexEnd);
         mySensorSelect->SetSelection(mapping.sensorIndex);
-        this->SetConfigIndex(mapping.index);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(350, 12), wxDefaultSize);
-
         myDeleteButton = new wxButton(this, DELETE_LED_SETTING, L"\u2715", wxDefaultPosition, wxSize(25, 25));
     }
 
@@ -239,40 +243,58 @@ public:
 
     void OnSensorChanged(wxCommandEvent& event)
     {
-        SendToPad();
+        SendToDevice();
     }
 
     void OnLedIndexChanged(wxCommandEvent& event)
     {
-        SendToPad();
+        SendToDevice();
     }
 
     void OnDelete(wxCommandEvent& event);
 
-    void SetConfigIndex(int configIndex)
+    void UpdateLightRuleIndex(int index)
     {
-        this->configIndex = configIndex;
+        if (myLightRuleIndex == index)
+            return;
+
+        myLightRuleIndex = index;
+        SendToDevice();
     }
 
-    int GetConfigIndex()
+    void UpdateLedMappingIndex(int index)
     {
-        return this->configIndex;
+        if (myLedMappingIndex == index)
+            return;
+
+        myLedMappingIndex = index;
+        SendToDevice();
     }
 
-    void SendToPad();
+    bool SendToDevice()
+    {
+        LedMapping mapping;
+        mapping.index = myLedMappingIndex;
+        mapping.lightRuleIndex = myLightRuleIndex;
+        mapping.sensorIndex = mySensorSelect->GetSelection();
+        mapping.ledIndexBegin = mySensorFrom->GetValue();
+        mapping.ledIndexEnd = mySensorTo->GetValue();
+        return Device::SendLedMapping(mapping);
+    }
+
+    int GetLedMappingIndex() const { return myLedMappingIndex; }
 
     DECLARE_EVENT_TABLE()
 
 private:
     LightSettingsPanel* myOwner;
-
     wxComboBox* mySensorSelect;
     wxSpinCtrl* mySensorFrom;
     wxSpinCtrl* mySensorTo;
-    
     wxStaticLine* myHLine;
     wxButton* myDeleteButton;
-    int configIndex;
+    int myLedMappingIndex;
+    int myLightRuleIndex;
 };
 
 BEGIN_EVENT_TABLE(LedSettingsPanel, wxWindow)
@@ -289,6 +311,7 @@ public:
     LightSettingsPanel(LightsTab* owner, const LightRule& rule)
         : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(310, 100))
         , myOwner(owner)
+        , myLightRuleIndex(rule.index)
     {
         // Color settings and delete.
         myOnSetting = new ColorSettingGradient(
@@ -306,8 +329,6 @@ public:
         myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(50, 20));
         myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOffToggled, this);
         myFadeOffBox->SetValue(rule.fadeOff);
-
-        this->SetConfigIndex(rule.index);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(300, 14), wxDefaultSize);
 
@@ -334,7 +355,6 @@ public:
         item->Destroy();
         myLedSettings.erase(it);
         myOwner->ReindexAll();
-        myOwner->RecomputeLayout();
     }
 
     int GetContentHeight() const { return myLedSettings.size() * 30 + 100; }
@@ -364,32 +384,31 @@ public:
     void OnFadeOnToggled(wxCommandEvent& event)
     {
         myOnSetting->EnableFade(myFadeOnBox->IsChecked());
-        SendToPad();
+        SendToDevice();
     }
 
     void OnFadeOffToggled(wxCommandEvent& event)
     {
         myOffSetting->EnableFade(myFadeOffBox->IsChecked());
-        SendToPad();
+        SendToDevice();
     }
 
     void OnColorChanged(wxCommandEvent& event)
     {
-        SendToPad();
+        SendToDevice();
     }
 
     void OnAddLedSetting(wxCommandEvent& event)
     {
-        LedMapping mapping = {
-            0,
-            -1,
-            0,
-            0
-        };
-
+        LedMapping mapping;
+        mapping.index = -1; // Will be udated by reindex.
+        mapping.lightRuleIndex = myLightRuleIndex;
+        mapping.sensorIndex = 0;
+        mapping.ledIndexBegin = 0;
+        mapping.ledIndexEnd = 0;
         auto item = new LedSettingsPanel(this, this, mapping);
         myLedSettings.push_back(item);
-        myOwner->RecomputeLayout();
+        myOwner->ReindexAll();
     }
 
     void OnDelete(wxCommandEvent& event)
@@ -397,35 +416,38 @@ public:
         myOwner->DeleteLightSetting(this);
     }
 
-    void SetConfigIndex(int configIndex)
+    void UpdateLightRuleIndex(int index)
     {
-        this->configIndex = configIndex;
+        if (myLightRuleIndex == index)
+            return;
+
+        myLightRuleIndex = index;
+        if (SendToDevice())
+        {
+            for (auto ledSetting : myLedSettings)
+                ledSetting->UpdateLightRuleIndex(myLightRuleIndex);
+        }
     }
 
-    int GetConfigIndex()
+    bool SendToDevice()
     {
-        return this->configIndex;
+        LightRule rule;
+        rule.index = myLightRuleIndex;
+        rule.fadeOn = myOnSetting->IsFadeEnabled();
+        rule.fadeOff = myOffSetting->IsFadeEnabled();
+        rule.onColor = myOnSetting->GetStartColor();
+        rule.offColor = myOffSetting->GetStartColor();
+        rule.onFadeColor = myOnSetting->GetEndColor();
+        rule.offFadeColor = myOffSetting->GetEndColor();
+        return Device::SendLightRule(rule);
     }
 
-    void SendToPad()
-    {
-        LightRule rule = {
-            configIndex,
-            myOnSetting->IsFadeEnabled(),
-            myOffSetting->IsFadeEnabled(),
-            myOnSetting->GetStartColor(),
-            myOffSetting->GetStartColor(),
-            myOnSetting->GetEndColor(),
-            myOffSetting->GetEndColor()
-        };
-
-        Device::SendLightRule(rule);
-    }
-
-    std::vector<LedSettingsPanel*> GetLedSettings()
+    const std::vector<LedSettingsPanel*>& GetLedSettings()
     {
         return myLedSettings;
     }
+
+    int GetLightRuleIndex() const { return myLightRuleIndex; }
 
     DECLARE_EVENT_TABLE()
 
@@ -439,7 +461,7 @@ private:
     wxButton* myDeleteButton;
     wxButton* myAddLedSettingButton;
     std::vector<LedSettingsPanel*> myLedSettings;
-    int configIndex;
+    int myLightRuleIndex;
 };
 
 BEGIN_EVENT_TABLE(LightSettingsPanel, wxWindow)
@@ -451,20 +473,6 @@ END_EVENT_TABLE()
 void LedSettingsPanel::OnDelete(wxCommandEvent& event)
 {
     myOwner->DeleteLedSetting(this);
-}
-
-// NOTE: defined here due to GetConfigIndex.
-void LedSettingsPanel::SendToPad()
-{
-    LedMapping mapping = {
-        configIndex,
-        myOwner->GetConfigIndex(),
-        mySensorSelect->GetSelection(),
-        mySensorFrom->GetValue(),
-        mySensorTo->GetValue()
-    };
-
-    Device::SendLedMapping(mapping);
 }
 
 // ====================================================================================================================
@@ -488,6 +496,10 @@ LightsTab::LightsTab(wxWindow* owner, const LightsState* lights)
 
 void LightsTab::UpdateSettings(const LightsState* lights)
 {
+    for (auto setting : myLightSettings)
+        setting->Destroy();
+    myLightSettings.clear();
+
     for (auto& rule : lights->lightRules)
     {
         auto item = new LightSettingsPanel(this, rule);
@@ -496,28 +508,31 @@ void LightsTab::UpdateSettings(const LightsState* lights)
     RecomputeLayout();
 }
 
+void LightsTab::HandleChanges(DeviceChanges changes)
+{
+    if (changes & DCF_LIGHTS)
+    {
+        // Updating on every change causes the UI to flicker. Since all changes should originate from the tab itself,
+        // let's assume that updating is not necessary since the controls should already be in sync with the device.
+
+        auto lights = Device::Lights();
+        if (lights)
+            UpdateSettings(lights);
+    }
+}
+
 void LightsTab::OnAddLightSetting(wxCommandEvent& event)
 {
-    int maxIndex = 0;
-    for (auto lightSetting : myLightSettings)
-    {
-        maxIndex = max(maxIndex, lightSetting->GetConfigIndex());
-    }
-
-    LightRule rule = {
-        maxIndex + 1,
-        false,
-        false,
-        {150, 150, 150},
-        {0, 0, 0},
-        {0, 0, 0},
-        {0, 0, 0}
-    };
-    
+    LightRule rule;
+    rule.index = -1; // Will be udated by reindex.
+    rule.fadeOn = rule.fadeOff = false;
+    rule.onColor = {150, 150, 150};
+    rule.offColor = {0, 0, 0};
+    rule.onFadeColor = {0, 0, 0};
+    rule.offFadeColor = {0, 0, 0};
     auto item = new LightSettingsPanel(this, rule);
     myLightSettings.push_back(item);
-    item->SendToPad();
-    RecomputeLayout();
+    ReindexAll();
 }
 
 void LightsTab::OnResize(wxSizeEvent& event)
@@ -534,7 +549,6 @@ void LightsTab::DeleteLightSetting(LightSettingsPanel* item)
     item->Destroy();
     myLightSettings.erase(it);
     ReindexAll();
-    RecomputeLayout();
 }
 
 void LightsTab::RecomputeLayout()
@@ -561,54 +575,44 @@ void LightsTab::RecomputeLayout()
 
 void LightsTab::ReindexAll()
 {
-    // Reindex items
+    // Aggregate indices of settings that are currently used.
+
+    std::set<int> usedLightRules;
+    std::set<int> usedLedMappings;
+
+    for (auto setting : myLightSettings)
+    {
+        usedLightRules.insert(setting->GetLightRuleIndex());
+        for (auto mapping : setting->GetLedSettings())
+            usedLedMappings.insert(mapping->GetLedMappingIndex());
+    }
+
+    // Reassign indices to ordered values without gaps.
 
     int lightRuleIndex = 0;
     int ledMappingIndex = 0;
-    
-    bool lightRuleGap = false;
-    bool ledMappingGap = false;
 
-    for (auto lightRulePanel : myLightSettings)
+    for (auto setting : myLightSettings)
     {
-        if (lightRulePanel->GetConfigIndex() != lightRuleIndex) {
-            lightRuleGap = true;
-        }
-
-        if (lightRuleGap) {
-            lightRulePanel->SetConfigIndex(lightRuleIndex);
-            lightRulePanel->SendToPad();
-        }
-
-        for (auto ledMappingPanel : lightRulePanel->GetLedSettings()) {
-            if (ledMappingPanel->GetConfigIndex() != ledMappingIndex) {
-                ledMappingGap = true;
-            }
-
-            if (lightRuleGap || ledMappingGap) {
-                ledMappingPanel->SetConfigIndex(ledMappingIndex);
-                ledMappingPanel->SendToPad();
-            }
-
-            ledMappingIndex++;
-        }
-
-        lightRuleIndex++;
+        setting->UpdateLightRuleIndex(lightRuleIndex++);
+        for (auto mapping : setting->GetLedSettings())
+            mapping->UpdateLedMappingIndex(ledMappingIndex++);
     }
 
-    // Disable unused rules
+    // Disable settings that are no longer used.
 
-    if (lightRuleIndex < MAX_LIGHT_RULES - 1) {
-        for (int i = lightRuleIndex; i < MAX_LIGHT_RULES; i++) {
-            Device::DisableLightRule(i);
-        }
+    for (auto index : usedLightRules)
+    {
+        if (index >= lightRuleIndex)
+            Device::DisableLightRule(index);
+    }
+    for (auto index : usedLedMappings)
+    {
+        if (index >= ledMappingIndex)
+            Device::DisableLedMapping(index);
     }
 
-    if (ledMappingIndex < MAX_LIGHT_RULES - 1) {
-        for (int i = ledMappingIndex; i < MAX_LIGHT_RULES; i++) {
-            Device::DisableLedMapping(i);
-        }
-    }
+    RecomputeLayout();
 }
 
 BEGIN_EVENT_TABLE(LightsTab, wxWindow)

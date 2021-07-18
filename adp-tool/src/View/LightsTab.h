@@ -16,6 +16,7 @@ public:
     LightsTab(wxWindow* owner, const LightsState* lights);
 
     void UpdateSettings(const LightsState* lights);
+    void HandleChanges(DeviceChanges changes) override;
     void DeleteLightSetting(LightSettingsPanel* panel);
     void OnAddLightSetting(wxCommandEvent& event);
     void OnResize(wxSizeEvent& event);
