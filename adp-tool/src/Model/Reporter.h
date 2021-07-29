@@ -87,7 +87,7 @@ struct IdentificationReport
 struct LightRuleReport
 {
 	uint8_t reportId = REPORT_LIGHT_RULE;
-	uint8_t index;
+	uint8_t lightRuleIndex;
 	uint8_t flags;
 	color24 onColor;
 	color24 offColor;
@@ -98,7 +98,7 @@ struct LightRuleReport
 struct LedMappingReport
 {
 	uint8_t reportId = REPORT_LED_MAPPING;
-	uint8_t index;
+	uint8_t ledMappingIndex;
 	uint8_t flags;
 	uint8_t lightRuleIndex;
 	uint8_t sensorIndex;

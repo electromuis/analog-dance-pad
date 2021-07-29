@@ -32,6 +32,7 @@ public:
 private:
     wxButton* myAddSettingButton;
     std::vector<LightSettingsPanel*> myLightSettings;
+    bool myTemporarilyIgnoreChanges = false;
 };
 
 }; // namespace adp.

@@ -135,7 +135,7 @@ static void PrintPadConfigurationReport(const PadConfigurationReport& padConfigu
 static void PrintLightRuleReport(const LightRuleReport& r)
 {
 	Log::Write(L"light rule [");
-	Log::Writef(L"  index: %i", r.index);
+	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
 	Log::Writef(L"  flags: %i", r.flags);
 	Log::Writef(L"  onColor: [R%i G%i B%i]", r.onColor.red, r.onColor.green, r.onColor.blue);
 	Log::Writef(L"  offColor: [R%i G%i B%i]", r.offColor.red, r.offColor.green, r.offColor.blue);
@@ -147,7 +147,7 @@ static void PrintLightRuleReport(const LightRuleReport& r)
 static void PrintLedMappingReport(const LedMappingReport& r)
 {
 	Log::Write(L"led mapping [");
-	Log::Writef(L"  index: %i", r.index);
+	Log::Writef(L"  ledMappingIndex: %i", r.ledMappingIndex);
 	Log::Writef(L"  flags: %i", r.flags);
 	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
 	Log::Writef(L"  sensorIndex: %i", r.sensorIndex);
@@ -223,57 +223,35 @@ public:
 	{
 		if (report.flags & LRF_ENABLED)
 		{
-			LightRule* rule = nullptr;
-			for (auto& r : myLights.lightRules)
-			{
-				if (r.index == report.index)
-					rule = &r;
-			}
-			auto out = rule ? rule : &myLights.lightRules.emplace_back();
-			out->index = report.index;
-			out->fadeOn = (report.flags & LRF_FADE_ON) != 0;
-			out->fadeOff = (report.flags & LRF_FADE_OFF) != 0;
-			out->onColor = ToRgbColor(report.onColor);
-			out->onFadeColor = ToRgbColor(report.onFadeColor);
-			out->offColor = ToRgbColor(report.offColor);
-			out->offFadeColor = ToRgbColor(report.offFadeColor);
+			LightRule result;
+			result.fadeOn = (report.flags & LRF_FADE_ON) != 0;
+			result.fadeOff = (report.flags & LRF_FADE_OFF) != 0;
+			result.onColor = ToRgbColor(report.onColor);
+			result.onFadeColor = ToRgbColor(report.onFadeColor);
+			result.offColor = ToRgbColor(report.offColor);
+			result.offFadeColor = ToRgbColor(report.offFadeColor);
+			myLights.lightRules[report.lightRuleIndex] = result;
 		}
 		else
 		{
-			auto& v = myLights.lightRules;
-			for (auto it = v.begin(); it != v.end();)
-				it = (it->index == report.index) ? v.erase(it) : (it + 1);
+			myLights.lightRules.erase(report.lightRuleIndex);
 		}
 	}
 
 	void UpdateLedMapping(const LedMappingReport& report)
 	{
-		for (auto& r : myLights.lightRules)
+		if (report.flags & LMF_ENABLED)
 		{
-			if (r.index != report.lightRuleIndex)
-				continue;
-
-			if (report.flags & LMF_ENABLED)
-			{
-				LedMapping* mapping = nullptr;
-				for (auto& m : r.ledMappings)
-				{
-					if (m.index == report.index)
-						mapping = &m;
-				}
-				auto out = mapping ? mapping : &r.ledMappings.emplace_back();
-				out->index = report.index;
-				out->lightRuleIndex = report.lightRuleIndex;
-				out->sensorIndex = report.sensorIndex;
-				out->ledIndexBegin = report.ledIndexBegin;
-				out->ledIndexEnd = report.ledIndexEnd;
-			}
-			else
-			{
-				auto& v = r.ledMappings;
-				for (auto it = v.begin(); it != v.end();)
-					it = (it->index == report.index) ? v.erase(it) : (it + 1);
-			}
+			LedMapping result;
+			result.lightRuleIndex = report.lightRuleIndex;
+			result.sensorIndex = report.sensorIndex;
+			result.ledIndexBegin = report.ledIndexBegin;
+			result.ledIndexEnd = report.ledIndexEnd;
+			myLights.ledMappings[report.ledMappingIndex] = result;
+		}
+		else
+		{
+			myLights.ledMappings.erase(report.ledMappingIndex);
 		}
 	}
 
@@ -387,10 +365,10 @@ public:
 		return true;
 	}
 
-	bool SendLedMapping(LedMapping mapping)
+	bool SendLedMapping(int ledMappingIndex, LedMapping mapping)
 	{
 		LedMappingReport report;
-		report.index = mapping.index;
+		report.ledMappingIndex = ledMappingIndex;
 		report.lightRuleIndex = mapping.lightRuleIndex;
 		report.flags = LMF_ENABLED;
 		report.ledIndexBegin = mapping.ledIndexBegin;
@@ -402,7 +380,7 @@ public:
 	bool DisableLedMapping(int ledMappingIndex)
 	{
 		LedMappingReport report;
-		report.index = ledMappingIndex;
+		report.ledMappingIndex = ledMappingIndex;
 		report.lightRuleIndex = 0;
 		report.flags = 0;
 		report.ledIndexBegin = 0;
@@ -422,10 +400,10 @@ public:
 		return true;
 	}
 
-	bool SendLightRule(LightRule rule)
+	bool SendLightRule(int lightRuleIndex, LightRule rule)
 	{
 		LightRuleReport report;
-		report.index = rule.index;
+		report.lightRuleIndex = lightRuleIndex;
 		report.flags = LRF_ENABLED | (LRF_FADE_ON * rule.fadeOn) | (LRF_FADE_OFF * rule.fadeOff);
 		report.onColor = ToColor24(rule.onColor);
 		report.offColor = ToColor24(rule.offColor);
@@ -437,7 +415,7 @@ public:
 	bool DisableLightRule(int lightRuleIndex)
 	{
 		LightRuleReport report;
-		report.index = lightRuleIndex;
+		report.lightRuleIndex = lightRuleIndex;
 		report.flags = 0;
 		report.onColor = {0, 0, 0};
 		report.offColor = {0, 0, 0};

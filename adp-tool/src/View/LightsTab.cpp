@@ -198,10 +198,17 @@ END_EVENT_TABLE()
 class LedSettingsPanel : public wxPanel
 {
 public:
+    // Settings for a newly created led mapping.
     LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow, const LedMapping& mapping)
+        : LedSettingsPanel(owner, ownerAsWindow, -1 /* will be assigned via reindex */, mapping)
+    {
+    }
+
+    // Settings for an existing led mapping.
+    LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow, int ledMappingIndex, const LedMapping& mapping)
         : wxPanel(ownerAsWindow, wxID_ANY, wxDefaultPosition, wxSize(400, 25))
         , myOwner(owner)
-        , myLedMappingIndex(mapping.index)
+        , myLedMappingIndex(ledMappingIndex)
         , myLightRuleIndex(mapping.lightRuleIndex)
     {
         auto pad = Device::Pad();
@@ -253,33 +260,24 @@ public:
 
     void OnDelete(wxCommandEvent& event);
 
-    void UpdateLightRuleIndex(int index)
+    void UpdateIndices(int lightRuleIndex, int ledMappingIndex)
     {
-        if (myLightRuleIndex == index)
+        if (myLightRuleIndex == lightRuleIndex && myLedMappingIndex == ledMappingIndex)
             return;
 
-        myLightRuleIndex = index;
-        SendToDevice();
-    }
-
-    void UpdateLedMappingIndex(int index)
-    {
-        if (myLedMappingIndex == index)
-            return;
-
-        myLedMappingIndex = index;
+        myLightRuleIndex = lightRuleIndex;
+        myLedMappingIndex = ledMappingIndex;
         SendToDevice();
     }
 
     bool SendToDevice()
     {
         LedMapping mapping;
-        mapping.index = myLedMappingIndex;
         mapping.lightRuleIndex = myLightRuleIndex;
         mapping.sensorIndex = mySensorSelect->GetSelection();
         mapping.ledIndexBegin = mySensorFrom->GetValue();
         mapping.ledIndexEnd = mySensorTo->GetValue();
-        return Device::SendLedMapping(mapping);
+        return Device::SendLedMapping(myLedMappingIndex, mapping);
     }
 
     int GetLedMappingIndex() const { return myLedMappingIndex; }
@@ -305,13 +303,25 @@ END_EVENT_TABLE()
 // Light settings panel.
 // ====================================================================================================================
 
+static LightRule DefaultLightSettings()
+{
+    LightRule rule;
+}
+
 class LightSettingsPanel : public wxPanel
 {
 public:
+    // Settings for a newly created light rule.
     LightSettingsPanel(LightsTab* owner, const LightRule& rule)
+        : LightSettingsPanel(owner, -1 /* will be assigned via reindex */, rule, nullptr)
+    {
+    }
+
+    // Settings for an existing light rule.
+    LightSettingsPanel(LightsTab* owner, int lightRuleIndex, const LightRule& rule, const LightsState* lights)
         : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(310, 100))
         , myOwner(owner)
-        , myLightRuleIndex(rule.index)
+        , myLightRuleIndex(lightRuleIndex)
     {
         // Color settings and delete.
         myOnSetting = new ColorSettingGradient(
@@ -336,10 +346,16 @@ public:
             new wxButton(this, DELETE_LIGHT_SETTING, L"\u2715", wxDefaultPosition, wxSize(30, 30));
 
         // LED settings.
-        for (auto& mapping : rule.ledMappings)
+        if (lights)
         {
-            auto item = new LedSettingsPanel(this, this, mapping);
-            myLedSettings.push_back(item);
+            for (auto& mapping : lights->ledMappings)
+            {
+                if (mapping.second.lightRuleIndex == lightRuleIndex)
+                {
+                    auto item = new LedSettingsPanel(this, this, mapping.first, mapping.second);
+                    myLedSettings.push_back(item);
+                }
+            }
         }
 
         myAddLedSettingButton =
@@ -400,13 +416,13 @@ public:
 
     void OnAddLedSetting(wxCommandEvent& event)
     {
+        // Note: indices will be udated by ReindexAll.
         LedMapping mapping;
-        mapping.index = -1; // Will be udated by reindex.
-        mapping.lightRuleIndex = myLightRuleIndex;
+        mapping.lightRuleIndex = -1;
         mapping.sensorIndex = 0;
         mapping.ledIndexBegin = 0;
         mapping.ledIndexEnd = 0;
-        auto item = new LedSettingsPanel(this, this, mapping);
+        auto item = new LedSettingsPanel(this, this, -1, mapping);
         myLedSettings.push_back(item);
         myOwner->ReindexAll();
     }
@@ -416,30 +432,25 @@ public:
         myOwner->DeleteLightSetting(this);
     }
 
-    void UpdateLightRuleIndex(int index)
+    void UpdateIndex(int lightRuleIndex)
     {
-        if (myLightRuleIndex == index)
+        if (myLightRuleIndex == lightRuleIndex)
             return;
 
-        myLightRuleIndex = index;
-        if (SendToDevice())
-        {
-            for (auto ledSetting : myLedSettings)
-                ledSetting->UpdateLightRuleIndex(myLightRuleIndex);
-        }
+        myLightRuleIndex = lightRuleIndex;
+        SendToDevice();
     }
 
     bool SendToDevice()
     {
         LightRule rule;
-        rule.index = myLightRuleIndex;
         rule.fadeOn = myOnSetting->IsFadeEnabled();
         rule.fadeOff = myOffSetting->IsFadeEnabled();
         rule.onColor = myOnSetting->GetStartColor();
         rule.offColor = myOffSetting->GetStartColor();
         rule.onFadeColor = myOnSetting->GetEndColor();
         rule.offFadeColor = myOffSetting->GetEndColor();
-        return Device::SendLightRule(rule);
+        return Device::SendLightRule(myLightRuleIndex, rule);
     }
 
     const std::vector<LedSettingsPanel*>& GetLedSettings()
@@ -502,7 +513,7 @@ void LightsTab::UpdateSettings(const LightsState* lights)
 
     for (auto& rule : lights->lightRules)
     {
-        auto item = new LightSettingsPanel(this, rule);
+        auto item = new LightSettingsPanel(this, rule.first, rule.second, lights);
         myLightSettings.push_back(item);
     }
     RecomputeLayout();
@@ -510,7 +521,7 @@ void LightsTab::UpdateSettings(const LightsState* lights)
 
 void LightsTab::HandleChanges(DeviceChanges changes)
 {
-    if (changes & DCF_LIGHTS)
+    if ((changes & DCF_LIGHTS) && !myTemporarilyIgnoreChanges)
     {
         // Updating on every change causes the UI to flicker. Since all changes should originate from the tab itself,
         // let's assume that updating is not necessary since the controls should already be in sync with the device.
@@ -524,12 +535,12 @@ void LightsTab::HandleChanges(DeviceChanges changes)
 void LightsTab::OnAddLightSetting(wxCommandEvent& event)
 {
     LightRule rule;
-    rule.index = -1; // Will be udated by reindex.
-    rule.fadeOn = rule.fadeOff = false;
-    rule.onColor = {150, 150, 150};
-    rule.offColor = {0, 0, 0};
-    rule.onFadeColor = {0, 0, 0};
-    rule.offFadeColor = {0, 0, 0};
+    rule.fadeOn = false;
+    rule.fadeOff = false;
+    rule.onColor = { 150, 150, 150 };
+    rule.offColor = { 0, 0, 0 };
+    rule.onFadeColor = { 0, 0, 0 };
+    rule.offFadeColor = { 0, 0, 0 };
     auto item = new LightSettingsPanel(this, rule);
     myLightSettings.push_back(item);
     ReindexAll();
@@ -575,6 +586,8 @@ void LightsTab::RecomputeLayout()
 
 void LightsTab::ReindexAll()
 {
+    myTemporarilyIgnoreChanges = true;
+
     // Aggregate indices of settings that are currently used.
 
     std::set<int> usedLightRules;
@@ -594,9 +607,13 @@ void LightsTab::ReindexAll()
 
     for (auto setting : myLightSettings)
     {
-        setting->UpdateLightRuleIndex(lightRuleIndex++);
+        setting->UpdateIndex(lightRuleIndex);
         for (auto mapping : setting->GetLedSettings())
-            mapping->UpdateLedMappingIndex(ledMappingIndex++);
+        {
+            mapping->UpdateIndices(lightRuleIndex, ledMappingIndex);
+            ++ledMappingIndex;
+        }
+        ++lightRuleIndex;
     }
 
     // Disable settings that are no longer used.
@@ -612,7 +629,8 @@ void LightsTab::ReindexAll()
             Device::DisableLedMapping(index);
     }
 
-    RecomputeLayout();
+    myTemporarilyIgnoreChanges = false;
+    UpdateSettings(Device::Lights());
 }
 
 BEGIN_EVENT_TABLE(LightsTab, wxWindow)

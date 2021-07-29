@@ -2,6 +2,7 @@
 
 #include "stdint.h"
 #include <string>
+#include <map>
 
 #include "Model/Firmware.h"
 
@@ -43,7 +44,6 @@ struct PadState
 
 struct LedMapping
 {
-	int index;
 	int lightRuleIndex;
 	int sensorIndex;
 	int ledIndexBegin;
@@ -52,19 +52,18 @@ struct LedMapping
 
 struct LightRule
 {
-	int index;
 	bool fadeOn;
 	bool fadeOff;
 	RgbColor onColor;
 	RgbColor offColor;
 	RgbColor onFadeColor;
 	RgbColor offFadeColor;
-	std::vector<LedMapping> ledMappings;
 };
 
 struct LightsState
 {
-	std::vector<LightRule> lightRules;
+	std::map<int, LightRule> lightRules;
+	std::map<int, LedMapping> ledMappings;
 };
 
 class Device
@@ -92,11 +91,11 @@ public:
 
 	static bool SetDeviceName(const wchar_t* name);
 
-	static bool SendLedMapping(LedMapping mapping);
+	static bool SendLedMapping(int ledMappingIndex, LedMapping mapping);
 
 	static bool DisableLedMapping(int ledMappingIndex);
 
-	static bool SendLightRule(LightRule rule);
+	static bool SendLightRule(int lightRuleIndex, LightRule rule);
 
 	static bool DisableLightRule(int lightRuleIndex);
 
