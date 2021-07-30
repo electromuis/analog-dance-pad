@@ -784,10 +784,10 @@ bool Device::SetDeviceName(const wchar_t* name)
 	return device ? device->SendName(name) : false;
 }
 
-bool Device::SendLedMapping(LedMapping mapping)
+bool Device::SendLedMapping(int ledMappingIndex, LedMapping mapping)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->SendLedMapping(mapping) : false;
+	return device ? device->SendLedMapping(ledMappingIndex, mapping) : false;
 }
 
 bool Device::DisableLedMapping(int ledMappingIndex)
@@ -796,10 +796,10 @@ bool Device::DisableLedMapping(int ledMappingIndex)
 	return device ? device->DisableLedMapping(ledMappingIndex) : false;
 }
 
-bool Device::SendLightRule(LightRule rule)
+bool Device::SendLightRule(int lightRuleIndex, LightRule rule)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->SendLightRule(rule) : false;
+	return device ? device->SendLightRule(lightRuleIndex, rule) : false;
 }
 
 bool Device::DisableLightRule(int lightRuleIndex)

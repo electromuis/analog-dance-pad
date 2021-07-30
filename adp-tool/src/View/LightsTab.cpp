@@ -33,10 +33,18 @@ static wxColour ToWx(RgbColor color)
 
 enum Ids
 {
-    ADD_LIGHT_SETTING    = 1,
-    DELETE_LIGHT_SETTING = 2,
-    ADD_LED_SETTING      = 3,
-    DELETE_LED_SETTING   = 4,
+    ADD_LIGHT_RULE     = 1,
+    DELETE_LIGHT_RULE  = 2,
+    ADD_LED_MAPPING    = 3,
+    DELETE_LED_MAPPING = 4,
+};
+
+struct LightsTab::Change
+{
+    enum Type { ADD_LIGHT_RULE, REMOVE_LIGHT_RULE, ADD_LED_MAPPING, REMOVE_LED_MAPPING };
+    Type type;
+    int lightRuleIndex = -1;  // Applies to REMOVE_LIGHT_RULE, ADD_LED_MAPPING, REMOVE_LED_MAPPING.
+    int ledMappingIndex = -1; // Applies to REMOVE_LED_MAPPING.
 };
 
 // ====================================================================================================================
@@ -192,20 +200,23 @@ BEGIN_EVENT_TABLE(ColorSettingGradient, wxWindow)
 END_EVENT_TABLE()
 
 // ====================================================================================================================
-// LED settings panel.
+// LED mapping panel.
 // ====================================================================================================================
 
-class LedSettingsPanel : public wxPanel
+static LedMapping NewLedMapping(int lightRuleIndex)
+{
+    LedMapping mapping;
+    mapping.lightRuleIndex = lightRuleIndex;
+    mapping.sensorIndex = 0;
+    mapping.ledIndexBegin = 0;
+    mapping.ledIndexEnd = 0;
+    return mapping;
+}
+
+class LedMappingPanel : public wxPanel
 {
 public:
-    // Settings for a newly created led mapping.
-    LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow, const LedMapping& mapping)
-        : LedSettingsPanel(owner, ownerAsWindow, -1 /* will be assigned via reindex */, mapping)
-    {
-    }
-
-    // Settings for an existing led mapping.
-    LedSettingsPanel(LightSettingsPanel* owner, wxWindow* ownerAsWindow, int ledMappingIndex, const LedMapping& mapping)
+    LedMappingPanel(LightRulePanel* owner, wxWindow* ownerAsWindow, int ledMappingIndex, const LedMapping& mapping)
         : wxPanel(ownerAsWindow, wxID_ANY, wxDefaultPosition, wxSize(400, 25))
         , myOwner(owner)
         , myLedMappingIndex(ledMappingIndex)
@@ -219,7 +230,7 @@ public:
 
         mySensorSelect = new wxComboBox(this, 0, options[0],
             wxPoint(0, 0), wxSize(100, 25), options, wxCB_READONLY);
-        mySensorSelect->Bind(wxEVT_COMBOBOX, &LedSettingsPanel::OnSensorChanged, this);
+        mySensorSelect->Bind(wxEVT_COMBOBOX, &LedMappingPanel::OnSensorChanged, this);
 
         auto lfrom = new wxStaticText(
             this, wxID_ANY, L"LED", wxPoint(105, 5), wxSize(30, 25), wxALIGN_CENTRE_HORIZONTAL);
@@ -230,15 +241,15 @@ public:
         mySensorTo = new wxSpinCtrl(
             this, wxID_ANY, L"", wxPoint(260, 0), wxSize(80, 25), wxSP_ARROW_KEYS, 0, 100, 0);
 
-        mySensorFrom->Bind(wxEVT_SPINCTRL, &LedSettingsPanel::OnLedIndexChanged, this);
-        mySensorTo->Bind(wxEVT_SPINCTRL, &LedSettingsPanel::OnLedIndexChanged, this);
+        mySensorFrom->Bind(wxEVT_SPINCTRL, &LedMappingPanel::OnLedIndexChanged, this);
+        mySensorTo->Bind(wxEVT_SPINCTRL, &LedMappingPanel::OnLedIndexChanged, this);
 
         mySensorFrom->SetValue(mapping.ledIndexBegin);
         mySensorTo->SetValue(mapping.ledIndexEnd);
         mySensorSelect->SetSelection(mapping.sensorIndex);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(350, 12), wxDefaultSize);
-        myDeleteButton = new wxButton(this, DELETE_LED_SETTING, L"\u2715", wxDefaultPosition, wxSize(25, 25));
+        myDeleteButton = new wxButton(this, DELETE_LED_MAPPING, L"\u2715", wxDefaultPosition, wxSize(25, 25));
     }
 
     void RecomputeLayout()
@@ -258,7 +269,7 @@ public:
         SendToDevice();
     }
 
-    void OnDelete(wxCommandEvent& event);
+    void OnDeleteRequested(wxCommandEvent& event);
 
     void UpdateIndices(int lightRuleIndex, int ledMappingIndex)
     {
@@ -281,11 +292,12 @@ public:
     }
 
     int GetLedMappingIndex() const { return myLedMappingIndex; }
+    int GetLightRuleIndex() const { return myLightRuleIndex; }
 
     DECLARE_EVENT_TABLE()
 
 private:
-    LightSettingsPanel* myOwner;
+    LightRulePanel* myOwner;
     wxComboBox* mySensorSelect;
     wxSpinCtrl* mySensorFrom;
     wxSpinCtrl* mySensorTo;
@@ -295,30 +307,30 @@ private:
     int myLightRuleIndex;
 };
 
-BEGIN_EVENT_TABLE(LedSettingsPanel, wxWindow)
-    EVT_BUTTON(DELETE_LED_SETTING, LedSettingsPanel::OnDelete)
+BEGIN_EVENT_TABLE(LedMappingPanel, wxWindow)
+    EVT_BUTTON(DELETE_LED_MAPPING, LedMappingPanel::OnDeleteRequested)
 END_EVENT_TABLE()
 
 // ====================================================================================================================
-// Light settings panel.
+// Light rule panel.
 // ====================================================================================================================
 
-static LightRule DefaultLightSettings()
+static LightRule NewLightRule()
 {
     LightRule rule;
+    rule.fadeOn = false;
+    rule.fadeOff = false;
+    rule.onColor = { 150, 150, 150 };
+    rule.offColor = { 0, 0, 0 };
+    rule.onFadeColor = { 0, 0, 0 };
+    rule.offFadeColor = { 0, 0, 0 };
+    return rule;
 }
 
-class LightSettingsPanel : public wxPanel
+class LightRulePanel : public wxPanel
 {
 public:
-    // Settings for a newly created light rule.
-    LightSettingsPanel(LightsTab* owner, const LightRule& rule)
-        : LightSettingsPanel(owner, -1 /* will be assigned via reindex */, rule, nullptr)
-    {
-    }
-
-    // Settings for an existing light rule.
-    LightSettingsPanel(LightsTab* owner, int lightRuleIndex, const LightRule& rule, const LightsState* lights)
+    LightRulePanel(LightsTab* owner, int lightRuleIndex, const LightRule& rule, const LightsState* state = nullptr)
         : wxPanel(owner, wxID_ANY, wxDefaultPosition, wxSize(310, 100))
         , myOwner(owner)
         , myLightRuleIndex(lightRuleIndex)
@@ -329,58 +341,44 @@ public:
         myOffSetting = new ColorSettingGradient(
             this, wxPoint(150, 0), wxSize(140, 30), L"OFF", rule.offColor, rule.offFadeColor, rule.fadeOff);
 
-        myOnSetting->Bind(EVT_COLOR_CHANGED, &LightSettingsPanel::OnColorChanged, this);
-        myOffSetting->Bind(EVT_COLOR_CHANGED, &LightSettingsPanel::OnColorChanged, this);
+        myOnSetting->Bind(EVT_COLOR_CHANGED, &LightRulePanel::OnColorChanged, this);
+        myOffSetting->Bind(EVT_COLOR_CHANGED, &LightRulePanel::OnColorChanged, this);
 
         myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(0, 35), wxSize(50, 20));
-        myFadeOnBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOnToggled, this);
+        myFadeOnBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnFadeOnToggled, this);
         myFadeOnBox->SetValue(rule.fadeOn);
 
         myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(50, 20));
-        myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightSettingsPanel::OnFadeOffToggled, this);
+        myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnFadeOffToggled, this);
         myFadeOffBox->SetValue(rule.fadeOff);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(300, 14), wxDefaultSize);
+        myDeleteButton = new wxButton(this, DELETE_LIGHT_RULE, L"\u2715", wxDefaultPosition, wxSize(30, 30));
 
-        myDeleteButton =
-            new wxButton(this, DELETE_LIGHT_SETTING, L"\u2715", wxDefaultPosition, wxSize(30, 30));
-
-        // LED settings.
-        if (lights)
+        if (state)
         {
-            for (auto& mapping : lights->ledMappings)
+            for (auto& mapping : state->ledMappings)
             {
                 if (mapping.second.lightRuleIndex == lightRuleIndex)
                 {
-                    auto item = new LedSettingsPanel(this, this, mapping.first, mapping.second);
-                    myLedSettings.push_back(item);
+                    auto item = new LedMappingPanel(this, this, mapping.first, mapping.second);
+                    myLedMappings.push_back(item);
                 }
             }
         }
 
-        myAddLedSettingButton =
-            new wxButton(this, ADD_LED_SETTING, L"+", wxDefaultPosition, wxSize(100, 25));
+        myAddLedMappingButton =
+            new wxButton(this, ADD_LED_MAPPING, L"+", wxDefaultPosition, wxSize(100, 25));
     }
 
-    void DeleteLedSetting(LedSettingsPanel* item)
-    {
-        auto it = std::find(myLedSettings.begin(), myLedSettings.end(), item);
-        if (it == myLedSettings.end())
-            return;
-
-        item->Destroy();
-        myLedSettings.erase(it);
-        myOwner->ReindexAll();
-    }
-
-    int GetContentHeight() const { return myLedSettings.size() * 30 + 100; }
+    int GetContentHeight() const { return myLedMappings.size() * 30 + 100; }
 
     void RecomputeLayout()
     {
         auto size = GetSize();
         int contentH = 60;
 
-        for (auto item : myLedSettings)
+        for (auto item : myLedMappings)
         {
             int itemH = 25;
             item->SetPosition(wxPoint(0, contentH));
@@ -391,8 +389,7 @@ public:
 
         myDeleteButton->SetPosition(wxPoint(size.x - 30, 0));
         myHLine->SetSize(size.x - 340, wxDefaultCoord);
-
-        myAddLedSettingButton->SetPosition(wxPoint(0, contentH));
+        myAddLedMappingButton->SetPosition(wxPoint(0, contentH));
 
         Refresh();
     }
@@ -414,22 +411,49 @@ public:
         SendToDevice();
     }
 
-    void OnAddLedSetting(wxCommandEvent& event)
+    void OnAddLedMappingRequested(wxCommandEvent& event)
     {
-        // Note: indices will be udated by ReindexAll.
-        LedMapping mapping;
-        mapping.lightRuleIndex = -1;
-        mapping.sensorIndex = 0;
-        mapping.ledIndexBegin = 0;
-        mapping.ledIndexEnd = 0;
-        auto item = new LedSettingsPanel(this, this, -1, mapping);
-        myLedSettings.push_back(item);
-        myOwner->ReindexAll();
+        LightsTab::Change change;
+        change.type = LightsTab::Change::ADD_LED_MAPPING;
+        change.lightRuleIndex = myLightRuleIndex;
+        myOwner->ProcessChange(change);
     }
 
-    void OnDelete(wxCommandEvent& event)
+    void OnDeleteLedMappingRequested(int ledMappingIndex)
     {
-        myOwner->DeleteLightSetting(this);
+        LightsTab::Change change;
+        change.type = LightsTab::Change::REMOVE_LED_MAPPING;
+        change.lightRuleIndex = myLightRuleIndex;
+        change.ledMappingIndex = ledMappingIndex;
+        myOwner->ProcessChange(change);
+    }
+
+    void OnDeleteRequested(wxCommandEvent& event)
+    {
+        LightsTab::Change change;
+        change.type = LightsTab::Change::REMOVE_LIGHT_RULE;
+        change.lightRuleIndex = myLightRuleIndex;
+        myOwner->ProcessChange(change);
+    }
+
+    void AddLedMapping(int ledMappingIndex, const LedMapping& mapping)
+    {
+        auto item = new LedMappingPanel(this, this, ledMappingIndex, mapping);
+        myLedMappings.push_back(item);
+        item->SendToDevice();
+    }
+
+    void RemoveLedMapping(int ledMappingIndex)
+    {
+        auto it = std::find_if(myLedMappings.begin(), myLedMappings.end(), [=](const LedMappingPanel* m) {
+            return m->GetLedMappingIndex() == ledMappingIndex;
+        });
+
+        if (it != myLedMappings.end())
+        {
+            (*it)->Destroy();
+            myLedMappings.erase(it);
+        }
     }
 
     void UpdateIndex(int lightRuleIndex)
@@ -453,10 +477,7 @@ public:
         return Device::SendLightRule(myLightRuleIndex, rule);
     }
 
-    const std::vector<LedSettingsPanel*>& GetLedSettings()
-    {
-        return myLedSettings;
-    }
+    const std::vector<LedMappingPanel*>& GetLedMappings() { return myLedMappings; }
 
     int GetLightRuleIndex() const { return myLightRuleIndex; }
 
@@ -470,20 +491,20 @@ private:
     wxCheckBox* myFadeOffBox;
     wxStaticLine* myHLine;
     wxButton* myDeleteButton;
-    wxButton* myAddLedSettingButton;
-    std::vector<LedSettingsPanel*> myLedSettings;
+    wxButton* myAddLedMappingButton;
+    std::vector<LedMappingPanel*> myLedMappings;
     int myLightRuleIndex;
 };
 
-BEGIN_EVENT_TABLE(LightSettingsPanel, wxWindow)
-    EVT_BUTTON(ADD_LED_SETTING, LightSettingsPanel::OnAddLedSetting)
-    EVT_BUTTON(DELETE_LIGHT_SETTING, LightSettingsPanel::OnDelete)
+BEGIN_EVENT_TABLE(LightRulePanel, wxWindow)
+    EVT_BUTTON(ADD_LED_MAPPING, LightRulePanel::OnAddLedMappingRequested)
+    EVT_BUTTON(DELETE_LIGHT_RULE, LightRulePanel::OnDeleteRequested)
 END_EVENT_TABLE()
 
-// NOTE: defined here due to DeleteLedSetting.
-void LedSettingsPanel::OnDelete(wxCommandEvent& event)
+// NOTE: defined here because the implementation needs to know RequestDeleteLedMapping.
+void LedMappingPanel::OnDeleteRequested(wxCommandEvent& event)
 {
-    myOwner->DeleteLedSetting(this);
+    myOwner->OnDeleteLedMappingRequested(myLedMappingIndex);
 }
 
 // ====================================================================================================================
@@ -492,74 +513,58 @@ void LedSettingsPanel::OnDelete(wxCommandEvent& event)
 
 const wchar_t* LightsTab::Title = L"Lights";
 
-LightsTab::LightsTab(wxWindow* owner, const LightsState* lights)
+LightsTab::LightsTab(wxWindow* owner, const LightsState* state)
     : wxScrolledWindow(owner, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL)
 {
-    myAddSettingButton = new wxButton(this, ADD_LIGHT_SETTING, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
+    myAddSettingButton = new wxButton(this, ADD_LIGHT_RULE, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
 
     //todo fix linux
 #ifdef _MSC_VER
-    UpdateSettings(lights);
+    UpdateSettings(state);
 #endif
 
     SetScrollRate(5, 5);
 }
 
-void LightsTab::UpdateSettings(const LightsState* lights)
+void LightsTab::UpdateSettings(const LightsState* state)
 {
-    for (auto setting : myLightSettings)
+    for (auto setting : myLightRules)
         setting->Destroy();
-    myLightSettings.clear();
 
-    for (auto& rule : lights->lightRules)
+    myLightRules.clear();
+
+    for (auto& rule : state->lightRules)
     {
-        auto item = new LightSettingsPanel(this, rule.first, rule.second, lights);
-        myLightSettings.push_back(item);
+        auto item = new LightRulePanel(this, rule.first, rule.second, state);
+        myLightRules.push_back(item);
     }
+
     RecomputeLayout();
 }
 
 void LightsTab::HandleChanges(DeviceChanges changes)
 {
-    if ((changes & DCF_LIGHTS) && !myTemporarilyIgnoreChanges)
+    if (changes & DCF_LIGHTS)
     {
         // Updating on every change causes the UI to flicker. Since all changes should originate from the tab itself,
         // let's assume that updating is not necessary since the controls should already be in sync with the device.
 
-        auto lights = Device::Lights();
+        /* auto lights = Device::Lights();
         if (lights)
-            UpdateSettings(lights);
+            UpdateSettings(lights); */
     }
 }
 
-void LightsTab::OnAddLightSetting(wxCommandEvent& event)
+void LightsTab::OnAddLightRuleRequested(wxCommandEvent& event)
 {
-    LightRule rule;
-    rule.fadeOn = false;
-    rule.fadeOff = false;
-    rule.onColor = { 150, 150, 150 };
-    rule.offColor = { 0, 0, 0 };
-    rule.onFadeColor = { 0, 0, 0 };
-    rule.offFadeColor = { 0, 0, 0 };
-    auto item = new LightSettingsPanel(this, rule);
-    myLightSettings.push_back(item);
-    ReindexAll();
+    LightsTab::Change change;
+    change.type = LightsTab::Change::ADD_LIGHT_RULE;
+    ProcessChange(change);
 }
 
 void LightsTab::OnResize(wxSizeEvent& event)
 {
     RecomputeLayout();
-}
-
-void LightsTab::DeleteLightSetting(LightSettingsPanel* item)
-{
-    auto it = std::find(myLightSettings.begin(), myLightSettings.end(), item);
-    if (it == myLightSettings.end())
-        return;
-
-    item->Destroy();
-    myLightSettings.erase(it);
-    ReindexAll();
 }
 
 void LightsTab::RecomputeLayout()
@@ -568,7 +573,7 @@ void LightsTab::RecomputeLayout()
     int margin = 5;
     int contentH = margin;
 
-    for (auto item : myLightSettings)
+    for (auto item : myLightRules)
     {
         int itemH = item->GetContentHeight();
         item->SetPosition(wxPoint(margin, contentH));
@@ -584,57 +589,90 @@ void LightsTab::RecomputeLayout()
     SetVirtualSize(size.x, contentH);
 }
 
-void LightsTab::ReindexAll()
+void LightsTab::ProcessChange(const Change& change)
 {
-    myTemporarilyIgnoreChanges = true;
+    // Aggregate indices of settings that were previously used.
 
-    // Aggregate indices of settings that are currently used.
+    std::set<int> previousLightRules;
+    std::set<int> previousLedMappings;
 
-    std::set<int> usedLightRules;
-    std::set<int> usedLedMappings;
-
-    for (auto setting : myLightSettings)
+    for (auto rule : myLightRules)
     {
-        usedLightRules.insert(setting->GetLightRuleIndex());
-        for (auto mapping : setting->GetLedSettings())
-            usedLedMappings.insert(mapping->GetLedMappingIndex());
+        previousLightRules.insert(rule->GetLightRuleIndex());
+        for (auto mapping : rule->GetLedMappings())
+            previousLedMappings.insert(mapping->GetLedMappingIndex());
     }
 
-    // Reassign indices to ordered values without gaps.
+    // Assign new indices to the settings in incremental order without gaps.
 
     int lightRuleIndex = 0;
     int ledMappingIndex = 0;
 
-    for (auto setting : myLightSettings)
+    if (change.type == Change::REMOVE_LIGHT_RULE)
     {
-        setting->UpdateIndex(lightRuleIndex);
-        for (auto mapping : setting->GetLedSettings())
+        auto it = std::find_if(myLightRules.begin(), myLightRules.end(), [=](const LightRulePanel* r) {
+            return r->GetLightRuleIndex() == change.lightRuleIndex;
+        });
+
+        if (it != myLightRules.end())
+        {
+            (*it)->Destroy();
+            myLightRules.erase(it);
+        }
+    }
+
+    for (auto rule : myLightRules)
+    {
+        bool isTargetRule = change.lightRuleIndex == rule->GetLightRuleIndex();
+
+        rule->UpdateIndex(lightRuleIndex);
+
+        if (change.type == Change::REMOVE_LED_MAPPING && isTargetRule)
+        {
+            rule->RemoveLedMapping(change.ledMappingIndex);
+        }
+
+        for (auto mapping : rule->GetLedMappings())
         {
             mapping->UpdateIndices(lightRuleIndex, ledMappingIndex);
             ++ledMappingIndex;
         }
+
+        if (change.type == Change::ADD_LED_MAPPING && isTargetRule)
+        {
+            rule->AddLedMapping(ledMappingIndex, NewLedMapping(lightRuleIndex));
+            ++ledMappingIndex;
+        }
+
         ++lightRuleIndex;
     }
 
-    // Disable settings that are no longer used.
+    if (change.type == Change::ADD_LIGHT_RULE)
+    {
+        auto item = new LightRulePanel(this, lightRuleIndex, NewLightRule());
+        myLightRules.push_back(item);
+        item->SendToDevice();
+        ++lightRuleIndex;
+    }
 
-    for (auto index : usedLightRules)
+    // Previously used indices that were not reassigned to new settings should be disabled.
+
+    for (auto index : previousLightRules)
     {
         if (index >= lightRuleIndex)
             Device::DisableLightRule(index);
     }
-    for (auto index : usedLedMappings)
+    for (auto index : previousLedMappings)
     {
         if (index >= ledMappingIndex)
             Device::DisableLedMapping(index);
     }
 
-    myTemporarilyIgnoreChanges = false;
-    UpdateSettings(Device::Lights());
+    RecomputeLayout();
 }
 
 BEGIN_EVENT_TABLE(LightsTab, wxWindow)
-    EVT_BUTTON(ADD_LIGHT_SETTING, LightsTab::OnAddLightSetting)
+    EVT_BUTTON(ADD_LIGHT_RULE, LightsTab::OnAddLightRuleRequested)
     EVT_SIZE(LightsTab::OnResize)
 END_EVENT_TABLE()
 

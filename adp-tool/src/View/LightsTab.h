@@ -6,22 +6,23 @@
 
 namespace adp {
 
-class LightSettingsPanel;
+class LightRulePanel;
 
 class LightsTab : public BaseTab, public wxScrolledWindow
 {
 public:
+    struct Change;
+
     static const wchar_t* Title;
 
-    LightsTab(wxWindow* owner, const LightsState* lights);
+    LightsTab(wxWindow* owner, const LightsState* state);
 
-    void UpdateSettings(const LightsState* lights);
+    void UpdateSettings(const LightsState* state);
     void HandleChanges(DeviceChanges changes) override;
-    void DeleteLightSetting(LightSettingsPanel* panel);
-    void OnAddLightSetting(wxCommandEvent& event);
+    void OnAddLightRuleRequested(wxCommandEvent& event);
     void OnResize(wxSizeEvent& event);
 
-    void ReindexAll();
+    void ProcessChange(const Change& change);
 
     wxWindow* GetWindow() override { return this; }
 
@@ -31,8 +32,7 @@ public:
 
 private:
     wxButton* myAddSettingButton;
-    std::vector<LightSettingsPanel*> myLightSettings;
-    bool myTemporarilyIgnoreChanges = false;
+    std::vector<LightRulePanel*> myLightRules;
 };
 
 }; // namespace adp.
