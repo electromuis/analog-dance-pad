@@ -35,6 +35,8 @@
 #include "Reset.h"
 #include "Lights.h"
 
+static Configuration configuration;
+
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
 static uint8_t PrevHIDReportBuffer[GENERIC_EPSIZE];
 
@@ -136,35 +138,58 @@ void EVENT_USB_Device_StartOfFrame(void)
  *
  *  \return Boolean \c true to force the sending of the report, \c false to let the library determine if it needs to be sent
  */
-bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDInterfaceInfo,
-                                         uint8_t* const ReportID,
-                                         const uint8_t ReportType,
-                                         void* ReportData,
-                                         uint16_t* const ReportSize)
+bool CALLBACK_HID_Device_CreateHIDReport(
+    USB_ClassInfo_HID_Device_t* const HIDInterfaceInfo,
+    uint8_t* const ReportID,
+    const uint8_t ReportType,
+    void* ReportData,
+    uint16_t* const ReportSize)
 {
-    if (*ReportID == 0) {
+    if (*ReportID == 0)
+    {
         // no report id requested - write button and sensor data
         Communication_WriteInputHIDReport(ReportData);
         *ReportID = INPUT_REPORT_ID;
         *ReportSize = sizeof (InputHIDReport);
-    } else if (*ReportID == PAD_CONFIGURATION_REPORT_ID) {
-        PadConfigurationFeatureHIDReport* configurationHidReport = ReportData;
-        configurationHidReport->configuration = PAD_CONF;
-        *ReportSize = sizeof (PadConfigurationFeatureHIDReport);
-    } else if (*ReportID == NAME_REPORT_ID) {
-        NameFeatureHIDReport* nameHidReport = ReportData;
-        memcpy(&nameHidReport->nameAndSize, &configuration.nameAndSize, sizeof (nameHidReport->nameAndSize));
-        *ReportSize = sizeof (NameFeatureHIDReport);
-    } else if (*ReportID == LIGHTS_REPORT_ID) {
-        LightsFeatureHIDReport* lightsHidReport = ReportData;
-        memcpy(&lightsHidReport->lightConfiguration, &configuration.lightConfiguration, sizeof (lightsHidReport->lightConfiguration));
-        *ReportSize = sizeof (LightsFeatureHIDReport);
     }
-    else if (*ReportID == IDENTIFICATION_REPORT_ID) {
+    else if (*ReportID == PAD_CONFIGURATION_REPORT_ID)
+    {
+        PadConfigurationFeatureHIDReport* report = ReportData;
+        report->configuration = PAD_CONF;
+        *ReportSize = sizeof (PadConfigurationFeatureHIDReport);
+    }
+    else if (*ReportID == NAME_REPORT_ID)
+    {
+        NameFeatureHIDReport* report = ReportData;
+        memcpy(&report->nameAndSize, &configuration.nameAndSize, sizeof (report->nameAndSize));
+        *ReportSize = sizeof (NameFeatureHIDReport);
+    }
+    else if (*ReportID == LIGHT_RULE_REPORT_ID)
+    {
+        LightRuleHIDReport* report = ReportData;
+        report->index = LIGHT_CONF.selectedLightRuleIndex;
+        if (report->index < MAX_LIGHT_RULES)
+            memcpy(&report->rule, &LIGHT_CONF.lightRules[report->index], sizeof(LightRule));
+        else
+            memset(&report->rule, 0, sizeof(LightRule));
+        *ReportSize = sizeof(LightRuleHIDReport);
+    }
+    else if (*ReportID == IDENTIFICATION_REPORT_ID)
+    {
         Communication_WriteIdentificationReport(ReportData);
         *ReportSize = sizeof(IdentificationFeatureReport);
     }
-    
+    else if (*ReportID == LED_MAPPING_REPORT_ID)
+    {
+        LedMappingHIDReport* report = ReportData;
+        report->index = LIGHT_CONF.selectedLedMappingIndex;
+        if (report->index < MAX_LED_MAPPINGS)
+            memcpy(&report->mapping, &LIGHT_CONF.ledMappings[report->index], sizeof(LedMapping));
+        else
+            memset(&report->mapping, 0, sizeof(LedMapping));
+        *ReportSize = sizeof(LedMappingHIDReport);
+    }
+
     return true;
 }
 
@@ -182,27 +207,62 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
                                           const void* ReportData,
                                           const uint16_t ReportSize)
 {
-    if (ReportID == PAD_CONFIGURATION_REPORT_ID && ReportSize == sizeof (PadConfigurationFeatureHIDReport)) {
-        const PadConfigurationFeatureHIDReport* configurationHidReport = ReportData;
-        memcpy(&configuration.padConfiguration, &configurationHidReport->configuration, sizeof (configuration.padConfiguration));
-        Pad_UpdateConfiguration(&configurationHidReport->configuration);
-    } else if (ReportID == RESET_REPORT_ID) {
+    if (ReportID == PAD_CONFIGURATION_REPORT_ID && ReportSize == sizeof (PadConfigurationFeatureHIDReport))
+    {
+        const PadConfigurationFeatureHIDReport* report = ReportData;
+        memcpy(&configuration.padConfiguration, &report->configuration, sizeof (configuration.padConfiguration));
+        Pad_UpdateConfiguration(&report->configuration);
+    }
+    else if (ReportID == RESET_REPORT_ID)
+    {
         Reset_JumpToBootloader();
-    } else if (ReportID == SAVE_CONFIGURATION_REPORT_ID) {
+    }
+    else if (ReportID == SAVE_CONFIGURATION_REPORT_ID)
+    {
         ConfigStore_StoreConfiguration(&configuration);
-    } else if (ReportID == FACTORY_RESET_REPORT_ID) {
+    }
+    else if (ReportID == FACTORY_RESET_REPORT_ID)
+    {
         ConfigStore_FactoryDefaults(&configuration);
         ConfigStore_StoreConfiguration(&configuration);
-		
 		SetupConfiguration();
-		
         Reconnect_Usb();
-    } else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport)) {
-        const NameFeatureHIDReport* nameHidReport = ReportData;
-        memcpy(&configuration.nameAndSize, &nameHidReport->nameAndSize, sizeof (configuration.nameAndSize));
-    } else if (ReportID == LIGHTS_REPORT_ID && ReportSize == sizeof (LightsFeatureHIDReport)) {
-        const LightsFeatureHIDReport* lightsHidReport = ReportData;
-        memcpy(&configuration.lightConfiguration, &lightsHidReport->lightConfiguration, sizeof (configuration.lightConfiguration));
-		Lights_UpdateConfiguration(&lightsHidReport->lightConfiguration);
+    }
+    else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport))
+    {
+        const NameFeatureHIDReport* report = ReportData;
+        memcpy(&configuration.nameAndSize, &report->nameAndSize, sizeof (configuration.nameAndSize));
+    }
+    else if (ReportID == LIGHT_RULE_REPORT_ID && ReportSize == sizeof (LightRuleHIDReport))
+    {
+        const LightRuleHIDReport* report = ReportData;
+        if (report->index < MAX_LIGHT_RULES)
+        {
+            memcpy(&configuration.lightConfiguration.lightRules[report->index], &report->rule, sizeof(LightRule));
+            Lights_UpdateConfiguration(&configuration.lightConfiguration);
+        }
+    }
+    else if (ReportID == LED_MAPPING_REPORT_ID && ReportSize == sizeof(LedMappingHIDReport))
+    {
+        const LedMappingHIDReport* report = ReportData;
+        if (report->index < MAX_LED_MAPPINGS)
+        {
+            memcpy(&configuration.lightConfiguration.ledMappings[report->index], &report->mapping, sizeof(LedMapping));
+            Lights_UpdateConfiguration(&configuration.lightConfiguration);
+        }
+    }
+    else if (ReportID == SET_PROPERTY_REPORT_ID && ReportSize == sizeof (SetPropertyHIDReport))
+    {
+        const SetPropertyHIDReport* report = ReportData;
+        switch (report->propertyId)
+        {
+        case SPID_SELECTED_LIGHT_RULE_INDEX:
+            LIGHT_CONF.selectedLightRuleIndex = (uint8_t)report->propertyValue;
+            break;
+
+        case SPID_SELECTED_LED_MAPPING_INDEX:
+            LIGHT_CONF.selectedLedMappingIndex = (uint8_t)report->propertyValue;
+            break;
+        }
     }
 }

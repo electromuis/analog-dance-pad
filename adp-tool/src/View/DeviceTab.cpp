@@ -1,15 +1,17 @@
+#include "Adp.h"
+
+#include <string>
+
 #include "wx/dataview.h"
 #include "wx/button.h"
 #include "wx/generic/textdlgg.h"
 #include "wx/filedlg.h"
 #include "wx/msgdlg.h"
 
-#include "View/DeviceTab.h"
-
 #include "Model/Device.h"
 #include "Model/Firmware.h"
 
-#include <string>
+#include "View/DeviceTab.h"
 
 using namespace std;
 

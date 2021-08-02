@@ -84,12 +84,6 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM GenericReport[] =
         HID_RI_USAGE(8, 0x02),
         HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
 
-        // how this should be defined exactly?
-        HID_RI_REPORT_ID(8, FACTORY_RESET_REPORT_ID),
-        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
-        HID_RI_USAGE(8, 0x02),
-        HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
-
         HID_RI_REPORT_ID(8, NAME_REPORT_ID),
         HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
         HID_RI_USAGE(8, 0x02),
@@ -98,34 +92,10 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM GenericReport[] =
             HID_RI_LOGICAL_MINIMUM(8, 0x00),
             HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
             HID_RI_REPORT_SIZE(8, 0x08),
-            HID_RI_REPORT_COUNT(8, sizeof (NameFeatureHIDReport)),
+            HID_RI_REPORT_COUNT(8, sizeof(NameFeatureHIDReport)),
             HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
         HID_RI_END_COLLECTION(0),
 
-        HID_RI_REPORT_ID(8, LIGHTS_REPORT_ID),
-        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
-        HID_RI_USAGE(8, 0x02),
-        HID_RI_COLLECTION(8, 0x00),
-            HID_RI_USAGE(8, 0x02),
-            HID_RI_LOGICAL_MINIMUM(8, 0x00),
-            HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
-            HID_RI_REPORT_SIZE(8, 0x08),
-            HID_RI_REPORT_COUNT(8, sizeof (LightsFeatureHIDReport)),
-            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
-        HID_RI_END_COLLECTION(0),
-
-        HID_RI_REPORT_ID(8, IDENTIFICATION_REPORT_ID),
-        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
-        HID_RI_USAGE(8, 0x02),
-        HID_RI_COLLECTION(8, 0x00),
-            HID_RI_USAGE(8, 0x02),
-            HID_RI_LOGICAL_MINIMUM(8, 0x00),
-            HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
-            HID_RI_REPORT_SIZE(8, 0x08),
-            HID_RI_REPORT_COUNT(8, sizeof (IdentificationFeatureReport)),
-            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
-        HID_RI_END_COLLECTION(0),
-        
         // unused joystick report. we only report this because stepmania uses
         // old joystick interface on linux if device doesn't have any analog
         // axis.
@@ -142,6 +112,60 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM GenericReport[] =
             HID_RI_REPORT_SIZE(8, 8),
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
         HID_RI_END_COLLECTION(0),
+
+        HID_RI_REPORT_ID(8, LIGHT_RULE_REPORT_ID),
+        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
+        HID_RI_USAGE(8, 0x02),
+        HID_RI_COLLECTION(8, 0x00),
+            HID_RI_USAGE(8, 0x02),
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
+            HID_RI_REPORT_SIZE(8, 0x08),
+            HID_RI_REPORT_COUNT(8, sizeof(LightRuleHIDReport)),
+            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
+        HID_RI_END_COLLECTION(0),
+
+        HID_RI_REPORT_ID(8, FACTORY_RESET_REPORT_ID),
+        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
+        HID_RI_USAGE(8, 0x02),
+        HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
+
+        HID_RI_REPORT_ID(8, IDENTIFICATION_REPORT_ID),
+        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
+        HID_RI_USAGE(8, 0x02),
+        HID_RI_COLLECTION(8, 0x00),
+            HID_RI_USAGE(8, 0x02),
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
+            HID_RI_REPORT_SIZE(8, 0x08),
+            HID_RI_REPORT_COUNT(8, sizeof(IdentificationFeatureReport)),
+            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
+        HID_RI_END_COLLECTION(0),
+
+        HID_RI_REPORT_ID(8, LED_MAPPING_REPORT_ID),
+        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
+        HID_RI_USAGE(8, 0x02),
+        HID_RI_COLLECTION(8, 0x00),
+            HID_RI_USAGE(8, 0x02),
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
+            HID_RI_REPORT_SIZE(8, 0x08),
+            HID_RI_REPORT_COUNT(8, sizeof(LedMappingHIDReport)),
+            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
+        HID_RI_END_COLLECTION(0),
+
+        HID_RI_REPORT_ID(8, SET_PROPERTY_REPORT_ID),
+        HID_RI_USAGE_PAGE(16, 0xFF00), // vendor usage page
+        HID_RI_USAGE(8, 0x02),
+        HID_RI_COLLECTION(8, 0x00),
+            HID_RI_USAGE(8, 0x02),
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
+            HID_RI_REPORT_SIZE(8, 0x08),
+            HID_RI_REPORT_COUNT(8, sizeof(SetPropertyHIDReport)),
+            HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
+        HID_RI_END_COLLECTION(0),
+
     HID_RI_END_COLLECTION(0)
 };
 

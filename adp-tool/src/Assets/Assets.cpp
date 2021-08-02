@@ -1,3 +1,5 @@
+#include "Adp.h"
+
 #include "Assets/Assets.h"
 
 namespace adp {

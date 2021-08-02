@@ -34,10 +34,24 @@
     } __attribute__((packed)) NameFeatureHIDReport;
 	
 	typedef struct {
-        LightConfiguration lightConfiguration;
-    } __attribute__((packed)) LightsFeatureHIDReport;
-	
-	
+        uint8_t index;
+        LightRule rule;
+    } __attribute__((packed)) LightRuleHIDReport;
+
+    typedef struct {
+        uint8_t index;
+        LedMapping mapping;
+    } __attribute__((packed)) LedMappingHIDReport;
+
+    // IDS used by SetPropertyHIDReport.
+    #define SPID_SELECTED_LIGHT_RULE_INDEX  0
+    #define SPID_SELECTED_LED_MAPPING_INDEX 1
+
+    typedef struct {
+        uint32_t propertyId;
+        uint32_t propertyValue;
+    } __attribute__((packed)) SetPropertyHIDReport;
+
     typedef struct {
 		uint16_t firmwareVersionMajor;
 		uint16_t firmwareVersionMinor;
@@ -45,7 +59,7 @@
         uint8_t sensorCount;
         uint8_t ledCount;
 		uint16_t maxSensorValue;
-		char    boardType[32];
+		char boardType[32];
     } __attribute__((packed)) IdentificationFeatureReport;
 	
     void Communication_WriteInputHIDReport(InputHIDReport* report);

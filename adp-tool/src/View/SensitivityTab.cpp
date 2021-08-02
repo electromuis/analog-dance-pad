@@ -1,3 +1,5 @@
+#include "Adp.h"
+
 #include <map>
 
 #include "wx/dcbuffer.h"
@@ -136,7 +138,7 @@ BEGIN_EVENT_TABLE(SensorDisplay, wxWindow)
 END_EVENT_TABLE()
 
 static const wchar_t* ActivationMsg =
-    L"Click inside sensor bars to adjust their activation threshold.";
+    L"Click inside a sensor bar to adjust its activation threshold.";
 
 static const wchar_t* ReleaseMsg =
     L"Adjust release threshold (percentage of activation threshold).";

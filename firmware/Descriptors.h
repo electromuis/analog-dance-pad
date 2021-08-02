@@ -68,15 +68,17 @@
         };
 
         
-        #define INPUT_REPORT_ID 0x01
-        #define PAD_CONFIGURATION_REPORT_ID 0x02
-        #define RESET_REPORT_ID 0x03
-        #define SAVE_CONFIGURATION_REPORT_ID 0x04
-        #define NAME_REPORT_ID 0x05
-        #define UNUSED_ANALOG_JOYSTICK_REPORT_ID 0x06
-        #define LIGHTS_REPORT_ID 0x07
-        #define FACTORY_RESET_REPORT_ID 0x08
-        #define IDENTIFICATION_REPORT_ID 0x09
+        #define INPUT_REPORT_ID                  0x1
+        #define PAD_CONFIGURATION_REPORT_ID      0x2
+        #define RESET_REPORT_ID                  0x3
+        #define SAVE_CONFIGURATION_REPORT_ID     0x4
+        #define NAME_REPORT_ID                   0x5
+        #define UNUSED_ANALOG_JOYSTICK_REPORT_ID 0x6
+        #define LIGHT_RULE_REPORT_ID             0x7
+        #define FACTORY_RESET_REPORT_ID          0x8
+        #define IDENTIFICATION_REPORT_ID         0x9
+        #define LED_MAPPING_REPORT_ID            0xA
+        #define SET_PROPERTY_REPORT_ID           0xB
 
     /* Macros: */
         /** Endpoint address of the Generic HID reporting IN endpoint. */

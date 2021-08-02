@@ -1,9 +1,10 @@
+#include "Adp.h"
+
 #include <vector>
 
 #include "wx/wx.h"
 #include "wx/notebook.h"
 
-#include "Adp.h"
 #include "Assets/Assets.h"
 
 #include "View/IdleTab.h"
@@ -27,12 +28,12 @@ static const wchar_t* TOOL_NAME = L"ADP Tool";
 class MainWindow : public wxFrame
 {
 public:
-    MainWindow(const wchar_t* versionString, wxApp* appPointer)
+    MainWindow(wxApp* app, const wchar_t* versionString)
         : wxFrame(nullptr, wxID_ANY, TOOL_NAME, wxDefaultPosition, wxSize(500, 500))
+        , myApp(app)
     {
         SetMinClientSize(wxSize(400, 400));
         SetStatusBar(CreateStatusBar(2));
-        app = appPointer;
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
@@ -77,8 +78,8 @@ public:
     void OnClose(wxCloseEvent& event)
     {
         myUpdateTimer->Stop();
+        myApp->ExitMainLoop();
         event.Skip(); // Default handler will close window.
-        app->ExitMainLoop();
     }
 
     DECLARE_EVENT_TABLE()
@@ -99,6 +100,11 @@ private:
             AddTab(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
             AddTab(1, new MappingTab(myTabs, pad), MappingTab::Title);
             AddTab(2, new DeviceTab(myTabs), DeviceTab::Title);
+            auto lights = Device::Lights();
+            if (lights)
+            {
+                AddTab(3, new LightsTab(myTabs, lights), LightsTab::Title);
+            }
         }
         else
         {
@@ -148,11 +154,10 @@ private:
         MainWindow* owner;
     };
 
-    // BasicDrawPane* myDrawPane;
+    wxApp* myApp;
     wxNotebook* myTabs;
     vector<BaseTab*> myTabList;
     unique_ptr<wxTimer> myUpdateTimer;
-    wxApp* app;
 };
 
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
@@ -193,7 +198,7 @@ public:
         icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
 #endif // _MSC_VER
 
-        myWindow = new MainWindow(versionString.data(), this);
+        myWindow = new MainWindow(this, versionString.data());
         myWindow->SetIcons(icons);
         myWindow->Show();
 

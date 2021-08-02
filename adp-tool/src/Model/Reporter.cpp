@@ -1,7 +1,12 @@
-#include "Reporter.h"
-#include "Log.h"
-#include "Utils.h"
+#include "Adp.h"
+
 #include <cstring>
+#include <chrono>
+#include <thread>
+
+#include "Model/Reporter.h"
+#include "Model/Log.h"
+#include "Model/Utils.h"
 
 using namespace std;
 
@@ -40,6 +45,11 @@ static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
 template <typename T>
 static bool SendFeatureReport(hid_device* hid, const T& report, const wchar_t* name)
 {
+	using namespace std::chrono_literals;
+
+	// Wait for the controller to get into a ready state
+	std::this_thread::sleep_for(2ms);
+
 	int bytesWritten = hid_send_feature_report(hid, (const unsigned char*)&report, sizeof(T));
 	if (bytesWritten == sizeof(T))
 	{
@@ -124,6 +134,16 @@ bool Reporter::Get(IdentificationReport& report)
 	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
 }
 
+bool Reporter::Get(LightRuleReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetLightRuleReport");
+}
+
+bool Reporter::Get(LedMappingReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetLedMappingReport");
+}
+
 void Reporter::SendReset()
 {
 	WriteData(myHid, REPORT_RESET, L"SendResetReport", false);
@@ -147,6 +167,21 @@ bool Reporter::Send(const PadConfigurationReport& report)
 bool Reporter::Send(const NameReport& report)
 {
 	return SendFeatureReport(myHid, report, L"SendNameReport");
+}
+
+bool Reporter::Send(const LightRuleReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendLightRuleReport");
+}
+
+bool Reporter::Send(const LedMappingReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendLedMappingReport");
+}
+
+bool Reporter::Send(const SetPropertyReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendSetPropertyReport");
 }
 
 }; // namespace adp.

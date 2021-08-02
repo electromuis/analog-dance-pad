@@ -1,24 +1,26 @@
 #ifndef _PAD_H_
 #define _PAD_H_
-    #include <stdint.h>
-    #include <stdbool.h>
-    #include "Config/DancePadConfig.h"
 
-    typedef struct {
-        uint16_t sensorThresholds[SENSOR_COUNT];
-        float releaseMultiplier;
-        int8_t sensorToButtonMapping[SENSOR_COUNT];
-    } __attribute__((packed)) PadConfiguration;
+#include <stdint.h>
+#include <stdbool.h>
+#include "Config/DancePadConfig.h"
 
-    typedef struct {
-        uint16_t sensorValues[SENSOR_COUNT];
-        bool buttonsPressed[BUTTON_COUNT];
-    } PadState;
+typedef struct {
+    uint16_t sensorThresholds[SENSOR_COUNT];
+    float releaseMultiplier;
+    int8_t sensorToButtonMapping[SENSOR_COUNT];
+} __attribute__((packed)) PadConfiguration;
 
-    void Pad_Initialize(const PadConfiguration* padConfiguration);
-    void Pad_UpdateState(void);
-    void Pad_UpdateConfiguration(const PadConfiguration* padConfiguration);
+typedef struct {
+    uint16_t sensorValues[SENSOR_COUNT];
+    bool buttonsPressed[BUTTON_COUNT];
+} PadState;
 
-    extern PadConfiguration PAD_CONF;
-    extern PadState PAD_STATE;
+void Pad_Initialize(const PadConfiguration* padConfiguration);
+void Pad_UpdateState(void);
+void Pad_UpdateConfiguration(const PadConfiguration* padConfiguration);
+
+extern PadConfiguration PAD_CONF;
+extern PadState PAD_STATE;
+
 #endif

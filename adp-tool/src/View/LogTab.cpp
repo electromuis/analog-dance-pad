@@ -1,8 +1,10 @@
+#include "Adp.h"
+
 #include "wx/sizer.h"
 
-#include "View/LogTab.h"
-
 #include "Model/Log.h"
+
+#include "View/LogTab.h"
 
 namespace adp {
 

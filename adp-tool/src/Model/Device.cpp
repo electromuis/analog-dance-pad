@@ -1,16 +1,18 @@
-#include "Device.h"
-#include "Reporter.h"
-#include "Log.h"
-#include "hidapi.h"
-#include "Utils.h"
-
-#include "Model/Firmware.h"
+#include "Adp.h"
 
 #include <memory>
 #include <algorithm>
 #include <map>
 #include <chrono>
 #include <thread>
+
+#include "hidapi.h"
+
+#include "Model/Device.h"
+#include "Model/Reporter.h"
+#include "Model/Log.h"
+#include "Model/Utils.h"
+#include "Model/Firmware.h"
 
 using namespace std;
 using namespace chrono;
@@ -23,9 +25,26 @@ struct HidIdentifier
 	int productId;
 };
 
-constexpr HidIdentifier HID_IDS[] = { {0x1209, 0xb196}, {0x03eb, 0x204f} };
+constexpr HidIdentifier HID_IDS[] =
+{
+	// TODO: document what these correspond to.
+	{0x1209, 0xb196},
+	{0x03eb, 0x204f},
+};
 
 static_assert(sizeof(float) == sizeof(uint32_t), "32-bit float required");
+
+enum LedMappingFlags
+{
+	LMF_ENABLED = 1 << 0,
+};
+
+enum LightRuleFlags
+{
+	LRF_ENABLED  = 1 << 0,
+	LRF_FADE_ON  = 1 << 1,
+	LRF_FADE_OFF = 1 << 2,
+};
 
 // ====================================================================================================================
 // Helper functions.
@@ -41,9 +60,14 @@ static int ReadU16LE(uint16_le u16)
 	return u16.bytes[0] | u16.bytes[1] << 8;
 }
 
+static uint32_t ReadU32LE(uint32_le u32)
+{
+	return u32.bytes[0] | (u32.bytes[1] << 8) | (u32.bytes[2] << 16) | (u32.bytes[3] << 24);
+}
+
 static float ReadF32LE(float32_le f32)
 {
-	uint32_t u32 = f32.bytes[0] | (f32.bytes[1] << 8) | (f32.bytes[2] << 16) | (f32.bytes[3] << 24);
+	uint32_t u32 = ReadU32LE(f32.bits);
 	return *reinterpret_cast<float*>(&u32);
 }
 
@@ -55,15 +79,20 @@ static uint16_le WriteU16LE(int value)
 	return u16;
 }
 
+static uint32_le WriteU32LE(uint32_t value)
+{
+	uint32_le u32;
+	u32.bytes[0] = value & 0xFF;
+	u32.bytes[1] = (value >> 8) & 0xFF;
+	u32.bytes[2] = (value >> 16) & 0xFF;
+	u32.bytes[3] = (value >> 24) & 0xFF;
+	return u32;
+}
+
 static float32_le WriteF32LE(float value)
 {
-	float32_le f32;
 	uint32_t u32 = *reinterpret_cast<uint32_t*>(&value);
-	f32.bytes[0] = u32 & 0xFF;
-	f32.bytes[1] = (u32 >> 8) & 0xFF;
-	f32.bytes[2] = (u32 >> 16) & 0xFF;
-	f32.bytes[3] = (u32 >> 24) & 0xFF;
-	return f32;
+	return { WriteU32LE(u32) };
 }
 
 template <typename T>
@@ -79,6 +108,16 @@ static int ToDeviceSensorValue(double normalizedValue)
 	return max(0, min(MAX_SENSOR_VALUE, mapped));
 }
 
+static RgbColor ToRgbColor(color24 color)
+{
+	return { color.red, color.green, color.blue };
+}
+
+static color24 ToColor24(RgbColor color)
+{
+	return { color.red, color.green, color.blue };
+}
+
 static void PrintPadConfigurationReport(const PadConfigurationReport& padConfiguration)
 {
 	Log::Write(L"pad configuration [");
@@ -90,6 +129,30 @@ static void PrintPadConfigurationReport(const PadConfigurationReport& padConfigu
 		Log::Writef(L"    sensorThresholds: %i", ReadU16LE(padConfiguration.sensorThresholds[i]));
 	}
 	Log::Write(L"  ]");
+	Log::Write(L"]");
+}
+
+static void PrintLightRuleReport(const LightRuleReport& r)
+{
+	Log::Write(L"light rule [");
+	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
+	Log::Writef(L"  flags: %i", r.flags);
+	Log::Writef(L"  onColor: [R%i G%i B%i]", r.onColor.red, r.onColor.green, r.onColor.blue);
+	Log::Writef(L"  offColor: [R%i G%i B%i]", r.offColor.red, r.offColor.green, r.offColor.blue);
+	Log::Writef(L"  onFadeColor: [R%i G%i B%i]", r.onFadeColor.red, r.onFadeColor.green, r.onFadeColor.blue);
+	Log::Writef(L"  offFadeColor: [R%i G%i B%i]", r.offFadeColor.red, r.offFadeColor.green, r.offFadeColor.blue);
+	Log::Write(L"]");
+}
+
+static void PrintLedMappingReport(const LedMappingReport& r)
+{
+	Log::Write(L"led mapping [");
+	Log::Writef(L"  ledMappingIndex: %i", r.ledMappingIndex);
+	Log::Writef(L"  flags: %i", r.flags);
+	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
+	Log::Writef(L"  sensorIndex: %i", r.sensorIndex);
+	Log::Writef(L"  ledIndexBegin: %i", r.ledIndexBegin);
+	Log::Writef(L"  ledIndexEnd: %i", r.ledIndexEnd);
 	Log::Write(L"]");
 }
 
@@ -115,7 +178,9 @@ public:
 		const char* path,
 		const NameReport& name,
 		const PadConfigurationReport& config,
-		const IdentificationReport& identification)
+		const IdentificationReport& identification,
+		const vector<LightRuleReport>& lightRules,
+		const vector<LedMappingReport>& ledMappings)
 		: myReporter(move(reporter))
 		, myPath(path)
 	{
@@ -125,11 +190,15 @@ public:
 		myPad.numSensors = identification.sensorCount;
 
 		auto buffer = (char*)calloc(BOARD_TYPE_LENGTH + 1, sizeof(char));
-		memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
-		myPad.boardType = ParseBoardType(buffer);
-		free(buffer);
+		if (buffer)
+		{
+			memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
+			myPad.boardType = ParseBoardType(buffer);
+			free(buffer);
+		}
 
 		UpdatePadConfiguration(config);
+		UpdateLightsConfiguration(lightRules, ledMappings);
 		myPollingData.lastUpdate = system_clock::now();
 	}
 
@@ -143,11 +212,56 @@ public:
 	{
 		for (int i = 0; i < myPad.numSensors; ++i)
 		{
-			auto buttonMapping = (unsigned int)report.sensorToButtonMapping[i];
+			auto buttonMapping = (uint8_t)report.sensorToButtonMapping[i];
 			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(report.sensorThresholds[i]));
 			mySensors[i].button = (buttonMapping >= myPad.numButtons ? 0 : (buttonMapping + 1));
 		}
 		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
+	}
+
+	void UpdateLightRule(const LightRuleReport& report)
+	{
+		if (report.flags & LRF_ENABLED)
+		{
+			LightRule result;
+			result.fadeOn = (report.flags & LRF_FADE_ON) != 0;
+			result.fadeOff = (report.flags & LRF_FADE_OFF) != 0;
+			result.onColor = ToRgbColor(report.onColor);
+			result.onFadeColor = ToRgbColor(report.onFadeColor);
+			result.offColor = ToRgbColor(report.offColor);
+			result.offFadeColor = ToRgbColor(report.offFadeColor);
+			myLights.lightRules[report.lightRuleIndex] = result;
+		}
+		else
+		{
+			myLights.lightRules.erase(report.lightRuleIndex);
+		}
+	}
+
+	void UpdateLedMapping(const LedMappingReport& report)
+	{
+		if (report.flags & LMF_ENABLED)
+		{
+			LedMapping result;
+			result.lightRuleIndex = report.lightRuleIndex;
+			result.sensorIndex = report.sensorIndex;
+			result.ledIndexBegin = report.ledIndexBegin;
+			result.ledIndexEnd = report.ledIndexEnd;
+			myLights.ledMappings[report.ledMappingIndex] = result;
+		}
+		else
+		{
+			myLights.ledMappings.erase(report.ledMappingIndex);
+		}
+	}
+
+	void UpdateLightsConfiguration(const vector<LightRuleReport>& lightRules, const vector<LedMappingReport>& ledMappings)
+	{
+		for (auto& report : lightRules)
+			UpdateLightRule(report);
+
+		for (auto& report : ledMappings)
+			UpdateLedMapping(report);
 	}
 
 	bool UpdateSensorValues()
@@ -158,7 +272,7 @@ public:
 		int pressedButtons = 0;
 		int inputsRead = 0;
 
-		for (int readsLeft = 100; readsLeft > 0; readsLeft--)
+		for (int readsLeft = 100; readsLeft > 0; --readsLeft)
 		{
 			switch (myReporter->Get(report))
 			{
@@ -228,7 +342,7 @@ public:
 		auto name = narrow(rawName, wcslen(rawName));
 		if (name.size() > sizeof(report.name))
 		{
-			Log::Writef(L"SetName :: name '%ls' exceeds %i chars and was not set", rawName, MAX_NAME_LENGTH);
+			Log::Writef(L"SetName :: name '%ls' exceeds %i chars and was not set", rawName, sizeof(report.name));
 			return false;
 		}
 
@@ -238,6 +352,76 @@ public:
 		myHasUnsavedChanges = true;
 		UpdateName(report);
 		return result;
+	}
+
+	bool SendLedMappingReport(const LedMappingReport& report)
+	{
+		if (!myReporter->Send(report))
+			return false;
+		
+		UpdateLedMapping(report);
+		myChanges |= DCF_LIGHTS;
+		myHasUnsavedChanges = true;
+		return true;
+	}
+
+	bool SendLedMapping(int ledMappingIndex, LedMapping mapping)
+	{
+		LedMappingReport report;
+		report.ledMappingIndex = ledMappingIndex;
+		report.lightRuleIndex = mapping.lightRuleIndex;
+		report.flags = LMF_ENABLED;
+		report.ledIndexBegin = mapping.ledIndexBegin;
+		report.ledIndexEnd = mapping.ledIndexEnd;
+		report.sensorIndex = mapping.sensorIndex;
+		return SendLedMappingReport(report);
+	}
+
+	bool DisableLedMapping(int ledMappingIndex)
+	{
+		LedMappingReport report;
+		report.ledMappingIndex = ledMappingIndex;
+		report.lightRuleIndex = 0;
+		report.flags = 0;
+		report.ledIndexBegin = 0;
+		report.ledIndexEnd = 0;
+		report.sensorIndex = 0;
+		return SendLedMappingReport(report);
+	}
+
+	bool SendLightRuleReport(const LightRuleReport& report)
+	{
+		if (!myReporter->Send(report))
+			return false;
+
+		UpdateLightRule(report);
+		myChanges |= DCF_LIGHTS;
+		myHasUnsavedChanges = true;
+		return true;
+	}
+
+	bool SendLightRule(int lightRuleIndex, LightRule rule)
+	{
+		LightRuleReport report;
+		report.lightRuleIndex = lightRuleIndex;
+		report.flags = LRF_ENABLED | (LRF_FADE_ON * rule.fadeOn) | (LRF_FADE_OFF * rule.fadeOff);
+		report.onColor = ToColor24(rule.onColor);
+		report.offColor = ToColor24(rule.offColor);
+		report.onFadeColor = ToColor24(rule.onFadeColor);
+		report.offFadeColor = ToColor24(rule.offFadeColor);
+		return SendLightRuleReport(report);
+	}
+
+	bool DisableLightRule(int lightRuleIndex)
+	{
+		LightRuleReport report;
+		report.lightRuleIndex = lightRuleIndex;
+		report.flags = 0;
+		report.onColor = {0, 0, 0};
+		report.offColor = {0, 0, 0};
+		report.onFadeColor = {0, 0, 0};
+		report.offFadeColor = {0, 0, 0};
+		return SendLightRuleReport(report);
 	}
 
 	void Reset() { myReporter->SendReset(); }
@@ -259,10 +443,6 @@ public:
 		report.releaseThreshold = WriteF32LE((float)myPad.releaseThreshold);
 
 		bool sendResult = myReporter->Send(report);
-
-		// Wait for the controller to process the report
-		this_thread::sleep_for(2ms);
-
 		bool getResult = myReporter->Get(report);
 
 		myHasUnsavedChanges = true;
@@ -285,6 +465,8 @@ public:
 
 	const PadState& State() const { return myPad; }
 
+	const LightsState& Lights() const { return myLights; }
+
 	const SensorState* Sensor(int index)
 	{
 		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
@@ -301,6 +483,7 @@ private:
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
 	PadState myPad;
+	LightsState myLights;
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
@@ -423,9 +606,52 @@ public:
 			strcpy(padIdentification.boardType, "unknown");
 		}
 
-		auto device = new PadDevice(reporter, deviceInfo->path, name, padConfiguration, padIdentification);
-		auto boardTypeString = BoardTypeToString(device->State().boardType);
+		// If we got some lights, try to read the light rules.
+		vector<LightRuleReport> lightRules;
+		vector<LedMappingReport> ledMappings;
+		if (padIdentification.ledCount > 0)
+		{
+			SetPropertyReport selectReport;
 
+			LightRuleReport lightReport;
+			selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LIGHT_RULE_INDEX);
+			for (int i = 0; i < MAX_LIGHT_RULES; ++i)
+			{
+				selectReport.propertyValue = WriteU32LE(i);
+				bool sendResult = reporter->Send(selectReport);
+
+				if (sendResult && reporter->Get(lightReport) && (lightReport.flags & LRF_ENABLED))
+				{
+					PrintLightRuleReport(lightReport);
+					lightRules.push_back(lightReport);
+				}
+			}
+
+			LedMappingReport ledReport;
+			selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LED_MAPPING_INDEX);
+			for (int i = 0; i < MAX_LED_MAPPINGS; ++i)
+			{
+				selectReport.propertyValue = WriteU32LE(i);
+				bool sendResult = reporter->Send(selectReport);
+
+				if (sendResult && reporter->Get(ledReport) && (ledReport.flags & LMF_ENABLED))
+				{
+					PrintLedMappingReport(ledReport);
+					ledMappings.push_back(ledReport);
+				}
+			}
+		}
+
+		auto device = new PadDevice(
+			reporter,
+			deviceInfo->path,
+			name,
+			padConfiguration,
+			padIdentification,
+			lightRules,
+			ledMappings);
+
+		auto boardTypeString = BoardTypeToString(device->State().boardType);
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %ls", device->State().name.data());
 		Log::Writef(L"  Product: %ls", deviceInfo->product_string);
@@ -522,6 +748,12 @@ const PadState* Device::Pad()
 	return device ? &device->State() : nullptr;
 }
 
+const LightsState* Device::Lights()
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? &device->Lights() : nullptr;
+}
+
 const SensorState* Device::Sensor(int sensorIndex)
 {
 	auto device = connectionManager->ConnectedDevice();
@@ -550,6 +782,30 @@ bool Device::SetDeviceName(const wchar_t* name)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->SendName(name) : false;
+}
+
+bool Device::SendLedMapping(int ledMappingIndex, LedMapping mapping)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SendLedMapping(ledMappingIndex, mapping) : false;
+}
+
+bool Device::DisableLedMapping(int ledMappingIndex)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->DisableLedMapping(ledMappingIndex) : false;
+}
+
+bool Device::SendLightRule(int lightRuleIndex, LightRule rule)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SendLightRule(lightRuleIndex, rule) : false;
+}
+
+bool Device::DisableLightRule(int lightRuleIndex)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->DisableLightRule(lightRuleIndex) : false;
 }
 
 void Device::SendDeviceReset()

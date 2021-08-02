@@ -23,28 +23,31 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
 	#define DEFAULT_NAME "Untitled FSR Device"
 #endif
 
-#define DEFAULT_LIGHT_RULE_1(sensor, lfrom, lto) \
-    {                                            \
-        .sensorNumber = sensor,                  \
-        .fromLight = lfrom,                      \
-        .toLight = lto,                          \
-        .onColor = {100, 100, 100},              \
-        .offColor = {2, 0, 0},                   \
-        .onFadeColor = {0, 0, 0},                \
-        .offFadeColor = {255, 0, 0},             \
-        .flags = LRF_FADE_OFF                    \
+#define DEFAULT_LIGHT_RULE_1                \
+    {                                       \
+        .onColor = {100, 100, 100},         \
+        .offColor = {2, 0, 0},              \
+        .onFadeColor = {0, 0, 0},           \
+        .offFadeColor = {255, 0, 0},        \
+        .flags = LRF_ENABLED | LRF_FADE_OFF \
     }
 
-#define DEFAULT_LIGHT_RULE_2(sensor, lfrom, lto) \
-    {                                            \
-        .sensorNumber = sensor,                  \
-        .fromLight = lfrom,                      \
-        .toLight = lto,                          \
-        .onColor = {100, 100, 100},              \
-        .offColor = {0, 0, 2},                   \
-        .onFadeColor = {0, 0, 0},                \
-        .offFadeColor = {0, 0, 255},             \
-        .flags = LRF_FADE_OFF                    \
+#define DEFAULT_LIGHT_RULE_2                 \
+    {                                        \
+        .flags = LRF_ENABLED | LRF_FADE_OFF, \
+        .onColor = {100, 100, 100},          \
+        .offColor = {0, 0, 2},               \
+        .onFadeColor = {0, 0, 0},            \
+        .offFadeColor = {0, 0, 255},         \
+    }
+
+#define DEFAULT_LED_MAPPING(rule, sensor, lbegin, lend) \
+    {                                                   \
+        .flags = LMF_ENABLED,                           \
+        .lightRuleIndex = rule,                         \
+        .sensorIndex = sensor,                          \
+        .ledIndexBegin = lbegin,                        \
+        .ledIndexEnd = lend,                            \
     }
 
 static const Configuration DEFAULT_CONFIGURATION = {
@@ -69,15 +72,22 @@ static const Configuration DEFAULT_CONFIGURATION = {
         .name = DEFAULT_NAME
     },
 	.lightConfiguration = {
-        .lightRules =
-		{	
+        .selectedLightRuleIndex = 0,
+        .selectedLedMappingIndex = 0,
 #if defined(BOARD_TYPE_FSRMINIPAD)
-            DEFAULT_LIGHT_RULE_1(6, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
-            DEFAULT_LIGHT_RULE_2(5, PANEL_LEDS * 1, PANEL_LEDS * 2), // DOWN
-            DEFAULT_LIGHT_RULE_2(3, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
-            DEFAULT_LIGHT_RULE_1(4, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
-#endif
+        .lightRules =
+		{
+            DEFAULT_LIGHT_RULE_1, // LEFT & RIGHT
+            DEFAULT_LIGHT_RULE_2, // DOWN & UP
+        },
+        .ledMappings =
+        {
+            DEFAULT_LED_MAPPING(0, 5, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
+            DEFAULT_LED_MAPPING(1, 4, PANEL_LEDS * 1, PANEL_LEDS * 2), // DOWN
+            DEFAULT_LED_MAPPING(1, 2, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
+            DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
         }
+#endif
 	}
 };
 
