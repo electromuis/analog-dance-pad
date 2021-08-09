@@ -77,6 +77,16 @@ int main(void)
     }
 }
 
+void Timer_Tick()
+{
+	Lights_Timer_Tick();
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	Timer_Tick();
+}
+
 /** Configures the board hardware and chip peripherals for the demo's functionality. */
 void SetupHardware(void)
 {
@@ -99,6 +109,22 @@ void SetupHardware(void)
     PMIC.CTRL = PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm | PMIC_HILVLEN_bm;
 #endif
 
+
+	// Set the timer to 1ms cycles
+	unsigned long ctc_match_overflow;
+  
+	ctc_match_overflow = ((F_CPU / 1000) / 8); //when timer1 is this value, 1ms has passed
+    
+    // (Set timer to clear when matching ctc_match_overflow) | (Set clock divisor to 8)
+	TCCR1B |= (1 << WGM12) | (1 << CS11);
+	  
+	// high byte first, then low byte
+	OCR1AH = (ctc_match_overflow >> 8);
+	OCR1AL = ctc_match_overflow;
+	 
+	// Enable the compare match interrupt
+	TIMSK1 |= (1 << OCIE1A);
+
     /* Hardware Initialization */
     USB_Init();
 }
@@ -107,6 +133,7 @@ void SetupConfiguration()
 {
 	Pad_Initialize(&configuration.padConfiguration);
     Lights_UpdateConfiguration(&configuration.lightConfiguration);
+	LIGHT_CONF.lightMode = LM_HARDWARE;
 }
 
 /** Event handler for the library USB Configuration Changed event. */
@@ -238,8 +265,15 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
         const LightRuleHIDReport* report = ReportData;
         if (report->index < MAX_LIGHT_RULES)
         {
-            memcpy(&configuration.lightConfiguration.lightRules[report->index], &report->rule, sizeof(LightRule));
-            Lights_UpdateConfiguration(&configuration.lightConfiguration);
+			
+			// If we're running software mode, don't write the rules to the actual configuration. We wouldn't want to save temporary colors to eeprom.
+			if(LIGHT_CONF.lightMode == LM_HARDWARE) {
+				memcpy(&configuration.lightConfiguration.lightRules[report->index], &report->rule, sizeof(LightRule));
+				Lights_UpdateConfiguration(&configuration.lightConfiguration);
+			}
+			else if(LIGHT_CONF.lightMode == LM_SOFTWARE) {
+				memcpy(&LIGHT_CONF.lightRules[report->index], &report->rule, sizeof(LightRule));
+			}
         }
     }
     else if (ReportID == LED_MAPPING_REPORT_ID && ReportSize == sizeof(LedMappingHIDReport))
@@ -262,6 +296,19 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
 
         case SPID_SELECTED_LED_MAPPING_INDEX:
             LIGHT_CONF.selectedLedMappingIndex = (uint8_t)report->propertyValue;
+            break;
+
+        case SPID_SELECTED_LIGHT_MODE:
+			// We switched back to hardware mode. Load hardware mode colors
+			if(report->propertyValue == LM_HARDWARE) {
+				memcpy(&LIGHT_CONF, &configuration.lightConfiguration, sizeof(LightConfiguration));
+			}
+			
+			LIGHT_CONF.lightMode = (uint8_t)report->propertyValue;
+            break;
+		
+		case SPID_TRIGGER_LIGHT_SW:
+			Lights_Trigger_Mapping((uint8_t)report->propertyValue);
             break;
         }
     }

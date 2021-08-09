@@ -7,6 +7,6 @@
 namespace adp {
 
 #define ADP_VERSION_MAJOR 1
-#define ADP_VERSION_MINOR 2
+#define ADP_VERSION_MINOR 3
 
 }; // namespace adp.

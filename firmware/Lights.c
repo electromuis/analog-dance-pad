@@ -1,6 +1,3 @@
-// Skip every x amount of light updates to improve polling rate
-#define UPDATE_WAIT_CYCLES 10
-
 #define LED_STRIP_PORT PORTC
 #define LED_STRIP_DDR  DDRC
 #define LED_STRIP_PIN  6
@@ -82,21 +79,68 @@ LightConfiguration LIGHT_CONF;
 
 static rgb_color LED_COLORS[LED_COUNT];
 
+int updateWait = 0;
+
+typedef struct
+{
+    uint16_t decay;
+	rgb_color color;
+} PulseStatus;
+
+PulseStatus pulseStatus[MAX_LED_MAPPINGS];
+
+bool softwareTriggered[MAX_LED_MAPPINGS];
+
+PadState LAST_PAD_STATE;
+
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
-    memcpy(&LIGHT_CONF, lightConfiguration, sizeof (LightConfiguration));
-	Lights_Update();
+rgb_color map_color(long x, long in_min, long in_max, rgb_color min_color, rgb_color max_color)
+{
+	return (rgb_color) {	
+		map(x, in_min, in_max, min_color.red,   max_color.red),
+		map(x, in_min, in_max, min_color.green, max_color.green),
+		map(x, in_min, in_max, min_color.blue,  max_color.blue)
+	};
 }
 
-int updateWait = 0;
+void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
+    memcpy(&LIGHT_CONF, lightConfiguration, sizeof (LightConfiguration));
+	Lights_Update(true);
+}
 
-void Lights_Update()
+void Lights_Timer_Tick()
 {
 	if(updateWait > 0) {
 		updateWait --;
+	}
+	
+	for(int i = 0; i < MAX_LED_MAPPINGS; i ++) {
+		if(pulseStatus[i].decay > 0) {
+			pulseStatus[i].decay --;
+		}
+	}
+}
+
+void Lights_Trigger_Mapping(int lightMappingIndex)
+{
+	if(LIGHT_CONF.lightMode != LM_SOFTWARE) {
+		return;
+	}
+	
+	if(lightMappingIndex < 0 || lightMappingIndex > MAX_LED_MAPPINGS)
+		return;
+	
+	softwareTriggered[lightMappingIndex] = true;
+	
+	Lights_Update(true);
+}
+
+void Lights_Update(bool forceUpdate)
+{
+	if(!forceUpdate && updateWait > 0) {
 		return;
 	}
 	
@@ -117,50 +161,109 @@ void Lights_Update()
 
         if (!(rule->flags & LRF_ENABLED))
             continue;
+			
+		if(mapping->sensorIndex < 0 || mapping->sensorIndex > SENSOR_COUNT)
+			continue;
 		
 		uint16_t sensorValue = PAD_STATE.sensorValues[mapping->sensorIndex];
 		uint16_t sensorThreshold = PAD_CONF.sensorThresholds[mapping->sensorIndex];
 		
-		bool sensorState = sensorValue > sensorThreshold;
-		
+		bool newColor = false;
 		rgb_color color;
 		
-		if(sensorState == true) {
-			if(rule->flags & LRF_FADE_ON) {
-				uint16_t sensorThreshold2 = sensorThreshold * 2;
-				
-				if(sensorValue <= sensorThreshold2) {				
-					color = (rgb_color) {	
-						map(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor.red,   rule->onFadeColor.red),
-						map(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor.green, rule->onFadeColor.green),
-						map(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor.blue,  rule->onFadeColor.blue)
-					};
+		if(LIGHT_CONF.lightMode == LM_HARDWARE) {
+			if(PAD_STATE.sensorPressed[mapping->sensorIndex]) {
+				if(rule->flags & LRF_FADE_ON) {
+					uint16_t sensorThreshold2 = sensorThreshold * 2;
+					
+					if(sensorValue <= sensorThreshold2) {
+						color = map_color(sensorValue, sensorThreshold, sensorThreshold2, rule->onColor, rule->onFadeColor);
+					}
+					else {
+						color = rule->onFadeColor;
+					}
+					
+					newColor = true;
+				}
+				else if(rule->flags & LRF_PULSE_ON) {
+					if(!LAST_PAD_STATE.sensorPressed[mapping->sensorIndex]) {
+						pulseStatus[m].decay = LIGHT_PULSE_LENGTH;
+						pulseStatus[m].color = rule->onColor;
+					}
 				}
 				else {
-					color = rule->onFadeColor;
+					color = rule->onColor;
+					
+					newColor = true;
 				}
 			}
 			else {
-				color = rule->onColor;
+				if(rule->flags & LRF_FADE_OFF) {
+					color = map_color(sensorValue, 0, sensorThreshold, rule->offColor, rule->offFadeColor);
+					
+					newColor = true;
+				}
+				else if(rule->flags & LRF_PULSE_OFF) {
+					if(LAST_PAD_STATE.sensorPressed[mapping->sensorIndex]) {
+						//pulseStatus[m].decay = LIGHT_PULSE_LENGTH;
+						//pulseStatus[m].color = rule->offColor;
+					}
+				}
+				else {
+					color = rule->offColor;
+					
+					newColor = true;
+				}
 			}
 		}
-		else {
-			if(rule->flags & LRF_FADE_OFF) {
-				color = (rgb_color) {	
-					map(sensorValue, 0, sensorThreshold, rule->offColor.red,   rule->offFadeColor.red),
-					map(sensorValue, 0, sensorThreshold, rule->offColor.green, rule->offFadeColor.green),
-					map(sensorValue, 0, sensorThreshold, rule->offColor.blue,  rule->offFadeColor.blue)
-				};
+		else if(LIGHT_CONF.lightMode == LM_SOFTWARE && softwareTriggered[m]) {
+			if((rule->flags & (LRF_PULSE_ON))) {
+				pulseStatus[m].decay = LIGHT_PULSE_LENGTH;
+				pulseStatus[m].color = rule->onColor;
 			}
-			else {
-				color = rule->offColor;
-			}
+			
+			softwareTriggered[m] = false;
 		}
 		
-		for (uint8_t led = mapping->ledIndexBegin; led < mapping->ledIndexEnd; ++led) {
-            LED_COLORS[led] = color;
+		if((rule->flags & (LRF_PULSE_ON | LRF_PULSE_OFF)) && pulseStatus[m].decay > 0) {
+			color = map_color(pulseStatus[m].decay, 0, LIGHT_PULSE_LENGTH, (rgb_color){0,0,0}, pulseStatus[m].color);
+			newColor = true;
+			
+			/*
+			int mappingPixels = mapping->ledIndexEnd - mapping->ledIndexBegin;
+			int pixelCountHalf = mappingPixels / 2;
+			
+			int pixelDecay = 4;
+			int pixelPos = map(pulseStatus[m].decay, LIGHT_PULSE_LENGTH, 0, 0, pixelCountHalf + pixelDecay);
+			
+			for(int d = 0; d < pixelDecay; d ++) {
+				int currentPos = pixelPos - d;
+				if(currentPos < 0) {
+					break;
+				}
+				
+				if(currentPos > pixelCountHalf - 1) {
+					continue;
+				}
+				
+				color = map_color(d, 0, pixelDecay, pulseStatus[m].color, (rgb_color){0,0,0});
+				LED_COLORS[mapping->ledIndexBegin + currentPos + pixelCountHalf] = color;
+				LED_COLORS[mapping->ledIndexBegin - currentPos + pixelCountHalf - 1] = color;
+			}
+			
+			// We already set the color manually
+			newColor = false;
+			*/
+		}
+		
+		if(newColor) {
+			for (uint8_t led = mapping->ledIndexBegin; led < mapping->ledIndexEnd; ++led) {
+				LED_COLORS[led] = color;
+			}
 		}
 	}
 	
 	led_strip_write(LED_COLORS, LED_COUNT);
+	
+	memcpy(&LAST_PAD_STATE, &PAD_STATE, sizeof(PadState));
 }

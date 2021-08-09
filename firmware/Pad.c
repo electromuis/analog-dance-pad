@@ -57,6 +57,8 @@ void Pad_UpdateConfiguration(const PadConfiguration* padConfiguration) {
 
 void Pad_UpdateState(void) {
     uint16_t newValues[SENSOR_COUNT]; 
+	
+	bool update = false;
     
     for (int i = 0; i < SENSOR_COUNT; i++) {
         newValues[i] = ADC_Read(i);
@@ -66,6 +68,20 @@ void Pad_UpdateState(void) {
         // TODO: weight of old value and new value is not configurable for now
         // because division by unknown value means ass performance.
         PAD_STATE.sensorValues[i] = (PAD_STATE.sensorValues[i] + newValues[i]) / 2;
+		
+		bool newSensorPressedState = false;
+		
+		if (PAD_STATE.sensorPressed[i]) {
+			if (PAD_STATE.sensorValues[i] > INTERNAL_PAD_CONF.sensorReleaseThresholds[i]) {
+				newSensorPressedState = true;
+			}
+		} else {
+			if (PAD_STATE.sensorValues[i] > PAD_CONF.sensorThresholds[i]) {
+				newSensorPressedState = true;
+			}
+		}
+		
+		PAD_STATE.sensorPressed[i] = newSensorPressedState;
     }
 
     for (int i = 0; i < BUTTON_COUNT; i++) {
@@ -82,23 +98,16 @@ void Pad_UpdateState(void) {
                 break;
             }
 
-            uint16_t sensorVal = PAD_STATE.sensorValues[sensor];
-
-            if (PAD_STATE.buttonsPressed[i]) {
-                if (sensorVal > INTERNAL_PAD_CONF.sensorReleaseThresholds[sensor]) {
-                    newButtonPressedState = true;
-                    break;
-                }
-            } else {
-                if (sensorVal > PAD_CONF.sensorThresholds[sensor]) {
-                    newButtonPressedState = true;
-                    break;
-                }
-            }
+			bool sensorState = PAD_STATE.sensorPressed[sensor];
+			if(sensorState) {
+				newButtonPressedState = true;
+				update = true;
+				break;
+			}
         }
 
         PAD_STATE.buttonsPressed[i] = newButtonPressedState;
     }
 	
-	Lights_Update();
+	Lights_Update(update);
 }

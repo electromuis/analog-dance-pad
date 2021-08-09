@@ -14,6 +14,7 @@ typedef struct {
 typedef struct {
     uint16_t sensorValues[SENSOR_COUNT];
     bool buttonsPressed[BUTTON_COUNT];
+    bool sensorPressed[SENSOR_COUNT];
 } PadState;
 
 void Pad_Initialize(const PadConfiguration* padConfiguration);

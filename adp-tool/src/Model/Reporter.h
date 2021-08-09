@@ -112,6 +112,8 @@ struct SetPropertyReport
 	{
 		SELECTED_LIGHT_RULE_INDEX = 0,
 		SELECTED_LED_MAPPING_INDEX = 1,
+		SELECTED_LIGHT_MODE = 2,
+		TRIGGER_LIGHT_SW = 3
 	};
 	uint8_t reportId = REPORT_SET_PROPERTY;
 	uint32_le propertyId;

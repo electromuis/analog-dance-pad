@@ -61,12 +61,14 @@ public:
         wxString label,
         RgbColor c1,
         RgbColor c2,
-        bool fade)
+        bool fade,
+        bool pulse)
         : wxWindow(owner, wxID_ANY, position, size)
         , myLabel(label)
         , myStartColor(c1)
         , myEndColor(c2)
         , myIsFadeEnabled(fade)
+        , myIsPulseEnabled(pulse)
     {
     }
 
@@ -76,9 +78,20 @@ public:
         Refresh();
     }
 
+    void EnablePulse(bool enabled)
+    {
+        myIsPulseEnabled = enabled;
+        Refresh();
+    }
+
     bool IsFadeEnabled()
     {
         return myIsFadeEnabled;
+    }
+
+    bool IsPulseEnabled()
+    {
+        return myIsPulseEnabled;
     }
 
     RgbColor GetStartColor()
@@ -189,6 +202,7 @@ public:
 
 private:
     bool myIsFadeEnabled;
+    bool myIsPulseEnabled;
     RgbColor myStartColor;
     RgbColor myEndColor;
     wxString myLabel;
@@ -320,6 +334,8 @@ static LightRule NewLightRule()
     LightRule rule;
     rule.fadeOn = false;
     rule.fadeOff = false;
+    rule.pulseOn = false;
+    rule.pulseOff = false;
     rule.onColor = { 150, 150, 150 };
     rule.offColor = { 0, 0, 0 };
     rule.onFadeColor = { 0, 0, 0 };
@@ -337,9 +353,9 @@ public:
     {
         // Color settings and delete.
         myOnSetting = new ColorSettingGradient(
-            this, wxPoint(0, 0), wxSize(140, 30), L"ON", rule.onColor, rule.onFadeColor, rule.fadeOn);
+            this, wxPoint(0, 0), wxSize(140, 30), L"ON", rule.onColor, rule.onFadeColor, rule.fadeOn, rule.pulseOn);
         myOffSetting = new ColorSettingGradient(
-            this, wxPoint(150, 0), wxSize(140, 30), L"OFF", rule.offColor, rule.offFadeColor, rule.fadeOff);
+            this, wxPoint(150, 0), wxSize(140, 30), L"OFF", rule.offColor, rule.offFadeColor, rule.fadeOff, rule.pulseOff);
 
         myOnSetting->Bind(EVT_COLOR_CHANGED, &LightRulePanel::OnColorChanged, this);
         myOffSetting->Bind(EVT_COLOR_CHANGED, &LightRulePanel::OnColorChanged, this);
@@ -351,6 +367,14 @@ public:
         myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(50, 20));
         myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnFadeOffToggled, this);
         myFadeOffBox->SetValue(rule.fadeOff);
+
+        myPulseOnBox = new wxCheckBox(this, wxID_ANY, L"Pulse", wxPoint(0, 55), wxSize(50, 20));
+        myPulseOnBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnPulseOnToggled, this);
+        myPulseOnBox->SetValue(rule.pulseOn);
+
+        myPulseOffBox = new wxCheckBox(this, wxID_ANY, L"Pulse", wxPoint(150, 55), wxSize(50, 20));
+        myPulseOffBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnPulseOffToggled, this);
+        myPulseOffBox->SetValue(rule.pulseOff);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(300, 14), wxDefaultSize);
         myDeleteButton = new wxButton(this, DELETE_LIGHT_RULE, L"\u2715", wxDefaultPosition, wxSize(30, 30));
@@ -376,7 +400,7 @@ public:
     void RecomputeLayout()
     {
         auto size = GetSize();
-        int contentH = 60;
+        int contentH = 80;
 
         for (auto item : myLedMappings)
         {
@@ -403,6 +427,18 @@ public:
     void OnFadeOffToggled(wxCommandEvent& event)
     {
         myOffSetting->EnableFade(myFadeOffBox->IsChecked());
+        SendToDevice();
+    }
+
+    void OnPulseOnToggled(wxCommandEvent& event)
+    {
+        myOnSetting->EnablePulse(myPulseOnBox->IsChecked());
+        SendToDevice();
+    }
+
+    void OnPulseOffToggled(wxCommandEvent& event)
+    {
+        myOffSetting->EnablePulse(myPulseOffBox->IsChecked());
         SendToDevice();
     }
 
@@ -470,6 +506,8 @@ public:
         LightRule rule;
         rule.fadeOn = myOnSetting->IsFadeEnabled();
         rule.fadeOff = myOffSetting->IsFadeEnabled();
+        rule.pulseOn = myOnSetting->IsPulseEnabled();
+        rule.pulseOff = myOffSetting->IsPulseEnabled();
         rule.onColor = myOnSetting->GetStartColor();
         rule.offColor = myOffSetting->GetStartColor();
         rule.onFadeColor = myOnSetting->GetEndColor();
@@ -489,6 +527,8 @@ private:
     ColorSettingGradient* myOffSetting;
     wxCheckBox* myFadeOnBox;
     wxCheckBox* myFadeOffBox;
+    wxCheckBox* myPulseOnBox;
+    wxCheckBox* myPulseOffBox;
     wxStaticLine* myHLine;
     wxButton* myDeleteButton;
     wxButton* myAddLedMappingButton;

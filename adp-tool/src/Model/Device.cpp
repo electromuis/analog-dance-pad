@@ -41,9 +41,11 @@ enum LedMappingFlags
 
 enum LightRuleFlags
 {
-	LRF_ENABLED  = 1 << 0,
-	LRF_FADE_ON  = 1 << 1,
-	LRF_FADE_OFF = 1 << 2,
+	LRF_ENABLED		= 1 << 0,
+	LRF_FADE_ON		= 1 << 1,
+	LRF_FADE_OFF	= 1 << 2,
+	LRF_PULSE_ON	= 1 << 3,
+	LRF_PULSE_OFF	= 1 << 4,
 };
 
 // ====================================================================================================================
@@ -226,6 +228,8 @@ public:
 			LightRule result;
 			result.fadeOn = (report.flags & LRF_FADE_ON) != 0;
 			result.fadeOff = (report.flags & LRF_FADE_OFF) != 0;
+			result.pulseOn = (report.flags & LRF_PULSE_ON) != 0;
+			result.pulseOff = (report.flags & LRF_PULSE_OFF) != 0;
 			result.onColor = ToRgbColor(report.onColor);
 			result.onFadeColor = ToRgbColor(report.onFadeColor);
 			result.offColor = ToRgbColor(report.offColor);
@@ -404,7 +408,12 @@ public:
 	{
 		LightRuleReport report;
 		report.lightRuleIndex = lightRuleIndex;
-		report.flags = LRF_ENABLED | (LRF_FADE_ON * rule.fadeOn) | (LRF_FADE_OFF * rule.fadeOff);
+		report.flags =
+			LRF_ENABLED |
+			(LRF_FADE_ON * rule.fadeOn) |
+			(LRF_FADE_OFF * rule.fadeOff) |
+			(LRF_PULSE_ON * rule.pulseOn) |
+			(LRF_PULSE_OFF * rule.pulseOff);
 		report.onColor = ToColor24(rule.onColor);
 		report.offColor = ToColor24(rule.offColor);
 		report.onFadeColor = ToColor24(rule.onFadeColor);
@@ -422,6 +431,26 @@ public:
 		report.onFadeColor = {0, 0, 0};
 		report.offFadeColor = {0, 0, 0};
 		return SendLightRuleReport(report);
+	}
+
+	bool SetLightMode(int lightMode)
+	{
+		SetPropertyReport selectReport;
+
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_LIGHT_MODE);
+		selectReport.propertyValue = WriteU32LE(lightMode);
+
+		return myReporter->Send(selectReport);
+	}
+
+	bool TriggerLight(int ledMappingIndex)
+	{
+		SetPropertyReport selectReport;
+
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::TRIGGER_LIGHT_SW);
+		selectReport.propertyValue = WriteU32LE(ledMappingIndex);
+
+		return myReporter->Send(selectReport);
 	}
 
 	void Reset() { myReporter->SendReset(); }
@@ -806,6 +835,18 @@ bool Device::DisableLightRule(int lightRuleIndex)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->DisableLightRule(lightRuleIndex) : false;
+}
+
+bool Device::SetLightMode(int lightMode)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SetLightMode(lightMode) : false;
+}
+
+bool Device::TriggerLight(int ledMappingIndex)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->TriggerLight(ledMappingIndex) : false;
 }
 
 void Device::SendDeviceReset()

@@ -17,6 +17,12 @@ enum DeviceChangeFlags
 };
 typedef int32_t DeviceChanges;
 
+enum LightMode
+{
+	LM_HARDWARE = 0x0,
+	LM_SOFTWARE = 0x1
+};
+
 struct RgbColor
 {
 	uint8_t red;
@@ -54,6 +60,8 @@ struct LightRule
 {
 	bool fadeOn;
 	bool fadeOff;
+	bool pulseOn;
+	bool pulseOff;
 	RgbColor onColor;
 	RgbColor offColor;
 	RgbColor onFadeColor;
@@ -98,6 +106,10 @@ public:
 	static bool SendLightRule(int lightRuleIndex, LightRule rule);
 
 	static bool DisableLightRule(int lightRuleIndex);
+
+	static bool SetLightMode(int lightMode);
+
+	static bool TriggerLight(int ledMappingIndex);
 
 	static void SendDeviceReset();
 
