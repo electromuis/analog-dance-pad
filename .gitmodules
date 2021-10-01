@@ -13,3 +13,6 @@
 [submodule "adp-tool/lib/serial"]
 	path = adp-tool/lib/serial
 	url = https://github.com/wjwwood/serial
+[submodule "adp-tool/lib/json"]
+	path = adp-tool/lib/json
+	url = https://github.com/nlohmann/json

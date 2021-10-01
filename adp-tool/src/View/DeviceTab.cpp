@@ -10,6 +10,8 @@
 
 #include "Model/Device.h"
 #include "Model/Firmware.h"
+#include "Model/Log.h"
+#include "Model/Utils.h"
 
 #include "View/DeviceTab.h"
 
@@ -67,6 +69,18 @@ DeviceTab::DeviceTab(wxWindow* owner)
     SetSizer(sizer);
 
     firmwareDialog = new FirmwareDialog("Firmware updater");
+}
+
+void DeviceTab::SaveToProfile(json& j)
+{
+    const wchar_t* name = Device::Pad()->name.c_str();
+    j["name"] = narrow(name, wcslen(name));
+}
+
+void DeviceTab::LoadFromProfile(json& j)
+{
+    string name = j["name"];
+	Device::SetDeviceName(widen(name.c_str(), name.length()).c_str());
 }
 
 void DeviceTab::OnRename(wxCommandEvent& event)

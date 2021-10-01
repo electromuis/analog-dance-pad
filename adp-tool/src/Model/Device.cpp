@@ -516,6 +516,11 @@ public:
 
 	bool DiscoverDevice()
 	{
+		if(emulator) {
+			auto reporter = make_unique<Reporter>();
+			return ConnectToDeviceStage2(reporter, NULL);
+		}
+
 		auto foundDevices = hid_enumerate(0, 0);
 
 		// Devices that are incompatible or had a communication failure are tracked in a failed device list to prevent
@@ -536,7 +541,7 @@ public:
 
 		for (auto device = foundDevices; device; device = device->next)
 		{
-			if (myFailedDevices.count(device->path) == 0 && ConnectToDevice(device))
+			if (myFailedDevices.count(device->path) == 0 && ConnectToDeviceStage1(device))
 				break;
 		}
 
@@ -544,7 +549,7 @@ public:
 		return (bool)myConnectedDevice;
 	}
 
-	bool ConnectToDevice(hid_device_info* deviceInfo)
+	bool ConnectToDeviceStage1(hid_device_info* deviceInfo)
 	{
 		// Check if the vendor and product are compatible.
 
@@ -583,13 +588,23 @@ public:
 		// If both succeeded, we'll assume the device is valid.
 
 		auto reporter = make_unique<Reporter>(hid);
+		bool result = ConnectToDeviceStage2(reporter, deviceInfo);
+		if(!result) {
+			AddIncompatibleDevice(deviceInfo);
+			hid_close(hid);
+			return false;
+		}
+		
+		return result;
+	}
+
+	bool ConnectToDeviceStage2(unique_ptr<Reporter>& reporter, hid_device_info* deviceInfo)
+	{
 		NameReport name;
 		PadConfigurationReport padConfiguration;
 		IdentificationReport padIdentification;
 		if (!reporter->Get(name) || !reporter->Get(padConfiguration))
 		{
-			AddIncompatibleDevice(deviceInfo);
-			hid_close(hid);
 			return false;
 		}
 
@@ -641,10 +656,18 @@ public:
 				}
 			}
 		}
+		
+		string devicePath = "";
+		if(deviceInfo != NULL) {
+			devicePath = deviceInfo->path;
+		}
+		else if(emulator) {
+			devicePath = "Dummy";
+		}
 
 		auto device = new PadDevice(
 			reporter,
-			deviceInfo->path,
+			devicePath.c_str(),
 			name,
 			padConfiguration,
 			padIdentification,
@@ -654,11 +677,16 @@ public:
 		auto boardTypeString = BoardTypeToString(device->State().boardType);
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %ls", device->State().name.data());
-		Log::Writef(L"  Product: %ls", deviceInfo->product_string);
-		Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
 		Log::Writef(L"  Board: %ls", boardTypeString.c_str());
 		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentification.firmwareMajor), ReadU16LE(padIdentification.firmwareMinor));
-		Log::Writef(L"  Path: %ls", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+		if(deviceInfo != NULL) {
+			Log::Writef(L"  Product: %ls", deviceInfo->product_string);
+			Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
+			Log::Writef(L"  Path: %ls", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+		}
+		else {
+			Log::Writef(L"  Product: Dummy");
+		}
 		Log::Write(L"]");
 		PrintPadConfigurationReport(padConfiguration);
 
@@ -685,6 +713,7 @@ public:
 private:
 	unique_ptr<PadDevice> myConnectedDevice;
 	map<DevicePath, DeviceName> myFailedDevices;
+	bool emulator = true;
 };
 
 // ====================================================================================================================

@@ -24,6 +24,9 @@ public:
     void Tick() override;
 
     wxWindow* GetWindow() override { return this; }
+	
+	void LoadFromProfile(json& j) override;
+	void SaveToProfile(json& j) override;
 
 private:
     std::vector<wxComboBox*> myButtonBoxes;
