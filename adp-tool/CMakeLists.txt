@@ -13,8 +13,11 @@ set( INCLUDES
           )
 
 set(wxBUILD_SHARED OFF CACHE BOOL "enable X functionality")
+#set(JSON_BuildTests OFF CACHE INTERNAL "")
+
 add_subdirectory (lib/wxwidgets)
 add_subdirectory (lib/avrdude)
+#add_subdirectory (lib/json)
 include(lib/hidapi.cmake)
 include(lib/serial.cmake)
 
@@ -43,6 +46,7 @@ target_include_directories(${PROJECT_NAME}
 	PUBLIC "${WX_SETUP_INCLUDE}"
 	PUBLIC "lib/wxwidgets/include"
 	PUBLIC "lib/avrdude"
+	PUBLIC "lib/json/single_include"
 	PUBLIC "src"
 )
 
@@ -56,6 +60,7 @@ set(LIBRARIES
 	hidapi
 	avrdude
 	serial
+	#nlohmann_json::nlohmann_json
 )
 
 if(WIN32)

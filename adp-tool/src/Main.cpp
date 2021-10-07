@@ -2,6 +2,9 @@
 
 #include <vector>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 #include "wx/wx.h"
 #include "wx/notebook.h"
 
@@ -16,6 +19,7 @@
 #include "View/LogTab.h"
 
 #include "Model/Log.h"
+#include "Model/Updater.h"
 
 namespace adp {
 	
@@ -184,6 +188,7 @@ public:
         auto now = wxDateTime::Now().FormatISOCombined(' ');
         Log::Writef(L"Application started: %ls - %ls", versionString.data(), now.wc_str());
 
+        Updater::Init();
         Assets::Init();
         Device::Init();
 
