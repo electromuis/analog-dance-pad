@@ -302,11 +302,17 @@ public:
         myWindow->SetIcons(icons);
         myWindow->Show();
 
+        Updater::CheckForUpdates([](SoftwareUpdate& update) {
+            auto v = update.GetVersion();
+            wxMessageBox(wxString::Format("ADP tool version v%i.%i is available", v.major, v.minor), L"Update found", wxICON_INFORMATION);
+        });
+
         return true;
     }
 
     int OnExit() override
     {
+        Updater::Shutdown();
         Device::Shutdown();
         Assets::Shutdown();
         Log::Shutdown();
