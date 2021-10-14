@@ -5,6 +5,7 @@
 #include <map>
 
 #include "Model/Firmware.h"
+#include "Model/Updater.h"
 
 namespace adp {
 
@@ -40,6 +41,7 @@ struct PadState
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
 	BoardType boardType = BOARD_UNKNOWN;
+	VersionType firmwareVersion = versionTypeUnknown;
 };
 
 struct LedMapping

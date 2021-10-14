@@ -1,4 +1,5 @@
 #include "Adp.h"
+#include "Main.h"
 
 #include <vector>
 
@@ -7,6 +8,7 @@ using json = nlohmann::json;
 
 #include "wx/wx.h"
 #include "wx/notebook.h"
+#include "wx/filename.h"
 
 #include "Assets/Assets.h"
 
@@ -20,10 +22,9 @@ using json = nlohmann::json;
 
 #include "Model/Log.h"
 #include "Model/Updater.h"
+#include "View/UpdaterView.h"
 
 namespace adp {
-	
-static const wchar_t* TOOL_NAME = L"ADP Tool";
 
 // ====================================================================================================================
 // Main window.
@@ -60,8 +61,12 @@ public:
     {
         auto changes = Device::Update();
 
-        if (changes & DCF_DEVICE)
+        if (changes & DCF_DEVICE) {
             UpdatePages();
+            Updater::CheckForFirmwareUpdates([](SoftwareUpdate& update) {
+                ShowUpdateDialog(update);
+            });
+        }
 
         if (changes & (DCF_DEVICE | DCF_NAME))
             UpdateStatusText();
@@ -172,62 +177,86 @@ END_EVENT_TABLE()
 // Application.
 // ====================================================================================================================
 
-class Application : public wxApp
+Application::~Application()
 {
-public:
-    bool OnInit() override
-    {
-        if (!wxApp::OnInit())
-            return false;
+    wxString tempDir = GetTempDir(false);
+    if (wxDirExists(tempDir)) {
+        wxRmDir(tempDir);
+    }
+        
+    if (doRestart) {
+        wxExecute(argv[0]);
+    }
+}
 
-        Log::Init();
+wxString Application::GetTempDir()
+{
+    GetTempDir(true);
+}
 
-        auto versionString = wstring(TOOL_NAME) + L" " +
-            to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
+wxString Application::GetTempDir(bool create)
+{
+    wxString dir = wxFileName::GetTempDir().Append(TOOL_NAME);
+    if (!wxDirExists(dir) && create) {
+        wxMkdir(dir);
+    }
+    return dir;
+}
 
-        auto now = wxDateTime::Now().FormatISOCombined(' ');
-        Log::Writef(L"Application started: %ls - %ls", versionString.data(), now.wc_str());
+bool Application::OnInit()
+{
+    if (!wxApp::OnInit())
+        return false;
 
-        Updater::Init();
-        Assets::Init();
-        Device::Init();
+    Log::Init();
 
-        wxImage::AddHandler(new wxPNGHandler());
+    auto versionString = wstring(TOOL_NAME) + L" " +
+        to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
 
-        wxIconBundle icons;
+    auto now = wxDateTime::Now().FormatISOCombined(' ');
+    Log::Writef(L"Application started: %ls - %ls", versionString.data(), now.wc_str());
 
-        //todo fix linux
+    Updater::Init();
+    Assets::Init();
+    Device::Init();
+
+    wxImage::AddHandler(new wxPNGHandler());
+
+    wxIconBundle icons;
+
+    //todo fix linux
 #ifdef _MSC_VER
-        icons.AddIcon(Files::Icon16(), wxBITMAP_TYPE_PNG);
-        icons.AddIcon(Files::Icon32(), wxBITMAP_TYPE_PNG);
-        icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
+    icons.AddIcon(Files::Icon16(), wxBITMAP_TYPE_PNG);
+    icons.AddIcon(Files::Icon32(), wxBITMAP_TYPE_PNG);
+    icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
 #endif // _MSC_VER
 
-        myWindow = new MainWindow(this, versionString.data());
-        myWindow->SetIcons(icons);
-        myWindow->Show();
+    myWindow = new MainWindow(this, versionString.data());
+    myWindow->SetIcons(icons);
+    myWindow->Show();
 
-        Updater::CheckForUpdates([](SoftwareUpdate& update) {
-            auto v = update.GetVersion();
-            wxMessageBox(wxString::Format("ADP tool version v%i.%i is available", v.major, v.minor), L"Update found", wxICON_INFORMATION);
-        });
+    Updater::CheckForAdpUpdates([](SoftwareUpdate& update) {
+        ShowUpdateDialog(update);
+    });
 
-        return true;
-    }
+    return true;
+}
 
-    int OnExit() override
-    {
-        Updater::Shutdown();
-        Device::Shutdown();
-        Assets::Shutdown();
-        Log::Shutdown();
+void Application::Restart()
+{
+    doRestart = true;
+    ExitMainLoop();
+}
 
-        return wxApp::OnExit();
-    }
+int Application::OnExit()
+{
+    Updater::Shutdown();
+    Device::Shutdown();
+    Assets::Shutdown();
+    Log::Shutdown();
 
-private:
-    MainWindow* myWindow;
-};
+    return wxApp::OnExit();
+}
 
 }; // namespace adp.
 
