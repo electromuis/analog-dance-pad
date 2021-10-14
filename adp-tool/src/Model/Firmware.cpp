@@ -27,21 +27,22 @@ BoardType ParseBoardType(const std::string& str)
 	else { return BOARD_UNKNOWN; }
 }
 
-wstring BoardTypeToString(BoardType boardType)
+wstring BoardTypeToString(BoardType boardType, bool firmwareFile)
 {
 	if (boardType == BOARD_FSRIO_V1) {
-		return L"FSRio V1";
+		return firmwareFile ? L"FSRio V1" : L"FSRioV1";
 	}
+
 	if (boardType == BOARD_FSRMINIPAD) {
-		return L"FSR Mini pad";
+		return firmwareFile ? L"FSRMiniPad" : L"FSR Mini pad";
 	}
 
 	if (boardType == BOARD_TEENSY2) {
-		return L"Teensy 2";
+		return firmwareFile ? L"Teensy2" : L"Teensy 2";
 	}
 
 	if (boardType == BOARD_LEONARDO) {
-		return L"Arduino leonardo/pro micro";
+		return firmwareFile ? L"Generic" : L"Arduino leonardo/pro micro";
 	}
 
 	return L"Unknown";

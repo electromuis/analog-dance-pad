@@ -42,8 +42,9 @@ public:
 		binaryName(binaryName)
 	{}
 
-	bool Install();
+	void Install(void (*updateInstalledCallback)(bool));
 	VersionType GetVersion() { return version; };
+	SoftwareType GetSoftwareType() { return softwareType; };
 
 private:
 	VersionType version;
@@ -58,7 +59,8 @@ class Updater
 public:
 	static void Init();
 	static void Shutdown();
-	static void CheckForUpdates(void (*updateFoundCallback)(SoftwareUpdate&));
+	static void CheckForAdpUpdates(void (*updateFoundCallback)(SoftwareUpdate&));
+	static void CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate&));
 
 	static VersionType AdpVersion();
 	static VersionType ParseString(string input);

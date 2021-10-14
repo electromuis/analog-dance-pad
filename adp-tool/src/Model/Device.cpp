@@ -13,6 +13,7 @@
 #include "Model/Log.h"
 #include "Model/Utils.h"
 #include "Model/Firmware.h"
+#include "Model/Updater.h"
 
 using namespace std;
 using namespace chrono;
@@ -221,6 +222,8 @@ public:
 		{
 			memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
 			myPad.boardType = ParseBoardType(buffer);
+			myPad.firmwareVersion.major = ReadU16LE(identification.firmwareMajor);
+			myPad.firmwareVersion.minor = ReadU16LE(identification.firmwareMinor);
 			free(buffer);
 		}
 		

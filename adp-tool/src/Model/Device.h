@@ -10,6 +10,7 @@ using json = nlohmann::json;
 
 #include "Model/Firmware.h"
 #include "Model/Reporter.h"
+#include "Model/Updater.h"
 
 namespace adp {
 
@@ -85,8 +86,12 @@ struct PadState
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
 	BoardType boardType = BOARD_UNKNOWN;
+<<<<<<< HEAD
 	bool featureDebug;
 	bool featureDigipot;
+=======
+	VersionType firmwareVersion = versionTypeUnknown;
+>>>>>>> fb9c7d4 (Verion checker for installed firmware)
 };
 
 struct LedMapping

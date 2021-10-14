@@ -72,5 +72,6 @@ private:
 
 enum BoardType ParseBoardType(const std::string& str);
 wstring BoardTypeToString(BoardType boardType);
+wstring BoardTypeToString(BoardType boardType, bool firmwareFile);
 
 }; // namespace adp.
