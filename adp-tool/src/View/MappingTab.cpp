@@ -112,19 +112,4 @@ void MappingTab::UpdateButtonMapping()
     }
 }
 
-void MappingTab::SaveToProfile(json& j)
-{
-    j["mapping"] = json::array();
-	for (int i = 0; i < myButtonBoxes.size(); ++i)
-    {
-		j["mapping"][i] = myButtonBoxes[i]->GetSelection();
-	}
-}
-
-void MappingTab::LoadFromProfile(json& j)
-{
-    //string name = j["name"];
-	//Device::SetDeviceName(widen(name.c_str(), name.length()).c_str());
-}
-
 }; // namespace adp.

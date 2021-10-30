@@ -145,7 +145,7 @@ public:
 
 private:
 	hid_device* myHid;
-	bool emulator;
+	bool emulator = false;
 };
 
 }; // namespace adp.

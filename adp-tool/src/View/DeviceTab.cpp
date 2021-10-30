@@ -71,18 +71,6 @@ DeviceTab::DeviceTab(wxWindow* owner)
     firmwareDialog = new FirmwareDialog("Firmware updater");
 }
 
-void DeviceTab::SaveToProfile(json& j)
-{
-    const wchar_t* name = Device::Pad()->name.c_str();
-    j["name"] = narrow(name, wcslen(name));
-}
-
-void DeviceTab::LoadFromProfile(json& j)
-{
-    string name = j["name"];
-	Device::SetDeviceName(widen(name.c_str(), name.length()).c_str());
-}
-
 void DeviceTab::OnRename(wxCommandEvent& event)
 {
     auto pad = Device::Pad();
@@ -156,7 +144,7 @@ void FirmwareDialog::UpdateFirmware(wstring file)
 {
     uploader.SetIgnoreBoardType(false);
     tasksCompleted = 0;
-    tasksTodo = 4;
+    tasksTodo = 5;
     progressBar->SetRange(100 * tasksTodo);
     progressBar->SetValue(0);
     SetStatus("Waiting");

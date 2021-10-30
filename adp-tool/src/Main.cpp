@@ -76,6 +76,10 @@ public:
 
     void ProfileLoad(wxCommandEvent & event)
     {
+		if(!Device::Pad()) {
+			return;
+		}
+		
         wxFileDialog dlg(this, L"Open XYZ file", L"", L"", L"ADP profile (*.json)|*.json",
         wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
@@ -96,13 +100,15 @@ public:
 		fileStream >> j;
 		fileStream.close();
 		
-		for(auto t : myTabList) {
-            t->LoadFromProfile(j);
-        }
+		Device::LoadProfile(j, DGP_ALL);
     }
 
     void ProfileSave(wxCommandEvent & event)
     {
+		if(!Device::Pad()) {
+			return;
+		}
+		
         wxFileDialog dlg(this, L"Save XYZ file", L"", L"", L"ADP profile (*.json)|*.json",
         wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
 
@@ -117,11 +123,8 @@ public:
         }
 
         json j;
-		j["t"] = 1;
-
-        for(auto t : myTabList) {
-            t->SaveToProfile(j);
-        }
+		
+        Device::SaveProfile(j, DGP_ALL);
 
         wxStringInputStream input_stream(wxString(j.dump()));
         output_stream.Write(input_stream);

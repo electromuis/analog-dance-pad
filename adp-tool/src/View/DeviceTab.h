@@ -44,9 +44,6 @@ public:
     void OnReboot(wxCommandEvent& event);
     void OnFactoryReset(wxCommandEvent& event);
     void OnUploadFirmware(wxCommandEvent& event);
-	
-	void LoadFromProfile(json& j) override;
-	void SaveToProfile(json& j) override;
 
     wxWindow* GetWindow() override { return this; }
 

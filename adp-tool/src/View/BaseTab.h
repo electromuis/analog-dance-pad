@@ -19,10 +19,6 @@ public:
     virtual void HandleChanges(DeviceChanges changes) {}
 
     virtual void Tick() {}
-
-    virtual void SaveToProfile(json& j) {}
-
-    virtual void LoadFromProfile(json& j) {}
 };
 
 }; // namespace adp.

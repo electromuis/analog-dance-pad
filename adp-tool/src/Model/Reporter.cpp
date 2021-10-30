@@ -110,8 +110,8 @@ Reporter::Reporter(hid_device* device)
 }
 
 Reporter::Reporter()
-	:emulator(true)
 {
+	emulator = true;
 }
 
 Reporter::~Reporter()
@@ -142,6 +142,10 @@ bool Reporter::Get(PadConfigurationReport& report)
 bool Reporter::Get(NameReport& report)
 {
 	if(emulator) {
+		const char* name = "ADP Emulator";
+		memcpy(&report.name, name, sizeof(name));
+		report.size = sizeof(name);
+		
 		return true;
 	}
 
@@ -151,6 +155,10 @@ bool Reporter::Get(NameReport& report)
 bool Reporter::Get(IdentificationReport& report)
 {
 	if(emulator) {
+		report.buttonCount = 12;
+		report.sensorCount = 12;
+		report.ledCount = 0;
+		
 		return true;
 	}
 
