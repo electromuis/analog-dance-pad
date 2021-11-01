@@ -20,6 +20,7 @@ wxDEFINE_EVENT(EVT_AVRDUDE, wxCommandEvent);
 
 BoardType ParseBoardType(const std::string& str)
 {
+	if (str == "fsrio1") { return BOARD_FSRIO_V1; }
 	if (str == "fsrminipad") { return BOARD_FSRMINIPAD; }
 	if (str == "teensy2") { return BOARD_TEENSY2; }
 	if (str == "leonardo") { return BOARD_LEONARDO; }
@@ -28,6 +29,9 @@ BoardType ParseBoardType(const std::string& str)
 
 wstring BoardTypeToString(BoardType boardType)
 {
+	if (boardType == BOARD_FSRIO_V1) {
+		return L"FSRio V1";
+	}
 	if (boardType == BOARD_FSRMINIPAD) {
 		return L"FSR Mini pad";
 	}
@@ -99,6 +103,12 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	bool foundNewPort = false;
 	auto startTime = system_clock::now();
 
+	if (configBackup) {
+		delete configBackup;
+	}
+	configBackup = new json;
+	Device::SaveProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
+	Log::Write(L"Saved device config");
 	Device::SendDeviceReset();
 
 	while (!foundNewPort)
@@ -223,12 +233,12 @@ void FirmwareUploader::WritingDone(int exitCode)
 		if (eventHandler) {
 			auto evt = new wxCommandEvent(EVT_AVRDUDE);
 			evt->SetExtraLong(AE_PROGRESS);
-			evt->SetInt(timeSpent.count() * 10);
+			evt->SetInt(timeSpent.count() * 20);
 			evt->SetString("Restarting");
 			wxQueueEvent(eventHandler, evt);
 		}
 		
-		if (timeSpent.count() > 10) {
+		if (timeSpent.count() > 5) {
 			errorMessage = L"Device failed to come back online";
 			flashResult = FLASHRESULT_FAILURE;
 			return;
@@ -236,6 +246,14 @@ void FirmwareUploader::WritingDone(int exitCode)
 
 		this_thread::sleep_for(100ms);
 	} while (!Device::Pad());
+
+	if (configBackup) {
+		//Device::LoadProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
+		//Device::SaveChanges();
+		Log::Write(L"Restored device config");
+
+		delete configBackup;
+	}
 	
 	if (exitCode == 0) {
 		flashResult = FLASHRESULT_SUCCESS;

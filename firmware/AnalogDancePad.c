@@ -34,7 +34,6 @@
 #include "Pad.h"
 #include "Reset.h"
 #include "Lights.h"
-#include "ADC.h"
 #include "Debug.h"
 
 static Configuration configuration;
@@ -157,7 +156,15 @@ bool CALLBACK_HID_Device_CreateHIDReport(
     else if (*ReportID == PAD_CONFIGURATION_REPORT_ID)
     {
         PadConfigurationFeatureHIDReport* report = ReportData;
-        report->configuration = PAD_CONF;
+		
+		report->configuration.releaseMultiplier =
+			configuration.padConfiguration.sensors[0].threshold /
+			configuration.padConfiguration.sensors[0].releaseThreshold;
+		
+		for (int s = 0; s < SENSOR_COUNT; s++) {
+			report->configuration.sensorThresholds[s] = configuration.padConfiguration.sensors[s].threshold;
+			report->configuration.sensorToButtonMapping[s] = configuration.padConfiguration.sensors[s].buttonMapping;
+		}
         *ReportSize = sizeof (PadConfigurationFeatureHIDReport);
     }
     else if (*ReportID == NAME_REPORT_ID)
@@ -181,14 +188,14 @@ bool CALLBACK_HID_Device_CreateHIDReport(
         Communication_WriteIdentificationReport(ReportData);
         *ReportSize = sizeof(IdentificationFeatureReport);
 		
-		Debug_Message("Welcome!");
+		Debug_Message("Welcome!\n");
     }
     else if (*ReportID == IDENTIFICATION_V2_REPORT_ID)
     {
         Communication_WriteIdentificationV2Report(ReportData);
         *ReportSize = sizeof(IdentificationV2FeatureReport);
 		
-		Debug_Message("Welcome V2!");
+		Debug_Message("Welcome V2!\n");
     }
     else if (*ReportID == LED_MAPPING_REPORT_ID)
     {
@@ -200,15 +207,15 @@ bool CALLBACK_HID_Device_CreateHIDReport(
             memset(&report->mapping, 0, sizeof(LedMapping));
         *ReportSize = sizeof(LedMappingHIDReport);
     }
-    else if (*ReportID == ADC_CONFIGURATION_REPORT_ID)
+    else if (*ReportID == SENSOR_REPORT_ID)
     {
-        AdcConfigHIDReport* report = ReportData;
-        report->index = ADC_CONF.selectedAdcConfigIndex;
+        SensorHIDReport* report = ReportData;
+        report->index = PAD_CONF.selectedSensorIndex;
         if (report->index < SENSOR_COUNT)
-            memcpy(&report->config, &ADC_CONF.adcConfig[report->index], sizeof(AdcConfig));
+            memcpy(&report->sensor, &PAD_CONF.sensors[report->index], sizeof(SensorConfig));
         else
-            memset(&report->config, 0, sizeof(AdcConfig));
-        *ReportSize = sizeof(AdcConfigHIDReport);
+            memset(&report->sensor, 0, sizeof(SensorConfig));
+        *ReportSize = sizeof(SensorHIDReport);
     }
 	#if defined(FEATURE_DEBUG_ENABLED)
 	else if (*ReportID == DEBUG_REPORT_ID)
@@ -216,12 +223,16 @@ bool CALLBACK_HID_Device_CreateHIDReport(
         DebugHIDReport* report = ReportData;
 		
 		uint16_t readSize = Debug_Available();
-		if(readSize > 32) {
-			readSize = 32;
-		}
+		uint16_t maxReadSize = sizeof(report->messagePacket);
 		
-		report->messageSize = readSize;
-		Debug_ReadBuffer(&report->messagePacket, readSize);
+		if(readSize > 0) {
+			if(readSize > maxReadSize) {
+				readSize = maxReadSize;
+			}
+			
+			report->messageSize = readSize;
+			Debug_ReadBuffer(&report->messagePacket, readSize);
+		}
 		
         *ReportSize = sizeof(DebugHIDReport);
     }
@@ -247,8 +258,12 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     if (ReportID == PAD_CONFIGURATION_REPORT_ID && ReportSize == sizeof (PadConfigurationFeatureHIDReport))
     {
         const PadConfigurationFeatureHIDReport* report = ReportData;
-        memcpy(&configuration.padConfiguration, &report->configuration, sizeof (configuration.padConfiguration));
-        Pad_UpdateConfiguration(&report->configuration);
+		for (int s = 0; s < SENSOR_COUNT; s++) {
+			configuration.padConfiguration.sensors[s].threshold = report->configuration.sensorThresholds[s];
+			configuration.padConfiguration.sensors[s].releaseThreshold = report->configuration.sensorThresholds[s] * report->configuration.releaseMultiplier;
+			configuration.padConfiguration.sensors[s].buttonMapping = report->configuration.sensorToButtonMapping[s];
+		}
+        Pad_UpdateConfiguration(&configuration.padConfiguration);
     }
     else if (ReportID == RESET_REPORT_ID)
     {
@@ -288,13 +303,17 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
             Lights_UpdateConfiguration(&configuration.lightConfiguration);
         }
     }
-    else if (ReportID == ADC_CONFIGURATION_REPORT_ID && ReportSize == sizeof(AdcConfigHIDReport))
+    else if (ReportID == SENSOR_REPORT_ID && ReportSize == sizeof(SensorHIDReport))
     {
-        const AdcConfigHIDReport* report = ReportData;
+        const SensorHIDReport* report = ReportData;
         if (report->index < SENSOR_COUNT)
         {
-            memcpy(&configuration.adcConfiguration.adcConfig[report->index], &report->config, sizeof(AdcConfig));
-            Adc_UpdateConfiguration(&configuration.adcConfiguration);
+            memcpy(
+				&configuration.padConfiguration.sensors[report->index],
+				&report->sensor,
+				sizeof(SensorConfig)
+			);
+            Pad_UpdateConfiguration(&configuration.padConfiguration);
         }
     }
     else if (ReportID == SET_PROPERTY_REPORT_ID && ReportSize == sizeof (SetPropertyHIDReport))
@@ -310,8 +329,8 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
             LIGHT_CONF.selectedLedMappingIndex = (uint8_t)report->propertyValue;
             break;
 
-        case SPID_SELECTED_ADC_CONFIG_INDEX:
-            ADC_CONF.selectedAdcConfigIndex = (uint8_t)report->propertyValue;
+        case SPID_SELECTED_SENSOR_INDEX:
+            PAD_CONF.selectedSensorIndex = (uint8_t)report->propertyValue;
             break;
         }
     }

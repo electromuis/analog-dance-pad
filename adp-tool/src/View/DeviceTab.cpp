@@ -212,6 +212,8 @@ void FirmwareDialog::Done()
         Hide();
     }
     else {
+        progressBar->SetValue(progressBar->GetRange());
+
         SetStatus("Done");
         wxMessageBox("The selected firmware has been written to the device", L"Update firmware", wxICON_INFORMATION);
         Hide();

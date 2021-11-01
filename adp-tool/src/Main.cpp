@@ -141,9 +141,10 @@ public:
         if (changes & (DCF_DEVICE | DCF_NAME))
             UpdateStatusText();
 
-        string debugMessage = Device::ReadDebug();
+        wstring debugMessage = Device::ReadDebug();
+
         if (!debugMessage.empty()) {
-            Log::Writef(L"Debug: %s", debugMessage);
+            Log::Writef(L"\\/ \\/ \\/ Debug \\/ \\/ \\/\n%ls", debugMessage.c_str());
         }
 
         UpdatePollingRate();

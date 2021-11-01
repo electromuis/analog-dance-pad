@@ -25,7 +25,7 @@
 	#define FEATURE_DEBUG 1 << 0
 	#define FEATURE_DIGIPOT 1 << 1
 	
-	//#define FEATURE_DEBUG_ENABLED 1
+	#define FEATURE_DEBUG_ENABLED 1
 
     // Setting the used board type
     #define BOARD_TYPE_FSRIO_1
@@ -37,7 +37,7 @@
 	#elif defined(BOARD_TYPE_FSRIO_1)
         #define BOARD_TYPE "fsrio1";
         #define BOOTLOADER_ADDRESS "0x7000"
-		#define FEATURE_DIGIPOT_ENABLED 1
+		//#define FEATURE_DIGIPOT_ENABLED 1
 
     #elif defined(BOARD_TYPE_TEENSY2)
     	#define BOARD_TYPE "teensy2";

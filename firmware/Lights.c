@@ -119,8 +119,9 @@ void Lights_Update()
         if (!(rule->flags & LRF_ENABLED))
             continue;
 		
+		SensorConfig s = PAD_CONF.sensors[mapping->sensorIndex];
 		uint16_t sensorValue = PAD_STATE.sensorValues[mapping->sensorIndex];
-		uint16_t sensorThreshold = PAD_CONF.sensorThresholds[mapping->sensorIndex];
+		uint16_t sensorThreshold = s.threshold;
 		
 		bool sensorState = sensorValue > sensorThreshold;
 		

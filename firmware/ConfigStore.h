@@ -2,7 +2,6 @@
 #define _CONFIGSTORE_H_
     #include "Pad.h"
 	#include "Lights.h"
-	#include "ADC.h"
 
     #define MAX_NAME_SIZE 50
 
@@ -12,10 +11,9 @@
     } __attribute__((packed)) NameAndSize; 
 
     typedef struct {
-        PadConfiguration padConfiguration;
+        PadConfigurationV2 padConfiguration;
         NameAndSize nameAndSize;
 		LightConfiguration lightConfiguration;
-		AdcConfiguration adcConfiguration;
     } __attribute__((packed)) Configuration;
 	
     void ConfigStore_LoadConfiguration(Configuration* conf);

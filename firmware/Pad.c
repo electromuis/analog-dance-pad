@@ -9,7 +9,7 @@
 
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-PadConfiguration PAD_CONF;
+PadConfigurationV2 PAD_CONF;
 
 PadState PAD_STATE = { 
     .sensorValues = { [0 ... SENSOR_COUNT - 1] = 0 },
@@ -24,9 +24,11 @@ typedef struct {
 InternalPadConfiguration INTERNAL_PAD_CONF;
 
 void Pad_UpdateInternalConfiguration(void) {
+	/*
     for (int i = 0; i < SENSOR_COUNT; i++) {
         INTERNAL_PAD_CONF.sensorReleaseThresholds[i] = PAD_CONF.sensorThresholds[i] * PAD_CONF.releaseMultiplier;
     }
+	*/
 
     // Precalculate array for mapping buttons to sensors.
     // For every button, there is an array of sensor indices. when there are no more buttons assigned to that sensor,
@@ -35,7 +37,9 @@ void Pad_UpdateInternalConfiguration(void) {
         int mapIndex = 0;
 
         for (int sensorIndex = 0; sensorIndex < SENSOR_COUNT; sensorIndex++) {
-            if (PAD_CONF.sensorToButtonMapping[sensorIndex] == buttonIndex) {
+			SensorConfig s = PAD_CONF.sensors[sensorIndex];
+			
+            if (s.buttonMapping == buttonIndex) {
                 INTERNAL_PAD_CONF.buttonToSensorMap[buttonIndex][mapIndex++] = sensorIndex;
             }
         }
@@ -45,13 +49,13 @@ void Pad_UpdateInternalConfiguration(void) {
     }
 }
 
-void Pad_Initialize(const PadConfiguration* padConfiguration) {
-    ADC_Init();
+void Pad_Initialize(const PadConfigurationV2* padConfiguration) {
     Pad_UpdateConfiguration(padConfiguration);
+	ADC_Init();
 }
 
-void Pad_UpdateConfiguration(const PadConfiguration* padConfiguration) {
-    memcpy(&PAD_CONF, padConfiguration, sizeof (PadConfiguration));
+void Pad_UpdateConfiguration(const PadConfigurationV2* padConfiguration) {
+    memcpy(&PAD_CONF, padConfiguration, sizeof (PadConfigurationV2));
     Pad_UpdateInternalConfiguration();
 }
 
@@ -82,15 +86,16 @@ void Pad_UpdateState(void) {
                 break;
             }
 
+			SensorConfig s = PAD_CONF.sensors[sensor];
             uint16_t sensorVal = PAD_STATE.sensorValues[sensor];
 
             if (PAD_STATE.buttonsPressed[i]) {
-                if (sensorVal > INTERNAL_PAD_CONF.sensorReleaseThresholds[sensor]) {
+                if (sensorVal > s.releaseThreshold) {
                     newButtonPressedState = true;
                     break;
                 }
             } else {
-                if (sensorVal > PAD_CONF.sensorThresholds[sensor]) {
+                if (sensorVal > s.threshold) {
                     newButtonPressedState = true;
                     break;
                 }

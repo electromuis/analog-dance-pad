@@ -535,26 +535,24 @@ public:
 		return (index >= 0 && index < myPad.numSensors) ? (myAdcConfig + index) : nullptr;
 	}
 
-	string ReadDebug()
+	wstring ReadDebug()
 	{
 		if (!myPad.featureDebug) {
-			return "";
+			return L"";
 		}
 
 		DebugReport report;
 		if (!myReporter->Get(report)) {
-			return "";
+			return L"";
 		}
 
 		int messageSize = ReadU16LE(report.messageSize);
 
 		if (messageSize == 0) {
-			return "";
+			return L"";
 		}
 
-		string message;
-		message.assign(report.messagePacket, messageSize);
-		return message;
+		return widen(report.messagePacket, messageSize);
 	}
 
 	DeviceChanges PopChanges()
@@ -714,7 +712,7 @@ public:
 		{
 			int versionMajor = ReadU16LE(padIdentification.firmwareMajor);
 			int versionMinor = ReadU16LE(padIdentification.firmwareMinor);
-
+			 
 			if(
 				!(versionMajor > 1 || (versionMajor == 1 && versionMinor >= 3)) ||
 				!reporter->Get(padIdentificationV2)
@@ -799,7 +797,8 @@ public:
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %ls", device->State().name.data());
 		Log::Writef(L"  Board: %ls", boardTypeString.c_str());
-		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentification.firmwareMajor), ReadU16LE(padIdentification.firmwareMinor));
+		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
+		Log::Writef(L"  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
 		if(deviceInfo != NULL) {
 			Log::Writef(L"  Product: %ls", deviceInfo->product_string);
 			Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
@@ -834,7 +833,7 @@ public:
 private:
 	unique_ptr<PadDevice> myConnectedDevice;
 	map<DevicePath, DeviceName> myFailedDevices;
-	bool emulator = true;
+	bool emulator = false;
 };
 
 // ====================================================================================================================
@@ -919,10 +918,10 @@ const AdcState* Device::Adc(int sensorIndex)
 	return device ? device->Adc(sensorIndex) : nullptr;
 }
 
-string Device::ReadDebug()
+wstring Device::ReadDebug()
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->ReadDebug() : "";
+	return device ? device->ReadDebug() : L"";
 }
 
 bool Device::SetThreshold(int sensorIndex, double threshold)
@@ -991,6 +990,12 @@ void Device::SendFactoryReset()
 	if (device) device->FactoryReset();
 }
 
+void Device::SaveChanges()
+{
+	auto device = connectionManager->ConnectedDevice();
+	if (device) device->SaveChanges();
+}
+
 void Device::SetSearching(bool s)
 {
 	searching = s;
@@ -1021,10 +1026,10 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 				LightRule lr = {
 					value["fadeOn"],
 					value["fadeOff"],
-					RgbColor(value["onColor"]),
-					RgbColor(value["offColor"]),
-					RgbColor(value["fadeOnColor"]),
-					RgbColor(value["fadeOffColor"])
+					RgbColor((string)value["onColor"]),
+					RgbColor((string)value["offColor"]),
+					RgbColor((string)value["fadeOnColor"]),
+					RgbColor((string)value["fadeOffColor"])
 				};
 				
 				SendLightRule(key, lr);

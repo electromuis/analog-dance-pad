@@ -80,7 +80,7 @@
         #define IDENTIFICATION_REPORT_ID         0x9
         #define LED_MAPPING_REPORT_ID            0xA
         #define SET_PROPERTY_REPORT_ID           0xB
-		#define ADC_CONFIGURATION_REPORT_ID      0xC
+		#define SENSOR_REPORT_ID      			 0xC
 		
 		#if defined(FEATURE_DEBUG_ENABLED)
 			#define DEBUG_REPORT_ID      	     0xD

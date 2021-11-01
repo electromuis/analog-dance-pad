@@ -2,13 +2,8 @@
 #include <avr/io.h>
 
 #include "Config/DancePadConfig.h"
+#include "Pad.h"
 #include "ADC.h"
-
-AdcConfiguration ADC_CONF;
-
-void Adc_UpdateConfiguration(const AdcConfiguration* adcConfiguration) {
-    memcpy(&ADC_CONF, adcConfiguration, sizeof (AdcConfiguration));
-}
 
 // see page 308 of https://cdn.sparkfun.com/datasheets/Dev/Arduino/Boards/ATMega32U4.pdf for these
 static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
@@ -56,9 +51,9 @@ static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
 };
 
 void ADC_LoadPot(uint8_t sensor) {
-	const AdcConfig* config = &ADC_CONF.adcConfig[sensor];
+	SensorConfig s = PAD_CONF.sensors[sensor];
 	
-	if(config->flags & ADC_AREF_3) {
+	if(s.aref == 3) {
 		ADMUX = (1 << REFS0) | (1 << REFS1); // analog reference = ~3V VCC
 	}
 	else {
@@ -104,7 +99,7 @@ void ADC_LoadPot(uint8_t sensor) {
 	SPDR = 0b00010001;
     while(! (SPSR & (1 << SPIF)) ) ;
 	
-	SPDR = config->resistorValue;	
+	SPDR = s.resistorValue;	
     while(! (SPSR & (1 << SPIF)) ) ;
 	
 	PORTB |= 1 << DDB6;

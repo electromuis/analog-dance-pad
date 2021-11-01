@@ -45,7 +45,11 @@ struct RgbColor
 		sscanf(input.c_str(), "%02X%02X%02X", &red, &green, &blue);
 	}
 	
-	RgbColor() { ; }
+	RgbColor()
+		:red(0), green(0), blue(0)
+	{
+
+	}
 	
 	uint8_t red;
 	uint8_t green;
@@ -128,7 +132,7 @@ public:
 
 	static const AdcState* Adc(int sensorIndex);
 
-	static string ReadDebug();
+	static wstring ReadDebug();
 
 	static bool SetThreshold(int sensorIndex, double threshold);
 
@@ -151,6 +155,8 @@ public:
 	static void SendDeviceReset();
 
 	static void SendFactoryReset();
+
+	static void SaveChanges();
 	
 	static void LoadProfile(json& j, DeviceProfileGroups groups);
 	

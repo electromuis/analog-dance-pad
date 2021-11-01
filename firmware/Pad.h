@@ -5,6 +5,11 @@
 #include <stdbool.h>
 #include "Config/DancePadConfig.h"
 
+enum SensorConfigFlags
+{
+	ADC_DISABLED     = 0x1
+};
+
 typedef struct {
     uint16_t sensorThresholds[SENSOR_COUNT];
     float releaseMultiplier;
@@ -12,15 +17,29 @@ typedef struct {
 } __attribute__((packed)) PadConfiguration;
 
 typedef struct {
+	uint16_t threshold;
+	uint16_t releaseThreshold;
+	int8_t buttonMapping;
+	uint8_t resistorValue;
+	uint8_t aref;
+	uint16_t flags;
+} __attribute__((packed)) SensorConfig;
+
+typedef struct {
+    SensorConfig sensors[SENSOR_COUNT];
+	uint8_t selectedSensorIndex;
+} __attribute__((packed)) PadConfigurationV2;
+
+typedef struct {
     uint16_t sensorValues[SENSOR_COUNT];
     bool buttonsPressed[BUTTON_COUNT];
 } PadState;
 
-void Pad_Initialize(const PadConfiguration* padConfiguration);
+void Pad_Initialize(const PadConfigurationV2* padConfiguration);
 void Pad_UpdateState(void);
-void Pad_UpdateConfiguration(const PadConfiguration* padConfiguration);
+void Pad_UpdateConfiguration(const PadConfigurationV2* padConfiguration);
 
-extern PadConfiguration PAD_CONF;
+extern PadConfigurationV2 PAD_CONF;
 extern PadState PAD_STATE;
 
 #endif

@@ -1,8 +1,7 @@
 cmake_minimum_required (VERSION 3.6)
 
-if(MSVC)
+
 	set(CMAKE_GENERATOR_PLATFORM win32)
-endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 project(adp-tool)

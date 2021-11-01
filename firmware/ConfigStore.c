@@ -52,6 +52,18 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
 
 static const Configuration DEFAULT_CONFIGURATION = {
     .padConfiguration = {
+		
+		.sensors = { [0 ... SENSOR_COUNT - 1] = {
+			.threshold = 400,
+			.releaseThreshold = 400 * 0.95,
+			.buttonMapping = 0xFF,
+			.resistorValue = 150,
+			.aref = 5,
+			.flags = 0
+		} }
+		
+		
+		/*
         .sensorThresholds = { [0 ... SENSOR_COUNT - 1] = 400 },
         .releaseMultiplier = 0.95,
         .sensorToButtonMapping = {
@@ -65,7 +77,9 @@ static const Configuration DEFAULT_CONFIGURATION = {
 #else
 			[0 ... SENSOR_COUNT - 1] = 0xFF 
 #endif
+
 		}
+*/
     },
     .nameAndSize = {
         .size = sizeof(DEFAULT_NAME) - 1, // we don't care about the null at the end.
@@ -88,18 +102,6 @@ static const Configuration DEFAULT_CONFIGURATION = {
             DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
         }
 #endif
-	},
-	.adcConfiguration = {
-		.adcConfig = {
-			[0 ... SENSOR_COUNT - 1] = {
-				#if defined(BOARD_TYPE_FSRIO_1)
-					.flags = ADC_AREF_5 | ADC_SET_RESISTOR,
-					.resistorValue = 150
-				#else
-					.flags = ADC_AREF_5
-				#endif
-			}
-		}
 	}
 };
 

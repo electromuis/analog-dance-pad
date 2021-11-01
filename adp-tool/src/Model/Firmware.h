@@ -7,6 +7,9 @@
 #include "serial/serial.h"
 #include "wx/event.h"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 using namespace std;
 using namespace Slic3r;
 using namespace serial;
@@ -17,7 +20,8 @@ enum BoardType {
 	BOARD_UNKNOWN,
 	BOARD_FSRMINIPAD,
 	BOARD_TEENSY2,
-	BOARD_LEONARDO
+	BOARD_LEONARDO,
+	BOARD_FSRIO_V1
 };
 
 enum FlashResult
@@ -61,6 +65,7 @@ private:
 	wxEvtHandler* eventHandler;
 	wstring errorMessage;
 	FlashResult flashResult = FLASHRESULT_NOTHING;
+	json* configBackup = NULL;
 	bool ignoreBoardType = false;
 };
 
