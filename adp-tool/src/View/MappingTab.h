@@ -6,6 +6,9 @@
 #include "wx/window.h"
 #include "wx/dataview.h"
 #include "wx/combobox.h"
+#include "wx/dialog.h"
+#include "wx/slider.h"
+#include "wx/timer.h"
 
 #include "View/BaseTab.h"
 
@@ -30,7 +33,26 @@ private:
     std::vector<HorizontalSensorBar*> mySensorBars;
 
     void OnButtonChanged(wxCommandEvent&);
+    void OnSensorConfig(wxCommandEvent&);
     void UpdateButtonMapping();
+};
+
+class SensorConfigDialog : public wxDialog
+{
+public:
+    SensorConfigDialog(int sensorNumber);
+    ~SensorConfigDialog();
+
+    void Save(wxCommandEvent& event);
+    void Done(wxCommandEvent& event);
+    void Tick(wxTimerEvent& event);
+
+private:
+    HorizontalSensorBar* sensorBar;
+    wxComboBox* arefSelection;
+    wxSlider* resistorSlider;
+    int sensorNumber;
+    wxTimer* updateTimer;
 };
 
 }; // namespace adp.

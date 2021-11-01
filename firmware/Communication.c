@@ -35,3 +35,16 @@ void Communication_WriteIdentificationReport(IdentificationFeatureReport* Report
 	memset(ReportData->boardType, 0, sizeof(ReportData->boardType));
     strcpy(ReportData->boardType, boardType);
 }
+
+void Communication_WriteIdentificationV2Report(IdentificationV2FeatureReport* ReportData) {
+	Communication_WriteIdentificationReport(&ReportData->parent);
+	
+	ReportData->features = 0;
+	#if defined(FEATURE_DEBUG_ENABLED)
+		ReportData->features |= FEATURE_DEBUG;
+	#endif
+	
+	#if defined(FEATURE_DIGIPOT_ENABLED)
+		ReportData->features |= FEATURE_DIGIPOT;
+	#endif
+}

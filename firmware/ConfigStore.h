@@ -2,6 +2,7 @@
 #define _CONFIGSTORE_H_
     #include "Pad.h"
 	#include "Lights.h"
+	#include "ADC.h"
 
     #define MAX_NAME_SIZE 50
 
@@ -14,6 +15,7 @@
         PadConfiguration padConfiguration;
         NameAndSize nameAndSize;
 		LightConfiguration lightConfiguration;
+		AdcConfiguration adcConfiguration;
     } __attribute__((packed)) Configuration;
 	
     void ConfigStore_LoadConfiguration(Configuration* conf);

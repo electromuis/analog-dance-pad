@@ -35,6 +35,9 @@ enum ReportId
 	REPORT_IDENTIFICATION	  = 0x9,
 	REPORT_LED_MAPPING        = 0xA,
 	REPORT_SET_PROPERTY       = 0xB,
+	REPORT_ADC_CONFIG		  = 0xC,
+	REPORT_DEBUG			  = 0xD,
+	REPORT_IDENTIFICATION_V2  = 0xE,
 };
 
 enum class ReadDataResult
@@ -84,6 +87,22 @@ struct IdentificationReport
 	char boardType[BOARD_TYPE_LENGTH];
 };
 
+struct IdentificationV2Report : public IdentificationReport
+{
+	IdentificationV2Report()
+	{
+		reportId = REPORT_IDENTIFICATION_V2;
+	}
+
+	enum Features
+	{
+		FEATURE_DEBUG = 1 << 0,
+		FEATURE_DIGIPOT = 1 << 1,
+	};
+
+	uint16_le features;
+};
+
 struct LightRuleReport
 {
 	uint8_t reportId = REPORT_LIGHT_RULE;
@@ -106,16 +125,41 @@ struct LedMappingReport
 	uint8_t ledIndexEnd;
 };
 
+struct AdcConfigReport
+{
+	enum Ids
+	{
+		ADC_DISABLED		= 1 << 0,
+		ADC_SET_RESISTOR	= 1 << 1,
+		ADC_AREF_5			= 1 << 2,
+		ADC_AREF_3			= 1 << 3
+	};
+
+	uint8_t reportId = REPORT_ADC_CONFIG;
+	uint8_t index;
+	uint8_t flags;
+	uint8_t resistorValue;
+};
+
 struct SetPropertyReport
 {
 	enum Ids
 	{
 		SELECTED_LIGHT_RULE_INDEX = 0,
 		SELECTED_LED_MAPPING_INDEX = 1,
+		SELECTED_ADC_CONFIG_INDEX = 2,
+		SELECTED_CLIENT_VERSION = 3
 	};
 	uint8_t reportId = REPORT_SET_PROPERTY;
 	uint32_le propertyId;
 	uint32_le propertyValue;
+};
+
+struct DebugReport
+{
+	uint8_t reportId = REPORT_DEBUG;
+	uint16_le messageSize;
+	char messagePacket[32];
 };
 
 #pragma pack()
@@ -130,8 +174,11 @@ public:
 	bool Get(PadConfigurationReport& report);
 	bool Get(NameReport& report);
 	bool Get(IdentificationReport& report);
+	bool Get(IdentificationV2Report& report);
 	bool Get(LightRuleReport& report);
 	bool Get(LedMappingReport& report);
+	bool Get(AdcConfigReport& report);
+	bool Get(DebugReport& report);
 
 	void SendReset();
 	void SendFactoryReset();
@@ -140,6 +187,7 @@ public:
 	bool Send(const NameReport& report);
 	bool Send(const LightRuleReport& report);
 	bool Send(const LedMappingReport& report);
+	bool Send(const AdcConfigReport& report);
 	bool Send(const SetPropertyReport& report);
 
 private:

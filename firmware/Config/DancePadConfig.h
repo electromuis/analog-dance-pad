@@ -2,7 +2,7 @@
 #define _DANCE_PAD_CONFIG_H_
     //Version 2 since Kauhsa's initial version will be considered version 0
     #define FIRMWARE_VERSION_MAJOR 1
-    #define FIRMWARE_VERSION_MINOR 2
+    #define FIRMWARE_VERSION_MINOR 3
 
     #define MAX_SENSOR_VALUE 1024
 
@@ -21,13 +21,23 @@
     #define LED_PANELS 4
     #define PANEL_LEDS 8
     #define LED_COUNT (LED_PANELS * PANEL_LEDS)	
+	
+	#define FEATURE_DEBUG 1 << 0
+	#define FEATURE_DIGIPOT 1 << 1
+	
+	//#define FEATURE_DEBUG_ENABLED 1
 
     // Setting the used board type
-    #define BOARD_TYPE_FSRMINIPAD
+    #define BOARD_TYPE_FSRIO_1
 	
     #if defined(BOARD_TYPE_FSRMINIPAD)
         #define BOARD_TYPE "fsrminipad";
         #define BOOTLOADER_ADDRESS "0x7000"
+		
+	#elif defined(BOARD_TYPE_FSRIO_1)
+        #define BOARD_TYPE "fsrio1";
+        #define BOOTLOADER_ADDRESS "0x7000"
+		#define FEATURE_DIGIPOT_ENABLED 1
 
     #elif defined(BOARD_TYPE_TEENSY2)
     	#define BOARD_TYPE "teensy2";

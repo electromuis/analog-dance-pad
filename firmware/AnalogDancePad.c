@@ -34,6 +34,8 @@
 #include "Pad.h"
 #include "Reset.h"
 #include "Lights.h"
+#include "ADC.h"
+#include "Debug.h"
 
 static Configuration configuration;
 
@@ -178,6 +180,15 @@ bool CALLBACK_HID_Device_CreateHIDReport(
     {
         Communication_WriteIdentificationReport(ReportData);
         *ReportSize = sizeof(IdentificationFeatureReport);
+		
+		Debug_Message("Welcome!");
+    }
+    else if (*ReportID == IDENTIFICATION_V2_REPORT_ID)
+    {
+        Communication_WriteIdentificationV2Report(ReportData);
+        *ReportSize = sizeof(IdentificationV2FeatureReport);
+		
+		Debug_Message("Welcome V2!");
     }
     else if (*ReportID == LED_MAPPING_REPORT_ID)
     {
@@ -189,6 +200,32 @@ bool CALLBACK_HID_Device_CreateHIDReport(
             memset(&report->mapping, 0, sizeof(LedMapping));
         *ReportSize = sizeof(LedMappingHIDReport);
     }
+    else if (*ReportID == ADC_CONFIGURATION_REPORT_ID)
+    {
+        AdcConfigHIDReport* report = ReportData;
+        report->index = ADC_CONF.selectedAdcConfigIndex;
+        if (report->index < SENSOR_COUNT)
+            memcpy(&report->config, &ADC_CONF.adcConfig[report->index], sizeof(AdcConfig));
+        else
+            memset(&report->config, 0, sizeof(AdcConfig));
+        *ReportSize = sizeof(AdcConfigHIDReport);
+    }
+	#if defined(FEATURE_DEBUG_ENABLED)
+	else if (*ReportID == DEBUG_REPORT_ID)
+    {
+        DebugHIDReport* report = ReportData;
+		
+		uint16_t readSize = Debug_Available();
+		if(readSize > 32) {
+			readSize = 32;
+		}
+		
+		report->messageSize = readSize;
+		Debug_ReadBuffer(&report->messagePacket, readSize);
+		
+        *ReportSize = sizeof(DebugHIDReport);
+    }
+	#endif
 
     return true;
 }
@@ -251,6 +288,15 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
             Lights_UpdateConfiguration(&configuration.lightConfiguration);
         }
     }
+    else if (ReportID == ADC_CONFIGURATION_REPORT_ID && ReportSize == sizeof(AdcConfigHIDReport))
+    {
+        const AdcConfigHIDReport* report = ReportData;
+        if (report->index < SENSOR_COUNT)
+        {
+            memcpy(&configuration.adcConfiguration.adcConfig[report->index], &report->config, sizeof(AdcConfig));
+            Adc_UpdateConfiguration(&configuration.adcConfiguration);
+        }
+    }
     else if (ReportID == SET_PROPERTY_REPORT_ID && ReportSize == sizeof (SetPropertyHIDReport))
     {
         const SetPropertyHIDReport* report = ReportData;
@@ -262,6 +308,10 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
 
         case SPID_SELECTED_LED_MAPPING_INDEX:
             LIGHT_CONF.selectedLedMappingIndex = (uint8_t)report->propertyValue;
+            break;
+
+        case SPID_SELECTED_ADC_CONFIG_INDEX:
+            ADC_CONF.selectedAdcConfigIndex = (uint8_t)report->propertyValue;
             break;
         }
     }

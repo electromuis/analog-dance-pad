@@ -134,6 +134,11 @@ bool Reporter::Get(IdentificationReport& report)
 	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
 }
 
+bool Reporter::Get(IdentificationV2Report& report)
+{
+	return GetFeatureReport(myHid, report, L"GetIdentificationV2Report");
+}
+
 bool Reporter::Get(LightRuleReport& report)
 {
 	return GetFeatureReport(myHid, report, L"GetLightRuleReport");
@@ -142,6 +147,17 @@ bool Reporter::Get(LightRuleReport& report)
 bool Reporter::Get(LedMappingReport& report)
 {
 	return GetFeatureReport(myHid, report, L"GetLedMappingReport");
+}
+
+bool Reporter::Get(AdcConfigReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetAdcConfigReport");
+}
+
+
+bool Reporter::Get(DebugReport& report)
+{
+	return GetFeatureReport(myHid, report, L"GetDebugReport");
 }
 
 void Reporter::SendReset()
@@ -177,6 +193,11 @@ bool Reporter::Send(const LightRuleReport& report)
 bool Reporter::Send(const LedMappingReport& report)
 {
 	return SendFeatureReport(myHid, report, L"SendLedMappingReport");
+}
+
+bool Reporter::Send(const AdcConfigReport& report)
+{
+	return SendFeatureReport(myHid, report, L"SendAdcConfigReport");
 }
 
 bool Reporter::Send(const SetPropertyReport& report)

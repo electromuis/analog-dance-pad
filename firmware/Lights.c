@@ -18,6 +18,7 @@
 
 void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t count)
 {
+	return;
   // Set the pin to be an output driving low.
   LED_STRIP_PORT &= ~(1<<LED_STRIP_PIN);
   LED_STRIP_DDR |= (1<<LED_STRIP_PIN);

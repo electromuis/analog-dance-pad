@@ -88,6 +88,18 @@ static const Configuration DEFAULT_CONFIGURATION = {
             DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
         }
 #endif
+	},
+	.adcConfiguration = {
+		.adcConfig = {
+			[0 ... SENSOR_COUNT - 1] = {
+				#if defined(BOARD_TYPE_FSRIO_1)
+					.flags = ADC_AREF_5 | ADC_SET_RESISTOR,
+					.resistorValue = 150
+				#else
+					.flags = ADC_AREF_5
+				#endif
+			}
+		}
 	}
 };
 

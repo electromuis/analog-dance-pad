@@ -14,7 +14,9 @@ enum DeviceChangeFlags
 	DCF_BUTTON_MAPPING = 1 << 1,
 	DCF_NAME           = 1 << 2,
 	DCF_LIGHTS         = 1 << 3,
+	DCF_ADC			   = 1 << 4
 };
+
 typedef int32_t DeviceChanges;
 
 struct RgbColor
@@ -40,6 +42,8 @@ struct PadState
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
 	BoardType boardType = BOARD_UNKNOWN;
+	bool featureDebug;
+	bool featureDigipot;
 };
 
 struct LedMapping
@@ -66,6 +70,15 @@ struct LightsState
 	std::map<int, LedMapping> ledMappings;
 };
 
+struct AdcState
+{
+	bool disabled;
+	bool setResistor;
+	bool aref5;
+	bool aref3;
+	int resistorValue;
+};
+
 class Device
 {
 public:
@@ -83,6 +96,10 @@ public:
 
 	static const SensorState* Sensor(int sensorIndex);
 
+	static const AdcState* Adc(int sensorIndex);
+
+	static string ReadDebug();
+
 	static bool SetThreshold(int sensorIndex, double threshold);
 
 	static bool SetReleaseThreshold(double threshold);
@@ -98,6 +115,8 @@ public:
 	static bool SendLightRule(int lightRuleIndex, LightRule rule);
 
 	static bool DisableLightRule(int lightRuleIndex);
+
+	static bool SendAdcConfig(int index, AdcState adc);
 
 	static void SendDeviceReset();
 

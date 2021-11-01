@@ -62,6 +62,11 @@ public:
         if (changes & (DCF_DEVICE | DCF_NAME))
             UpdateStatusText();
 
+        string debugMessage = Device::ReadDebug();
+        if (!debugMessage.empty()) {
+            Log::Writef(L"Debug: %s", debugMessage);
+        }
+
         UpdatePollingRate();
 
         if (changes)

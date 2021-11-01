@@ -40,10 +40,10 @@ typedef struct
 
 typedef struct
 {
-    uint8_t selectedLightRuleIndex;
-    uint8_t selectedLedMappingIndex;
     LightRule lightRules[MAX_LIGHT_RULES];
     LedMapping ledMappings[MAX_LED_MAPPINGS];
+	uint8_t selectedLightRuleIndex;
+    uint8_t selectedLedMappingIndex;
 } __attribute__((packed)) LightConfiguration;
 
 void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration);

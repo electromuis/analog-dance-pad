@@ -5,7 +5,9 @@
     #include "Config/DancePadConfig.h"
     #include "Pad.h"
 	#include "Lights.h"
+	#include "ADC.h"
     #include "ConfigStore.h"
+	#include "Debug.h"
 
     // small helper macro to do x / y, but rounded up instead of floored.
     #define CEILING(x,y) (((x) + (y) - 1) / (y))
@@ -42,10 +44,16 @@
         uint8_t index;
         LedMapping mapping;
     } __attribute__((packed)) LedMappingHIDReport;
+	
+	typedef struct {
+        uint8_t index;
+        AdcConfig config;
+    } __attribute__((packed)) AdcConfigHIDReport;
 
     // IDS used by SetPropertyHIDReport.
     #define SPID_SELECTED_LIGHT_RULE_INDEX  0
     #define SPID_SELECTED_LED_MAPPING_INDEX 1
+    #define SPID_SELECTED_ADC_CONFIG_INDEX 2
 
     typedef struct {
         uint32_t propertyId;
@@ -62,6 +70,20 @@
 		char boardType[32];
     } __attribute__((packed)) IdentificationFeatureReport;
 	
+	typedef struct {
+		IdentificationFeatureReport parent;
+		uint16_t features;
+    } __attribute__((packed)) IdentificationV2FeatureReport;
+	
+	
+	#if defined(FEATURE_DEBUG_ENABLED)
+		typedef struct {
+			uint16_t messageSize;
+			char messagePacket[32];
+		} DebugHIDReport;
+	#endif
+	
     void Communication_WriteInputHIDReport(InputHIDReport* report);
     void Communication_WriteIdentificationReport(IdentificationFeatureReport* report);
+    void Communication_WriteIdentificationV2Report(IdentificationV2FeatureReport* report);
 #endif

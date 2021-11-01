@@ -31,6 +31,7 @@
         #include <avr/pgmspace.h>
         #include <LUFA/Drivers/USB/USB.h>
         #include <Config/DancePadConfig.h>
+		#include "Debug.h"
 
     /* Type Defines: */
         /** Type define for the device configuration descriptor structure. This must be defined in the
@@ -79,6 +80,13 @@
         #define IDENTIFICATION_REPORT_ID         0x9
         #define LED_MAPPING_REPORT_ID            0xA
         #define SET_PROPERTY_REPORT_ID           0xB
+		#define ADC_CONFIGURATION_REPORT_ID      0xC
+		
+		#if defined(FEATURE_DEBUG_ENABLED)
+			#define DEBUG_REPORT_ID      	     0xD
+		#endif
+		
+		#define IDENTIFICATION_V2_REPORT_ID      0xE
 
     /* Macros: */
         /** Endpoint address of the Generic HID reporting IN endpoint. */
