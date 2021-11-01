@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-if(WIN32)
+if(MSVC)
 	set(CMAKE_GENERATOR_PLATFORM win32)
 endif()
 
@@ -43,6 +43,7 @@ target_include_directories(${PROJECT_NAME}
 	PUBLIC "${WX_SETUP_INCLUDE}"
 	PUBLIC "lib/wxwidgets/include"
 	PUBLIC "lib/avrdude"
+	PUBLIC "lib/json/single_include"
 	PUBLIC "src"
 )
 

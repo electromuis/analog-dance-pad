@@ -205,6 +205,7 @@ FlashResult FirmwareUploader::WriteFirmware()
 	// Wait a bit since the COM port might still be initializing
 	this_thread::sleep_for(500ms);
 
+	Device::SetSearching(false);
 	avrdude.run();
 
 	flashResult = FLASHRESULT_RUNNING;
@@ -213,6 +214,29 @@ FlashResult FirmwareUploader::WriteFirmware()
 
 void FirmwareUploader::WritingDone(int exitCode)
 {
+	// Wait for the device to come back online so we can restore the config
+	Device::SetSearching(true);
+	auto startTime = system_clock::now();
+	do {
+		auto timeSpent = duration_cast<std::chrono::seconds>(system_clock::now() - startTime);
+		
+		if (eventHandler) {
+			auto evt = new wxCommandEvent(EVT_AVRDUDE);
+			evt->SetExtraLong(AE_PROGRESS);
+			evt->SetInt(timeSpent.count() * 10);
+			evt->SetString("Restarting");
+			wxQueueEvent(eventHandler, evt);
+		}
+		
+		if (timeSpent.count() > 10) {
+			errorMessage = L"Device failed to come back online";
+			flashResult = FLASHRESULT_FAILURE;
+			return;
+		}
+
+		this_thread::sleep_for(100ms);
+	} while (!Device::Pad());
+	
 	if (exitCode == 0) {
 		flashResult = FLASHRESULT_SUCCESS;
 	}

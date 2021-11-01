@@ -602,6 +602,11 @@ public:
 
 	bool DiscoverDevice()
 	{
+		if(emulator) {
+			auto reporter = make_unique<Reporter>();
+			return ConnectToDeviceStage2(reporter, NULL);
+		}
+
 		auto foundDevices = hid_enumerate(0, 0);
 
 		// Devices that are incompatible or had a communication failure are tracked in a failed device list to prevent
@@ -622,7 +627,7 @@ public:
 
 		for (auto device = foundDevices; device; device = device->next)
 		{
-			if (myFailedDevices.count(device->path) == 0 && ConnectToDevice(device))
+			if (myFailedDevices.count(device->path) == 0 && ConnectToDeviceStage1(device))
 				break;
 		}
 
@@ -630,7 +635,7 @@ public:
 		return (bool)myConnectedDevice;
 	}
 
-	bool ConnectToDevice(hid_device_info* deviceInfo)
+	bool ConnectToDeviceStage1(hid_device_info* deviceInfo)
 	{
 		// Check if the vendor and product are compatible.
 
@@ -669,14 +674,24 @@ public:
 		// If both succeeded, we'll assume the device is valid.
 
 		auto reporter = make_unique<Reporter>(hid);
+		bool result = ConnectToDeviceStage2(reporter, deviceInfo);
+		if(!result) {
+			AddIncompatibleDevice(deviceInfo);
+			hid_close(hid);
+			return false;
+		}
+		
+		return result;
+	}
+
+	bool ConnectToDeviceStage2(unique_ptr<Reporter>& reporter, hid_device_info* deviceInfo)
+	{
 		NameReport name;
 		PadConfigurationReport padConfiguration;
 		IdentificationReport padIdentification;
 		IdentificationV2Report padIdentificationV2;
 		if (!reporter->Get(name) || !reporter->Get(padConfiguration))
 		{
-			AddIncompatibleDevice(deviceInfo);
-			hid_close(hid);
 			return false;
 		}
 
@@ -744,6 +759,14 @@ public:
 				}
 			}
 		}
+		
+		string devicePath = "";
+		if(deviceInfo != NULL) {
+			devicePath = deviceInfo->path;
+		}
+		else if(emulator) {
+			devicePath = "Dummy";
+		}
 
 		vector<AdcConfigReport> adcConfigs;
 		SetPropertyReport selectReport;
@@ -764,7 +787,7 @@ public:
 
 		auto device = new PadDevice(
 			reporter,
-			deviceInfo->path,
+			devicePath.c_str(),
 			name,
 			padConfiguration,
 			padIdentificationV2,
@@ -775,11 +798,16 @@ public:
 		auto boardTypeString = BoardTypeToString(device->State().boardType);
 		Log::Write(L"ConnectionManager :: new device connected [");
 		Log::Writef(L"  Name: %ls", device->State().name.data());
-		Log::Writef(L"  Product: %ls", deviceInfo->product_string);
-		Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
 		Log::Writef(L"  Board: %ls", boardTypeString.c_str());
 		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentification.firmwareMajor), ReadU16LE(padIdentification.firmwareMinor));
-		Log::Writef(L"  Path: %ls", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+		if(deviceInfo != NULL) {
+			Log::Writef(L"  Product: %ls", deviceInfo->product_string);
+			Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
+			Log::Writef(L"  Path: %ls", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+		}
+		else {
+			Log::Writef(L"  Product: Dummy");
+		}
 		Log::Write(L"]");
 		PrintPadConfigurationReport(padConfiguration);
 
@@ -806,6 +834,7 @@ public:
 private:
 	unique_ptr<PadDevice> myConnectedDevice;
 	map<DevicePath, DeviceName> myFailedDevices;
+	bool emulator = true;
 };
 
 // ====================================================================================================================
@@ -813,12 +842,15 @@ private:
 // ====================================================================================================================
 
 static ConnectionManager* connectionManager = nullptr;
+static bool searching = true;
 
 void Device::Init()
 {
 	hid_init();
 
 	connectionManager = new ConnectionManager();
+	
+	searching = true;
 }
 
 void Device::Shutdown()
@@ -835,7 +867,7 @@ DeviceChanges Device::Update()
 
 	// If there is currently no connected device, try to find one.
 	auto device = connectionManager->ConnectedDevice();
-	if (!device)
+	if (!device && searching)
 	{
 		if (connectionManager->DiscoverDevice())
 			changes |= DCF_DEVICE;
@@ -957,6 +989,140 @@ void Device::SendFactoryReset()
 {
 	auto device = connectionManager->ConnectedDevice();
 	if (device) device->FactoryReset();
+}
+
+void Device::SetSearching(bool s)
+{
+	searching = s;
+}
+
+void Device::LoadProfile(json& j, DeviceProfileGroups groups)
+{
+	if(groups & DPG_LIGHTS) {
+		if(j["ledMappings"].is_array()) {
+			for(int key = 0; key < j.count("ledMappings"); key++) {
+				auto value = j["ledMappings"][key];
+				
+				LedMapping lm = {
+					value["lightRuleIndex"],
+					value["sensorIndex"],
+					value["ledIndexBegin"],
+					value["ledIndexEnd"]
+				};
+				
+				SendLedMapping(key, lm);
+			}
+		}
+		
+		if(j["lightRules"].is_array()) {
+			for(int key = 0; key < j.count("lightRules"); key++) {
+				auto value = j["lightRules"][key];
+				
+				LightRule lr = {
+					value["fadeOn"],
+					value["fadeOff"],
+					RgbColor(value["onColor"]),
+					RgbColor(value["offColor"]),
+					RgbColor(value["fadeOnColor"]),
+					RgbColor(value["fadeOffColor"])
+				};
+				
+				SendLightRule(key, lr);
+			}
+		}
+	}
+	
+	if(groups & DPG_SENSITIVITY) {
+		if(j["sensitivity"].is_array()) {
+			for(int key = 0; key < j.count("sensitivity"); key++) {
+				float value = j["sensitivity"][key];
+				
+				if(key < 0 || key > Device::Pad()->numSensors) {
+					continue;
+				}
+				
+				SetThreshold(key, value);
+			}
+		}
+		
+		if(j["releaseThreshold"].is_number()) {
+			SetReleaseThreshold(j["releaseThreshold"]);
+		}
+	}
+	
+	if(groups & DPG_MAPPING) {
+		if(j["mapping"].is_array()) {
+			for(int key = 0; key < j.count("mapping"); key++) {
+				int value = j["mapping"][key];
+				
+				if(key < 0 || key > Device::Pad()->numSensors) {
+					continue;
+				}
+				
+				if(value < 0 || value > Device::Pad()->numButtons) {
+					continue;
+				}
+				
+				SetButtonMapping(key, value);
+			}
+		}
+	}
+	
+	if(groups & DPG_DEVICE) {
+		string name = j["name"];
+		SetDeviceName(widen(name.c_str(), name.length()).c_str());
+	}
+}
+
+void Device::SaveProfile(json& j, DeviceProfileGroups groups)
+{
+	j["adpToolVersion"] = wxString::Format("v%i.%i", ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+
+	if(groups & DPG_LIGHTS) {
+		auto lights = Device::Lights();
+		
+		j["ledMappings"] = json::array();
+		for(const auto& [index, lm] : lights->ledMappings) {
+			j["ledMappings"][index]["lightRuleIndex"] = lm.lightRuleIndex;
+			j["ledMappings"][index]["sensorIndex"] = lm.sensorIndex;
+			j["ledMappings"][index]["ledIndexBegin"] = lm.ledIndexBegin;
+			j["ledMappings"][index]["ledIndexEnd"] = lm.ledIndexEnd;
+		}
+		
+		j["lightRules"] = json::array();
+		for(const auto& [index, lr] : lights->lightRules) {
+			j["lightRules"][index]["fadeOn"] = lr.fadeOn;
+			j["lightRules"][index]["fadeOff"] = lr.fadeOff;
+			j["lightRules"][index]["onColor"] = lr.onColor.ToString();
+			j["lightRules"][index]["offColor"] = lr.offColor.ToString();
+			j["lightRules"][index]["onFadeColor"] = lr.onFadeColor.ToString();
+			j["lightRules"][index]["offFadeColor"] = lr.offFadeColor.ToString();
+		}
+		
+	}
+	
+	if(groups & DPG_SENSITIVITY) {
+		j["sensitivity"] = json::array();
+		for (int i = 0; i < Device::Pad()->numSensors; ++i)
+		{
+			j["sensitivity"][i] = Device::Sensor(i)->threshold;
+		}
+		
+		j["releaseThreshold"] = Device::Pad()->releaseThreshold;
+	}
+		
+	if(groups & DPG_MAPPING) {
+		j["mapping"] = json::array();
+		for (int i = 0; i < Device::Pad()->numSensors; ++i)
+		{
+			j["mapping"][i] = Device::Sensor(i)->button;
+		}
+	}
+
+	if(groups & DPG_DEVICE) {
+		const wchar_t* name = Pad()->name.c_str();
+		j["name"] = narrow(name, wcslen(name));
+	}
 }
 
 }; // namespace adp.

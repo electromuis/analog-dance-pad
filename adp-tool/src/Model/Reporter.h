@@ -168,6 +168,7 @@ class Reporter
 {
 public:
 	Reporter(hid_device* device);
+	Reporter();
 	~Reporter();
 
 	ReadDataResult Get(SensorValuesReport& report);
@@ -192,6 +193,7 @@ public:
 
 private:
 	hid_device* myHid;
+	bool emulator = false;
 };
 
 }; // namespace adp.

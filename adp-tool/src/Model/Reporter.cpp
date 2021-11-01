@@ -109,28 +109,59 @@ Reporter::Reporter(hid_device* device)
 {
 }
 
+Reporter::Reporter()
+{
+	emulator = true;
+}
+
 Reporter::~Reporter()
 {
-	hid_close(myHid);
+	if(!emulator) {
+		hid_close(myHid);
+	}
 }
 
 ReadDataResult Reporter::Get(SensorValuesReport& report)
 {
+	if(emulator) {
+		return ReadDataResult::NO_DATA;
+	}
+	
 	return ReadData(myHid, report, L"GetSensorValuesReport");
 }
 
 bool Reporter::Get(PadConfigurationReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetPadConfigurationReport");
 }
 
 bool Reporter::Get(NameReport& report)
 {
+	if(emulator) {
+		const char* name = "ADP Emulator";
+		memcpy(&report.name, name, sizeof(name));
+		report.size = sizeof(name);
+		
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetNameReport");
 }
 
 bool Reporter::Get(IdentificationReport& report)
 {
+	if(emulator) {
+		report.buttonCount = 12;
+		report.sensorCount = 12;
+		report.ledCount = 0;
+		
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
 }
 
@@ -141,11 +172,19 @@ bool Reporter::Get(IdentificationV2Report& report)
 
 bool Reporter::Get(LightRuleReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetLightRuleReport");
 }
 
 bool Reporter::Get(LedMappingReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetLedMappingReport");
 }
 
@@ -172,26 +211,46 @@ void Reporter::SendFactoryReset()
 
 bool Reporter::SendSaveConfiguration()
 {
+	if(emulator) {
+		return true;
+	}
+
 	return WriteData(myHid, REPORT_SAVE_CONFIGURATION, L"SendSaveConfigurationReport", true);
 }
 
 bool Reporter::Send(const PadConfigurationReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+
 	return SendFeatureReport(myHid, report, L"SendPadConfigurationReport");
 }
 
 bool Reporter::Send(const NameReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+
 	return SendFeatureReport(myHid, report, L"SendNameReport");
 }
 
 bool Reporter::Send(const LightRuleReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+
 	return SendFeatureReport(myHid, report, L"SendLightRuleReport");
 }
 
 bool Reporter::Send(const LedMappingReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+	
 	return SendFeatureReport(myHid, report, L"SendLedMappingReport");
 }
 
@@ -202,6 +261,10 @@ bool Reporter::Send(const AdcConfigReport& report)
 
 bool Reporter::Send(const SetPropertyReport& report)
 {
+	if(emulator) {
+		return true;
+	}
+	
 	return SendFeatureReport(myHid, report, L"SendSetPropertyReport");
 }
 

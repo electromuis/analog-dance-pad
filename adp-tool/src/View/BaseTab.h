@@ -2,6 +2,9 @@
 
 #include "wx/window.h"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 #include "Model/Device.h"
 
 namespace adp {

@@ -10,6 +10,8 @@
 
 #include "Model/Device.h"
 #include "Model/Firmware.h"
+#include "Model/Log.h"
+#include "Model/Utils.h"
 
 #include "View/DeviceTab.h"
 
@@ -142,7 +144,7 @@ void FirmwareDialog::UpdateFirmware(wstring file)
 {
     uploader.SetIgnoreBoardType(false);
     tasksCompleted = 0;
-    tasksTodo = 4;
+    tasksTodo = 5;
     progressBar->SetRange(100 * tasksTodo);
     progressBar->SetValue(0);
     SetStatus("Waiting");

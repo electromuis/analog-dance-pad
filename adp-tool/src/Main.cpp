@@ -1,12 +1,20 @@
 #include "Adp.h"
 
+#include <iostream>
 #include <vector>
+#include <fstream>
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 #include "wx/wx.h"
 #include "wx/notebook.h"
+#include "wx/wfstream.h"
+#include "wx/sstream.h"
 
 #include "Assets/Assets.h"
 
+#include "View/BaseTab.h"
 #include "View/IdleTab.h"
 #include "View/SensitivityTab.h"
 #include "View/MappingTab.h"
@@ -21,6 +29,9 @@ namespace adp {
 	
 static const wchar_t* TOOL_NAME = L"ADP Tool";
 
+enum Ids { PROFILE_LOAD = 1, PROFILE_SAVE = 2, MENU_EXIT = 3};
+
+
 // ====================================================================================================================
 // Main window.
 // ====================================================================================================================
@@ -34,6 +45,17 @@ public:
     {
         SetMinClientSize(wxSize(400, 400));
         SetStatusBar(CreateStatusBar(2));
+
+        wxMenuBar* menuBar = new wxMenuBar();
+        wxMenu* fileMenu = new wxMenu();
+
+        menuBar->Append(fileMenu, wxT("File"));
+        
+        fileMenu->Append(PROFILE_LOAD, wxT("Load profile"));
+        fileMenu->Append(PROFILE_SAVE, wxT("Save profile"));
+        fileMenu->Append(MENU_EXIT, wxT("Exit"));
+        
+        SetMenuBar(menuBar);
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
         myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
@@ -50,6 +72,63 @@ public:
     ~MainWindow()
     {
         myUpdateTimer->Stop();
+    }
+
+    void ProfileLoad(wxCommandEvent & event)
+    {
+		if(!Device::Pad()) {
+			return;
+		}
+		
+        wxFileDialog dlg(this, L"Open XYZ file", L"", L"", L"ADP profile (*.json)|*.json",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+        if (dlg.ShowModal() == wxID_CANCEL)
+            return;
+	
+		ifstream fileStream;
+		fileStream.open((std::string)dlg.GetPath());
+		if(!fileStream.is_open())
+		{
+			Log::Writef(L"Could not read profile: %s", dlg.GetPath());
+            return;
+        }
+
+
+		json j;
+		
+		fileStream >> j;
+		fileStream.close();
+		
+		Device::LoadProfile(j, DGP_ALL);
+    }
+
+    void ProfileSave(wxCommandEvent & event)
+    {
+		if(!Device::Pad()) {
+			return;
+		}
+		
+        wxFileDialog dlg(this, L"Save XYZ file", L"", L"", L"ADP profile (*.json)|*.json",
+        wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
+
+        if (dlg.ShowModal() == wxID_CANCEL)
+            return;
+
+        wxFileOutputStream output_stream(dlg.GetPath());
+        if (!output_stream.IsOk())
+        {
+			Log::Writef(L"Could not save profile: %s", dlg.GetPath());
+            return;
+        }
+
+        json j;
+		
+        Device::SaveProfile(j, DGP_ALL);
+
+        wxStringInputStream input_stream(wxString(j.dump()));
+        output_stream.Write(input_stream);
+        output_stream.Close();
     }
 
     void Tick()
@@ -78,6 +157,13 @@ public:
         auto activeTab = GetActiveTab();
         if (activeTab)
             activeTab->Tick();
+    }
+
+    void CloseApp(wxCommandEvent & event)
+    {
+        myUpdateTimer->Stop();
+        myApp->ExitMainLoop();
+        event.Skip(); // Default handler will close window.
     }
 
     void OnClose(wxCloseEvent& event)
@@ -167,6 +253,9 @@ private:
 
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_CLOSE(MainWindow::OnClose)
+    EVT_MENU(MENU_EXIT, MainWindow::CloseApp)
+    EVT_MENU(PROFILE_LOAD, MainWindow::ProfileLoad)
+    EVT_MENU(PROFILE_SAVE, MainWindow::ProfileSave)
 END_EVENT_TABLE()
 
 // ====================================================================================================================

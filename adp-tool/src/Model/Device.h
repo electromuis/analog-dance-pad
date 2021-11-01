@@ -3,6 +3,10 @@
 #include "stdint.h"
 #include <string>
 #include <map>
+#include "wx/string.h"
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 #include "Model/Firmware.h"
 
@@ -19,11 +23,37 @@ enum DeviceChangeFlags
 
 typedef int32_t DeviceChanges;
 
+enum DeviceProfileGroupFlags
+{
+	DPG_SENSITIVITY	= 1 << 0,
+	DPG_MAPPING		= 1 << 1,
+	DPG_DEVICE		= 1 << 2,
+	DPG_LIGHTS		= 1 << 3,
+	
+	DGP_ALL			= 0b1111111111111111
+};
+
+typedef int32_t DeviceProfileGroups;
+
 struct RgbColor
 {
+	RgbColor(uint8_t r, uint8_t g, uint8_t b)
+		:red(r),green(g),blue(b)
+	{ ; }
+	
+	RgbColor(std::string input) {
+		sscanf(input.c_str(), "%02X%02X%02X", &red, &green, &blue);
+	}
+	
+	RgbColor() { ; }
+	
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
+	
+	const char* ToString() const {
+		return wxString::Format("%02X%02X%02X", red, green, blue).c_str();
+	}
 };
 
 struct SensorState
@@ -121,6 +151,12 @@ public:
 	static void SendDeviceReset();
 
 	static void SendFactoryReset();
+	
+	static void LoadProfile(json& j, DeviceProfileGroups groups);
+	
+	static void SaveProfile(json& j, DeviceProfileGroups groups);
+	
+	static void SetSearching(bool s);
 };
 
 }; // namespace adp.
