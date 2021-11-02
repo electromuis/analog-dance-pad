@@ -38,7 +38,7 @@
 	typedef struct {
         uint8_t index;
         LightRule rule;
-    } __attribute__((packed)) LightRuleHIDReport;
+    } __attribute__((packed))  	LightRuleHIDReport;
 
     typedef struct {
         uint8_t index;

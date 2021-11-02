@@ -188,9 +188,9 @@ bool Reporter::Get(LedMappingReport& report)
 	return GetFeatureReport(myHid, report, L"GetLedMappingReport");
 }
 
-bool Reporter::Get(AdcConfigReport& report)
+bool Reporter::Get(SensorReport& report)
 {
-	return GetFeatureReport(myHid, report, L"GetAdcConfigReport");
+	return GetFeatureReport(myHid, report, L"GetSensorReport");
 }
 
 
@@ -254,9 +254,9 @@ bool Reporter::Send(const LedMappingReport& report)
 	return SendFeatureReport(myHid, report, L"SendLedMappingReport");
 }
 
-bool Reporter::Send(const AdcConfigReport& report)
+bool Reporter::Send(const SensorReport& report)
 {
-	return SendFeatureReport(myHid, report, L"SendAdcConfigReport");
+	return SendFeatureReport(myHid, report, L"SendSensorReport");
 }
 
 bool Reporter::Send(const SetPropertyReport& report)

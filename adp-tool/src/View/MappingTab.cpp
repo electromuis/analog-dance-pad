@@ -135,16 +135,16 @@ SensorConfigDialog::SensorConfigDialog(int sensorNumber)
     sensorBar = new HorizontalSensorBar(this, sensorNumber);
     topSizer->Add(sensorBar, 1, wxEXPAND | wxBOTTOM, 5);
 
-    auto adc = Device::Adc(sensorNumber);
+    auto sensor = Device::Sensor(sensorNumber);
 
     wxArrayString options;
     options.Add(L"5v");
     options.Add(L"3v");
-    arefSelection = new wxComboBox(this, NULL, adc->aref3 ? "3v" : "5v", wxDefaultPosition, wxDefaultSize, options);
+    arefSelection = new wxComboBox(this, NULL, sensor->aref == 3 ? "3v" : "5v", wxDefaultPosition, wxDefaultSize, options);
     arefSelection->Bind(wxEVT_COMBOBOX, &SensorConfigDialog::Save, this);
     topSizer->Add(arefSelection, 1, wxEXPAND | wxBOTTOM, 5);
 
-    resistorSlider = new wxSlider(this, NULL, adc->resistorValue, 0, 254, wxDefaultPosition, wxDefaultSize);
+    resistorSlider = new wxSlider(this, NULL, sensor->resistorValue, 0, 254, wxDefaultPosition, wxDefaultSize);
     resistorSlider->Bind(wxEVT_SLIDER, &SensorConfigDialog::Save, this);
     topSizer->Add(resistorSlider, 1, wxEXPAND | wxBOTTOM, 5);
 
@@ -179,22 +179,7 @@ void SensorConfigDialog::Done(wxCommandEvent& event)
 
 void SensorConfigDialog::Save(wxCommandEvent& event)
 {
-    AdcState adc;
-
-    if (arefSelection->GetValue() == "3v") {
-        adc.aref3 = true;
-        adc.aref5 = false;
-    }
-    else {
-        adc.aref3 = false;
-        adc.aref5 = true;
-    }
-
-    adc.resistorValue = resistorSlider->GetValue();
-    adc.disabled = false;
-    adc.setResistor = true;
-
-    Device::SendAdcConfig(sensorNumber, adc);
+    Device::SetAdcConfig(sensorNumber, resistorSlider->GetValue(), arefSelection->GetValue() == "3v" ? 3 : 5);
 }
 
 }; // namespace adp.

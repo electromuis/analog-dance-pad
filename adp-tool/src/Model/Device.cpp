@@ -118,6 +118,20 @@ static color24 ToColor24(RgbColor color)
 	return { color.red, color.green, color.blue };
 }
 
+SensorReport SensorState::ToReport(int index)
+{
+	SensorReport report;
+
+	report.index = index;
+	report.threshold = WriteU16LE(ToDeviceSensorValue(threshold));
+	report.releaseThreshold = WriteU16LE(ToDeviceSensorValue(releaseThreshold));
+	report.resistorValue = resistorValue;
+	report.aref = aref;
+	report.buttonMapping = button == 0 ? 0xFF : (button - 1);
+
+	return report;
+}
+
 static void PrintPadConfigurationReport(const PadConfigurationReport& padConfiguration)
 {
 	Log::Write(L"pad configuration [");
@@ -156,12 +170,16 @@ static void PrintLedMappingReport(const LedMappingReport& r)
 	Log::Write(L"]");
 }
 
-static void PrintAdcConfigReport(const AdcConfigReport& r)
+static void PrintSensorReport(const SensorReport& r)
 {
-	Log::Write(L"adc config[");
+	Log::Write(L"sensor config[");
 	Log::Writef(L"  index: %i", r.index);
-	Log::Writef(L"  flags: %i", r.flags);
+	Log::Writef(L"  threshold: %i", ReadU16LE(r.threshold));
+	Log::Writef(L"  releaseThreshold: %i", ReadU16LE(r.releaseThreshold));
+	Log::Writef(L"  buttonMapping: %i", r.buttonMapping);
 	Log::Writef(L"  resistorValue: %i", r.resistorValue);
+	Log::Writef(L"  aref: %i", r.aref);
+	Log::Writef(L"  flags: %i", ReadU16LE(r.flags));
 	Log::Write(L"]");
 }
 
@@ -186,11 +204,10 @@ public:
 		unique_ptr<Reporter>& reporter,
 		const char* path,
 		const NameReport& name,
-		const PadConfigurationReport& config,
 		const IdentificationV2Report& identification,
 		const vector<LightRuleReport>& lightRules,
 		const vector<LedMappingReport>& ledMappings,
-		const vector<AdcConfigReport>& adcConfigs)
+		const vector<SensorReport>& sensors)
 		: myReporter(move(reporter))
 		, myPath(path)
 	{
@@ -211,9 +228,8 @@ public:
 		myPad.featureDebug = (features & IdentificationV2Report::FEATURE_DEBUG) != 0;
 		myPad.featureDigipot = (features & IdentificationV2Report::FEATURE_DIGIPOT) != 0;
 
-		UpdatePadConfiguration(config);
+		UpdatePadConfiguration(sensors);
 		UpdateLightsConfiguration(lightRules, ledMappings);
-		UpdateAdcConfiguration(adcConfigs);
 		myPollingData.lastUpdate = system_clock::now();
 	}
 
@@ -223,8 +239,9 @@ public:
 		myChanges |= DCF_NAME;
 	}
 
-	void UpdatePadConfiguration(const PadConfigurationReport& report)
+	void UpdatePadConfiguration(const vector<SensorReport>& sensors)
 	{
+		/*
 		for (int i = 0; i < myPad.numSensors; ++i)
 		{
 			auto buttonMapping = (uint8_t)report.sensorToButtonMapping[i];
@@ -232,6 +249,10 @@ public:
 			mySensors[i].button = (buttonMapping >= myPad.numButtons ? 0 : (buttonMapping + 1));
 		}
 		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
+		*/
+
+		for (auto& report : sensors)
+			UpdateSensor(report);
 	}
 
 	void UpdateLightRule(const LightRuleReport& report)
@@ -270,18 +291,6 @@ public:
 		}
 	}
 
-	void UpdateAdcConfig(const AdcConfigReport& report)
-	{
-		AdcState adc;
-		adc.disabled = (report.flags & AdcConfigReport::ADC_DISABLED) != 0;
-		adc.setResistor = (report.flags & AdcConfigReport::ADC_SET_RESISTOR) != 0;
-		adc.aref3 = (report.flags & AdcConfigReport::ADC_AREF_3) != 0;
-		adc.aref5 = (report.flags & AdcConfigReport::ADC_AREF_5) != 0;
-		adc.resistorValue = report.resistorValue;
-
-		myAdcConfig[report.index] = adc;
-	}
-
 	void UpdateLightsConfiguration(const vector<LightRuleReport>& lightRules, const vector<LedMappingReport>& ledMappings)
 	{
 		for (auto& report : lightRules)
@@ -289,12 +298,6 @@ public:
 
 		for (auto& report : ledMappings)
 			UpdateLedMapping(report);
-	}
-
-	void UpdateAdcConfiguration(const vector<AdcConfigReport>& adcConfigs)
-	{
-		for (auto& report : adcConfigs)
-			UpdateAdcConfig(report);
 	}
 
 	bool UpdateSensorValues()
@@ -351,14 +354,54 @@ public:
 
 	bool SetThreshold(int sensorIndex, double threshold)
 	{
-		mySensors[sensorIndex].threshold = clamp(threshold, 0.0, 1.0);
-		return SendPadConfiguration();
+		mySensors[sensorIndex].threshold = threshold;
+
+		return SendSensor(sensorIndex);
 	}
 
 	bool SetReleaseThreshold(double threshold)
 	{
+		if()
+
+			if (for (int i = 0; i < myPad.numSensors; ++i))
+
 		myPad.releaseThreshold = clamp(threshold, 0.01, 1.00);
 		return SendPadConfiguration();
+	}
+
+	bool SetAdcConfig(int sensorIndex, int resistorValue, int aref)
+	{
+		mySensors[sensorIndex].resistorValue = resistorValue;
+		mySensors[sensorIndex].aref = aref;
+
+		return SendSensor(sensorIndex);
+	}
+
+	void UpdateSensor(SensorReport sensor)
+	{
+		if (sensor.index < 0 || sensor.index > myPad.numSensors) {
+			return;
+		}
+
+		mySensors[sensor.index].threshold = ToNormalizedSensorValue(ReadU16LE(sensor.threshold));
+		mySensors[sensor.index].releaseThreshold = ToNormalizedSensorValue(ReadU16LE(sensor.releaseThreshold));
+		mySensors[sensor.index].resistorValue = sensor.resistorValue;
+		mySensors[sensor.index].aref = sensor.aref;
+		mySensors[sensor.index].button = (sensor.buttonMapping >= myPad.numButtons ? 0 : (sensor.buttonMapping + 1));
+	}
+
+	bool SendSensor(int sensorIndex)
+	{
+		SensorReport report = mySensors[sensorIndex].ToReport(sensorIndex);
+
+		bool success = myReporter->Send(report) && myReporter->Get(report);
+
+		if (success) {
+			myHasUnsavedChanges = true;
+			UpdateSensor(report);
+		}
+
+		return success;
 	}
 
 	bool SetButtonMapping(int sensorIndex, int button)
@@ -457,31 +500,6 @@ public:
 		return SendLightRuleReport(report);
 	}
 
-	bool SendAdcConfigReport(const AdcConfigReport& report)
-	{
-		if (!myReporter->Send(report))
-			return false;
-
-		UpdateAdcConfig(report);
-		myChanges |= DCF_ADC;
-		myHasUnsavedChanges = true;
-		return true;
-	}
-
-	bool SendAdcConfig(int index, AdcState config)
-	{
-		AdcConfigReport report;
-		report.index = index;
-		report.flags =
-			(AdcConfigReport::ADC_DISABLED * config.disabled) |
-			(AdcConfigReport::ADC_SET_RESISTOR * config.setResistor) |
-			(AdcConfigReport::ADC_AREF_3 * config.aref3) |
-			(AdcConfigReport::ADC_AREF_5 * config.aref5);
-		report.resistorValue = config.resistorValue;
-
-		return SendAdcConfigReport(report);
-	}
-
 	void Reset() { myReporter->SendReset(); }
 
 	void FactoryReset()
@@ -492,6 +510,7 @@ public:
 
 	bool SendPadConfiguration()
 	{
+		/*
 		PadConfigurationReport report;
 		for (int i = 0; i < myPad.numSensors; ++i)
 		{
@@ -506,6 +525,8 @@ public:
 		myHasUnsavedChanges = true;
 		UpdatePadConfiguration(report);
 		return sendResult && getResult;
+		*/
+		return false;
 	}
 
 	void SaveChanges()
@@ -528,11 +549,6 @@ public:
 	const SensorState* Sensor(int index)
 	{
 		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
-	}
-
-	const AdcState* Adc(int index)
-	{
-		return (index >= 0 && index < myPad.numSensors) ? (myAdcConfig + index) : nullptr;
 	}
 
 	wstring ReadDebug()
@@ -568,7 +584,6 @@ private:
 	PadState myPad;
 	LightsState myLights;
 	SensorState mySensors[MAX_SENSOR_COUNT];
-	AdcState myAdcConfig[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
 	PollingData myPollingData;
@@ -713,12 +728,11 @@ public:
 			int versionMajor = ReadU16LE(padIdentification.firmwareMajor);
 			int versionMinor = ReadU16LE(padIdentification.firmwareMinor);
 			 
-			if(
-				!(versionMajor > 1 || (versionMajor == 1 && versionMinor >= 3)) ||
-				!reporter->Get(padIdentificationV2)
-			) {
-				memcpy(&padIdentificationV2, &padIdentification, sizeof(padIdentification));
-				padIdentificationV2.features = WriteU16LE(0);
+			if(versionMajor > 1 || (versionMajor == 1 && versionMinor >= 3)){
+				if (!reporter->Get(padIdentificationV2)) {
+					memcpy(&padIdentificationV2, &padIdentification, sizeof(padIdentification));
+					padIdentificationV2.features = WriteU16LE(0);
+				}
 			}
 		}
 
@@ -766,20 +780,20 @@ public:
 			devicePath = "Dummy";
 		}
 
-		vector<AdcConfigReport> adcConfigs;
+		vector<SensorReport> sensors;
 		SetPropertyReport selectReport;
 
-		AdcConfigReport adcReport;
-		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_ADC_CONFIG_INDEX);
+		SensorReport sensorReport;
+		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_SENSOR_INDEX);
 		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
 		{
 			selectReport.propertyValue = WriteU32LE(i);
 			bool sendResult = reporter->Send(selectReport);
 
-			if (sendResult && reporter->Get(adcReport))
+			if (sendResult && reporter->Get(sensorReport))
 			{
-				PrintAdcConfigReport(adcReport);
-				adcConfigs.push_back(adcReport);
+				PrintSensorReport(sensorReport);
+				sensors.push_back(sensorReport);
 			}
 		}
 
@@ -787,11 +801,10 @@ public:
 			reporter,
 			devicePath.c_str(),
 			name,
-			padConfiguration,
 			padIdentificationV2,
 			lightRules,
 			ledMappings,
-			adcConfigs);
+			sensors);
 
 		auto boardTypeString = BoardTypeToString(device->State().boardType);
 		Log::Write(L"ConnectionManager :: new device connected [");
@@ -912,12 +925,6 @@ const SensorState* Device::Sensor(int sensorIndex)
 	return device ? device->Sensor(sensorIndex) : nullptr;
 }
 
-const AdcState* Device::Adc(int sensorIndex)
-{
-	auto device = connectionManager->ConnectedDevice();
-	return device ? device->Adc(sensorIndex) : nullptr;
-}
-
 wstring Device::ReadDebug()
 {
 	auto device = connectionManager->ConnectedDevice();
@@ -934,6 +941,12 @@ bool Device::SetReleaseThreshold(double threshold)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->SetReleaseThreshold(threshold) : false;
+}
+
+bool Device::SetAdcConfig(int sensorIndex, int resistorValue, int aref)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->SetAdcConfig(sensorIndex, resistorValue, aref) : false;
 }
 
 bool Device::SetButtonMapping(int sensorIndex, int button)
@@ -970,12 +983,6 @@ bool Device::DisableLightRule(int lightRuleIndex)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->DisableLightRule(lightRuleIndex) : false;
-}
-
-bool Device::SendAdcConfig(int index, AdcState adc)
-{
-	auto device = connectionManager->ConnectedDevice();
-	return device ? device->SendAdcConfig(index, adc) : false;
 }
 
 void Device::SendDeviceReset()

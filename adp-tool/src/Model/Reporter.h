@@ -35,7 +35,7 @@ enum ReportId
 	REPORT_IDENTIFICATION	  = 0x9,
 	REPORT_LED_MAPPING        = 0xA,
 	REPORT_SET_PROPERTY       = 0xB,
-	REPORT_ADC_CONFIG		  = 0xC,
+	REPORT_SENSOR			  = 0xC,
 	REPORT_DEBUG			  = 0xD,
 	REPORT_IDENTIFICATION_V2  = 0xE,
 };
@@ -125,20 +125,21 @@ struct LedMappingReport
 	uint8_t ledIndexEnd;
 };
 
-struct AdcConfigReport
+struct SensorReport
 {
 	enum Ids
 	{
 		ADC_DISABLED		= 1 << 0,
-		ADC_SET_RESISTOR	= 1 << 1,
-		ADC_AREF_5			= 1 << 2,
-		ADC_AREF_3			= 1 << 3
 	};
 
-	uint8_t reportId = REPORT_ADC_CONFIG;
+	uint8_t reportId = REPORT_SENSOR;
 	uint8_t index;
-	uint8_t flags;
+	uint16_le threshold;
+	uint16_le releaseThreshold;
+	int8_t buttonMapping;
 	uint8_t resistorValue;
+	uint8_t aref;
+	uint16_le flags;
 };
 
 struct SetPropertyReport
@@ -147,8 +148,7 @@ struct SetPropertyReport
 	{
 		SELECTED_LIGHT_RULE_INDEX = 0,
 		SELECTED_LED_MAPPING_INDEX = 1,
-		SELECTED_ADC_CONFIG_INDEX = 2,
-		SELECTED_CLIENT_VERSION = 3
+		SELECTED_SENSOR_INDEX = 2
 	};
 	uint8_t reportId = REPORT_SET_PROPERTY;
 	uint32_le propertyId;
@@ -178,7 +178,7 @@ public:
 	bool Get(IdentificationV2Report& report);
 	bool Get(LightRuleReport& report);
 	bool Get(LedMappingReport& report);
-	bool Get(AdcConfigReport& report);
+	bool Get(SensorReport& report);
 	bool Get(DebugReport& report);
 
 	void SendReset();
@@ -188,7 +188,7 @@ public:
 	bool Send(const NameReport& report);
 	bool Send(const LightRuleReport& report);
 	bool Send(const LedMappingReport& report);
-	bool Send(const AdcConfigReport& report);
+	bool Send(const SensorReport& report);
 	bool Send(const SetPropertyReport& report);
 
 private:

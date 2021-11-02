@@ -9,6 +9,7 @@
 using json = nlohmann::json;
 
 #include "Model/Firmware.h"
+#include "Model/Reporter.h"
 
 namespace adp {
 
@@ -41,8 +42,11 @@ struct RgbColor
 		:red(r),green(g),blue(b)
 	{ ; }
 	
-	RgbColor(std::string input) {
-		sscanf(input.c_str(), "%02X%02X%02X", &red, &green, &blue);
+	RgbColor(std::string input)
+		:red(0), green(0), blue(0) 
+	{
+		//sscanf(input.c_str(), "%02X%02X%02X", &red, &green, &blue);
+
 	}
 	
 	RgbColor()
@@ -63,9 +67,14 @@ struct RgbColor
 struct SensorState
 {
 	double threshold = 0.0;
+	double releaseThreshold = 0.0;
 	double value = 0.0;
+	int resistorValue = 0;
+	int aref = 0;
 	int button = 0; // zero means unmapped.
 	bool pressed = false;
+
+	SensorReport ToReport(int index);
 };
 
 struct PadState
@@ -104,15 +113,6 @@ struct LightsState
 	std::map<int, LedMapping> ledMappings;
 };
 
-struct AdcState
-{
-	bool disabled;
-	bool setResistor;
-	bool aref5;
-	bool aref3;
-	int resistorValue;
-};
-
 class Device
 {
 public:
@@ -130,11 +130,11 @@ public:
 
 	static const SensorState* Sensor(int sensorIndex);
 
-	static const AdcState* Adc(int sensorIndex);
-
 	static wstring ReadDebug();
 
 	static bool SetThreshold(int sensorIndex, double threshold);
+	
+	static bool SetAdcConfig(int sensorIndex, int resistorValue, int aref);
 
 	static bool SetReleaseThreshold(double threshold);
 
@@ -149,8 +149,6 @@ public:
 	static bool SendLightRule(int lightRuleIndex, LightRule rule);
 
 	static bool DisableLightRule(int lightRuleIndex);
-
-	static bool SendAdcConfig(int index, AdcState adc);
 
 	static void SendDeviceReset();
 
