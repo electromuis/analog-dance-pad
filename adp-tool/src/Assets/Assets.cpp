@@ -12,11 +12,11 @@ namespace adp {
 
 struct BrushData
 {
-	wxBrush SensorOff = wxBrush(wxColor(230, 160, 100), wxBRUSHSTYLE_SOLID);
-	wxBrush SensorOn = wxBrush(wxColor(250, 230, 190), wxBRUSHSTYLE_SOLID);
-	wxBrush SensorBar = wxBrush(wxColor(25, 25, 25), wxBRUSHSTYLE_SOLID);
-	wxBrush ReleaseMargin = wxBrush(wxColor(50, 50, 50), wxBRUSHSTYLE_SOLID);
-	wxBrush DarkGray = wxBrush(wxColor(50, 50, 50), wxBRUSHSTYLE_SOLID);
+	wxBrush SensorOff = wxBrush(wxColour(230, 160, 100), wxBRUSHSTYLE_SOLID);
+	wxBrush SensorOn = wxBrush(wxColour(250, 230, 190), wxBRUSHSTYLE_SOLID);
+	wxBrush SensorBar = wxBrush(wxColour(25, 25, 25), wxBRUSHSTYLE_SOLID);
+	wxBrush ReleaseMargin = wxBrush(wxColour(50, 50, 50), wxBRUSHSTYLE_SOLID);
+	wxBrush DarkGray = wxBrush(wxColour(50, 50, 50), wxBRUSHSTYLE_SOLID);
 };
 static BrushData* brushes;
 

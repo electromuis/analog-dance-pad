@@ -1,10 +1,3 @@
-// Skip every x amount of light updates to improve polling rate
-#define UPDATE_WAIT_CYCLES 10
-
-#define LED_STRIP_PORT PORTC
-#define LED_STRIP_DDR  DDRC
-#define LED_STRIP_PIN  6
-
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -12,13 +5,30 @@
 #include "Pad.h"
 #include "Lights.h"
 
+LightConfiguration LIGHT_CONF;
+
+#if defined(FEATURE_LIGHTS_ENABLED)
+
+
+// Skip every x amount of light updates to improve polling rate
+#define UPDATE_WAIT_CYCLES 10
+
+#if defined(BOARD_TYPE_FSRIO_1)
+	#define LED_STRIP_PORT PORTB
+	#define LED_STRIP_DDR  DDRB
+	#define LED_STRIP_PIN  3
+#else
+	#define LED_STRIP_PORT PORTC
+	#define LED_STRIP_DDR  DDRC
+	#define LED_STRIP_PIN  6
+#endif
+
 // led_strip_write sends a series of colors to the LED strip, updating the LEDs.
 // The colors parameter should point to an array of rgb_color structs that hold
 // the colors to send.
 
 void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t count)
 {
-	return;
   // Set the pin to be an output driving low.
   LED_STRIP_PORT &= ~(1<<LED_STRIP_PIN);
   LED_STRIP_DDR |= (1<<LED_STRIP_PIN);
@@ -79,8 +89,6 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
   sei();          // Re-enable interrupts now that we are done.
 }
 
-LightConfiguration LIGHT_CONF;
-
 static rgb_color LED_COLORS[LED_COUNT];
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
@@ -89,14 +97,14 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
 
 void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
     memcpy(&LIGHT_CONF, lightConfiguration, sizeof (LightConfiguration));
-	Lights_Update();
+	Lights_Update(true);
 }
 
 int updateWait = 0;
 
-void Lights_Update()
+void Lights_Update(bool force)
 {
-	if(updateWait > 0) {
+	if(updateWait > 0 && !force) {
 		updateWait --;
 		return;
 	}
@@ -106,6 +114,7 @@ void Lights_Update()
 	}
 	
 	updateWait = UPDATE_WAIT_CYCLES;
+	bool update = false;
 	
 	for (uint8_t m = 0; m < MAX_LED_MAPPINGS; ++m)
 	{
@@ -118,6 +127,8 @@ void Lights_Update()
 
         if (!(rule->flags & LRF_ENABLED))
             continue;
+			
+		update = true;
 		
 		SensorConfig s = PAD_CONF.sensors[mapping->sensorIndex];
 		uint16_t sensorValue = PAD_STATE.sensorValues[mapping->sensorIndex];
@@ -164,5 +175,13 @@ void Lights_Update()
 		}
 	}
 	
-	led_strip_write(LED_COLORS, LED_COUNT);
+	if(update || force) {
+		led_strip_write(LED_COLORS, LED_COUNT);
+	}
 }
+
+
+#else
+void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) { ; }
+void Lights_Update(bool force) { ; }
+#endif

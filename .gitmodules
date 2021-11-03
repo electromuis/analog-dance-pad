@@ -4,15 +4,12 @@
 [submodule "adp-tool/lib/hidapi"]
 	path = adp-tool/lib/hidapi
 	url = https://github.com/libusb/hidapi
-[submodule "adp-tool/lib/wxwidgets"]
-	path = adp-tool/lib/wxwidgets
-	url = https://github.com/wxWidgets/wxWidgets
-[submodule "adp-tool/lib/libusb"]
-	path = adp-tool/lib/libusb
-	url = https://github.com/libusb/libusb
 [submodule "adp-tool/lib/serial"]
 	path = adp-tool/lib/serial
 	url = https://github.com/wjwwood/serial
 [submodule "adp-tool/lib/json"]
 	path = adp-tool/lib/json
 	url = https://github.com/nlohmann/json
+[submodule "adp-tool/lib/wxWidgets"]
+	path = adp-tool/lib/wxWidgets
+	url = https://github.com/wxWidgets/wxWidgets

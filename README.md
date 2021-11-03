@@ -4,12 +4,21 @@
 
 For all your dance gaming needs that involve FSR (or perhaps other) sensors!
 
-- **Firmware for Teensy 2.0**
+- **Firmware for Atmega32u4 based boards**
   - Works as a HID joystick.
   - Returns analog values alongside ordinary HID joystick data.
   - Remembers configuration after power loss.
+  
+- **ADP Tool**  
+  - Replacement for the Socket.IO server and Web application
+  - Built with C++/CMake/wxWidgets
+  - Full feature support
+    - Lights
+	- Profiles
+	- Firmware updater
+  - Native
 
-- **Socket.IO server**
+- **Socket.IO server (Legacy)**
   - Built with NodeJS/TypeScript.
   - Communicates with Teensy 2.0 devices via USB.
     - ...so the server needs to run on same computer your Teensy 2.0 devices are connected to.
@@ -23,6 +32,7 @@ For all your dance gaming needs that involve FSR (or perhaps other) sensors!
   - Optimized for mobile use.
   - Ability to communicate to multiple servers at the same time.
     - Very useful for multi-cabinet environments!
+  - TODO: Support running on the adp-tool core
 
 ## Getting Started
 
@@ -41,7 +51,13 @@ This results `AnalogDancePad.hex` in `build` folder that you can upload to Teens
 
 *NOTE: After uploading this firmware to your device, Teensy tools cannot reset it anymore due to USB Serial interface not being available. This means you need to reset it yourself. Pressing the reset button in firmware does still work. You can also run `npm run reset-teensy` in `server` directory in case it's not convenient to access your Teensy physically.*
 
+### ADP-Tool
+
+Download and install the newest release from: https://github.com/electromuis/analog-dance-pad/releases
+
 ### Server
+
+(Please use the ADP-Tool unless you specifically need the server)
 
 Server has been tested with NodeJS 12. You might need `libudev-dev` or similar package for your operating system in case `usb-detection` library doesn't have a prebuilt binary for you. 
 
@@ -63,6 +79,8 @@ node dist/index.js
 You can use `PORT` and `HOST` environment variables. Default port is 3333. If you're running the server on a Linux machine, I recommend setting up a systemd unit file.
 
 ### Client
+
+(Please use the ADP-Tool unless you specifically need the client)
 
 In case of client, you need to build the common types first (server does it automatically). You also need to do this whenever you change these types.
 

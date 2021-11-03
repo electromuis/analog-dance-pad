@@ -62,6 +62,16 @@ static uint32_t ReadU16(const uint16_t*& p, const uint16_t* end)
 	return c;
 }
 
+static uint32_t ReadU32(const uint32_t*& p, const uint32_t* end)
+{
+	uint32_t c = *p; ++p;
+	if (c >= 0xD800 && c <= 0xDBFF && p < end)
+	{
+		c = ((c - 0xD800) << 10) + (*p - 0xDC00) + 0x0010000; ++p;
+	}
+	return c;
+}
+
 static void WriteU8(string& str, uint32_t c)
 {
 	if (c < 0x80)
@@ -116,7 +126,7 @@ string narrow(const wchar_t* s, size_t len)
 	else if (sizeof(wchar_t) == sizeof(uint32_t))
 	{
 		for (auto p = (const uint32_t*)s, end = p + len; p != end;)
-			WriteU8(out, *p);
+			WriteU8(out, ReadU32(p, end));
 	}
 	return out;
 }

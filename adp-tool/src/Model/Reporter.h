@@ -98,6 +98,7 @@ struct IdentificationV2Report : public IdentificationReport
 	{
 		FEATURE_DEBUG = 1 << 0,
 		FEATURE_DIGIPOT = 1 << 1,
+		FEATURE_LIGHTS = 1 << 2,
 	};
 
 	uint16_le features;
@@ -138,7 +139,6 @@ struct SensorReport
 	uint16_le releaseThreshold;
 	int8_t buttonMapping;
 	uint8_t resistorValue;
-	uint8_t aref;
 	uint16_le flags;
 };
 
@@ -190,6 +190,10 @@ public:
 	bool Send(const LedMappingReport& report);
 	bool Send(const SensorReport& report);
 	bool Send(const SetPropertyReport& report);
+
+
+	bool SendAndGet(NameReport& report);
+	bool SendAndGet(PadConfigurationReport& report);
 
 private:
 	hid_device* myHid;

@@ -53,13 +53,6 @@ static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
 void ADC_LoadPot(uint8_t sensor) {
 	SensorConfig s = PAD_CONF.sensors[sensor];
 	
-	if(s.aref == 3) {
-		ADMUX = (1 << REFS0) | (1 << REFS1); // analog reference = ~3V VCC
-	}
-	else {
-		ADMUX = (1 << REFS0) | (1 << REFS1); // analog reference = 5V VCC
-	}
-	
 	// PD1 PD0 PC6 PE6
 	
 	// Set the correct muxer output
@@ -94,6 +87,11 @@ void ADC_LoadPot(uint8_t sensor) {
 	
 	// Set the digipot via SPI
 	
+	#if defined(BOARD_TYPE_FSRIO_1)
+		// Light pin is on the SPI register. Need to enable/disable SPI each time.
+		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
+	#endif
+	
 	PORTB &= ~(1 << DDB6);
 	
 	SPDR = 0b00010001;
@@ -103,6 +101,11 @@ void ADC_LoadPot(uint8_t sensor) {
     while(! (SPSR & (1 << SPIF)) ) ;
 	
 	PORTB |= 1 << DDB6;
+	
+	#if defined(BOARD_TYPE_FSRIO_1)
+		// Light pin is on the SPI register. Need to enable/disable SPI each time.
+		SPCR = 0;
+	#endif
 }
 
 void ADC_Init(void) {
@@ -110,17 +113,18 @@ void ADC_Init(void) {
     const uint8_t prescaler = (1 << ADPS2) | (1 << ADPS1) | (0 << ADPS0);
 
     ADCSRA = (1 << ADEN) | prescaler;
-    ADMUX = (1 << REFS0); // analog reference = 5V VCC
+    ADMUX = (1 << REFS0);
     ADCSRB = (1 << ADHSM); // enable high speed mode
 
-	
 	// Muxer outputs
 	DDRD |= (1 << DDD0) | (1 << DDD1);
 	DDRC |= 1 << DDC6;
 	DDRE |= 1 << DDE6;
 	
-	DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
-	SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
+	#if defined(FEATURE_DIGIPOT_ENABLED)
+		DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
+		//SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
+	#endif
 }
 
 uint16_t ADC_Read(uint8_t sensor) {
@@ -129,14 +133,16 @@ uint16_t ADC_Read(uint8_t sensor) {
 		return 0;
 	}
 	
-	ADC_LoadPot(sensor);
+	#if defined(FEATURE_DIGIPOT_ENABLED)
+		ADC_LoadPot(sensor);
+	#endif
 
     // see: https://www.avrfreaks.net/comment/885267#comment-885267
-    ADMUX = (ADMUX & 0xE0) | (pin & 0x1F); // select channel (MUX0-4 bits)
-    ADCSRB = (ADCSRB & 0xDF) | (pin & 0x20); // select channel (MUX5 bit) 
-
-    ADCSRA |= (1 << ADSC); // start conversion
-    while (ADCSRA & (1 << ADSC)) {}; // wait until done
-
+    ADMUX = (ADMUX & 0xE0) | (pin & 0x1F);   //select channel (MUX0-4 bits)
+	ADCSRB = (ADCSRB & 0xDF) | (pin & 0x20);   //select channel (MUX5 bit) 
+	
+	ADCSRA |= (1 << ADSC); // start conversion
+	while (ADCSRA & (1 << ADSC)) {}; // wait until done
+		
     return ADC;
 }

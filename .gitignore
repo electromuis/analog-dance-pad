@@ -2,6 +2,7 @@ node_modules
 *.user
 
 adp-tool/build*
+adp-tool/src/Adp.h
 !adp-tool/build/.gitkeep
 
 firmware/build/.vs

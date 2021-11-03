@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include "wx/string.h"
+#include "wx/colour.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -19,8 +20,7 @@ enum DeviceChangeFlags
 	DCF_DEVICE         = 1 << 0,
 	DCF_BUTTON_MAPPING = 1 << 1,
 	DCF_NAME           = 1 << 2,
-	DCF_LIGHTS         = 1 << 3,
-	DCF_ADC			   = 1 << 4
+	DCF_LIGHTS         = 1 << 3
 };
 
 typedef int32_t DeviceChanges;
@@ -31,7 +31,7 @@ enum DeviceProfileGroupFlags
 	DPG_MAPPING		= 1 << 1,
 	DPG_DEVICE		= 1 << 2,
 	DPG_LIGHTS		= 1 << 3,
-	
+
 	DGP_ALL			= 0b1111111111111111
 };
 
@@ -42,26 +42,28 @@ struct RgbColor
 	RgbColor(uint8_t r, uint8_t g, uint8_t b)
 		:red(r),green(g),blue(b)
 	{ ; }
-	
-	RgbColor(std::string input)
-		:red(0), green(0), blue(0) 
-	{
-		//sscanf(input.c_str(), "%02X%02X%02X", &red, &green, &blue);
 
+	RgbColor(std::string input)
+		:red(0), green(0), blue(0)
+	{
+		wxColour c(input);
+		red = c.Red();
+		green = c.Green();
+		blue = c.Blue();
 	}
-	
+
 	RgbColor()
 		:red(0), green(0), blue(0)
 	{
 
 	}
-	
+
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
-	
-	const char* ToString() const {
-		return wxString::Format("%02X%02X%02X", red, green, blue).c_str();
+
+	const std::string ToString() const {
+		return wxColour(red, green, blue).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
 	}
 };
 
@@ -71,7 +73,6 @@ struct SensorState
 	double releaseThreshold = 0.0;
 	double value = 0.0;
 	int resistorValue = 0;
-	int aref = 0;
 	int button = 0; // zero means unmapped.
 	bool pressed = false;
 
@@ -80,18 +81,16 @@ struct SensorState
 
 struct PadState
 {
-	std::wstring name;
+	std::string name;
 	int maxNameLength = 0;
 	int numButtons = 0;
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
 	BoardType boardType = BOARD_UNKNOWN;
-<<<<<<< HEAD
 	bool featureDebug;
 	bool featureDigipot;
-=======
+	bool featureLights;
 	VersionType firmwareVersion = versionTypeUnknown;
->>>>>>> fb9c7d4 (Verion checker for installed firmware)
 };
 
 struct LedMapping
@@ -137,15 +136,17 @@ public:
 
 	static wstring ReadDebug();
 
+	static const bool HasUnsavedChanges();
+
 	static bool SetThreshold(int sensorIndex, double threshold);
-	
-	static bool SetAdcConfig(int sensorIndex, int resistorValue, int aref);
+
+	static bool SetAdcConfig(int sensorIndex, int resistorValue);
 
 	static bool SetReleaseThreshold(double threshold);
 
 	static bool SetButtonMapping(int sensorIndex, int button);
 
-	static bool SetDeviceName(const wchar_t* name);
+	static bool SetDeviceName(const char* name);
 
 	static bool SendLedMapping(int ledMappingIndex, LedMapping mapping);
 
@@ -160,11 +161,11 @@ public:
 	static void SendFactoryReset();
 
 	static void SaveChanges();
-	
+
 	static void LoadProfile(json& j, DeviceProfileGroups groups);
-	
+
 	static void SaveProfile(json& j, DeviceProfileGroups groups);
-	
+
 	static void SetSearching(bool s);
 };
 

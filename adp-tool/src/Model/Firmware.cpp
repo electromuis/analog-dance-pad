@@ -11,6 +11,7 @@
 #include "Model/Firmware.h"
 #include "Model/Device.h"
 #include "Model/Log.h"
+#include "Model/Utils.h"
 
 using namespace chrono;
 
@@ -27,14 +28,18 @@ BoardType ParseBoardType(const std::string& str)
 	else { return BOARD_UNKNOWN; }
 }
 
-wstring BoardTypeToString(BoardType boardType, bool firmwareFile)
+const wchar_t* BoardTypeToString(BoardType boardType, bool firmwareFile)
 {
 	if (boardType == BOARD_FSRIO_V1) {
-		return firmwareFile ? L"FSRio V1" : L"FSRioV1";
+		return firmwareFile ? L"FSRioV1" : L"FSRio V1";
 	}
 
 	if (boardType == BOARD_FSRMINIPAD) {
 		return firmwareFile ? L"FSRMiniPad" : L"FSR Mini pad";
+	}
+
+	if (boardType == BOARD_FSRMINIPAD_V2) {
+		return firmwareFile ? L"FSRMiniPadV2" : L"FSR Mini pad V2";
 	}
 
 	if (boardType == BOARD_TEENSY2) {
@@ -46,6 +51,11 @@ wstring BoardTypeToString(BoardType boardType, bool firmwareFile)
 	}
 
 	return L"Unknown";
+}
+
+const wchar_t* BoardTypeToString(BoardType boardType)
+{
+	return BoardTypeToString(boardType, false);
 }
 
 FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
@@ -64,7 +74,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	}
 
 	BoardType boardType = BOARD_UNKNOWN;
-	
+
 	ifstream fileStream;
 	string fileNameThin(fileName.begin(), fileName.end());
 	fileStream.open(fileNameThin);
@@ -94,7 +104,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
 		if (!ignoreBoardType) {
-			errorMessage = L"Selected: " + BoardTypeToString(boardType) + ", connected: " + BoardTypeToString(pad->boardType);
+			errorMessage = wxString::Format(L"Selected: %ls, connected: %ls", BoardTypeToString(boardType), BoardTypeToString(pad->boardType));
 			flashResult = FLASHRESULT_FAILURE_BOARDTYPE;
 			return flashResult;
 		}
@@ -129,7 +139,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 				oldPorts.begin(),
 				oldPorts.end(),
 				[&currentPort = port]
-				(const PortInfo& checkPort) -> bool { 
+				(const PortInfo& checkPort) -> bool {
 					return currentPort.hardware_id == checkPort.hardware_id &&
 						currentPort.port == checkPort.port;
 				}
@@ -140,7 +150,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 				comPort = port;
 				break;
 			}
-		}	
+		}
 	}
 
 	return WriteFirmware();
@@ -189,7 +199,7 @@ FlashResult FirmwareUploader::WriteFirmware()
 		})
 		.on_progress([eventHandler](const char* task, unsigned progress) {
 			auto wxmsg = wxString::FromUTF8(task);
-			
+
 			if (eventHandler) {
 				auto evt = new wxCommandEvent(EVT_AVRDUDE);
 				evt->SetExtraLong(AE_PROGRESS);
@@ -230,7 +240,7 @@ void FirmwareUploader::WritingDone(int exitCode)
 	auto startTime = system_clock::now();
 	do {
 		auto timeSpent = duration_cast<std::chrono::seconds>(system_clock::now() - startTime);
-		
+
 		if (eventHandler) {
 			auto evt = new wxCommandEvent(EVT_AVRDUDE);
 			evt->SetExtraLong(AE_PROGRESS);
@@ -238,7 +248,7 @@ void FirmwareUploader::WritingDone(int exitCode)
 			evt->SetString("Restarting");
 			wxQueueEvent(eventHandler, evt);
 		}
-		
+
 		if (timeSpent.count() > 5) {
 			errorMessage = L"Device failed to come back online";
 			flashResult = FLASHRESULT_FAILURE;
@@ -249,13 +259,18 @@ void FirmwareUploader::WritingDone(int exitCode)
 	} while (!Device::Pad());
 
 	if (configBackup) {
-		//Device::LoadProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
-		//Device::SaveChanges();
-		Log::Write(L"Restored device config");
+		try {
+			Device::LoadProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
+			Device::SaveChanges();
+			Log::Write(L"Restored device config");
 
-		delete configBackup;
+			delete configBackup;
+		}
+		catch (std::exception e) {
+			Log::Writef(L"Restoring config failed: %hs", e.what());
+		}
 	}
-	
+
 	if (exitCode == 0) {
 		flashResult = FLASHRESULT_SUCCESS;
 	}

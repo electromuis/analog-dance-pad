@@ -127,7 +127,6 @@ SensorReport SensorState::ToReport(int index)
 	report.threshold = WriteU16LE(ToDeviceSensorValue(threshold));
 	report.releaseThreshold = WriteU16LE(ToDeviceSensorValue(releaseThreshold));
 	report.resistorValue = resistorValue;
-	report.aref = aref;
 	report.buttonMapping = button == 0 ? 0xFF : (button - 1);
 
 	return report;
@@ -179,7 +178,6 @@ static void PrintSensorReport(const SensorReport& r)
 	Log::Writef(L"  releaseThreshold: %i", ReadU16LE(r.releaseThreshold));
 	Log::Writef(L"  buttonMapping: %i", r.buttonMapping);
 	Log::Writef(L"  resistorValue: %i", r.resistorValue);
-	Log::Writef(L"  aref: %i", r.aref);
 	Log::Writef(L"  flags: %i", ReadU16LE(r.flags));
 	Log::Write(L"]");
 }
@@ -189,7 +187,7 @@ static void PrintSensorReport(const SensorReport& r)
 // ====================================================================================================================
 
 typedef string DevicePath;
-typedef wstring DeviceName;
+typedef string DeviceName;
 
 struct PollingData
 {
@@ -214,6 +212,7 @@ public:
 	{
 		UpdateName(name);
 		myPad.maxNameLength = MAX_NAME_LENGTH;
+
 		myPad.numButtons = identification.buttonCount;
 		myPad.numSensors = identification.sensorCount;
 
@@ -222,40 +221,49 @@ public:
 		{
 			memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
 			myPad.boardType = ParseBoardType(buffer);
-			myPad.firmwareVersion.major = ReadU16LE(identification.firmwareMajor);
-			myPad.firmwareVersion.minor = ReadU16LE(identification.firmwareMinor);
 			free(buffer);
 		}
-		
+
+		myPad.firmwareVersion.major = ReadU16LE(identification.firmwareMajor);
+		myPad.firmwareVersion.minor = ReadU16LE(identification.firmwareMinor);
+
 		uint16_t features = ReadU16LE(identification.features);
 		myPad.featureDebug = (features & IdentificationV2Report::FEATURE_DEBUG) != 0;
 		myPad.featureDigipot = (features & IdentificationV2Report::FEATURE_DIGIPOT) != 0;
+		myPad.featureLights = (features & IdentificationV2Report::FEATURE_LIGHTS) != 0;
 
-		UpdatePadConfiguration(sensors);
+		for (auto sensor : sensors)
+		{
+			UpdateSensor(sensor);
+		}
+
+		if (myPad.firmwareVersion.IsNewer({ 1, 2 })) {
+			myPad.releaseThreshold = mySensors[0].releaseThreshold / mySensors[0].threshold;
+		}
+		else if (myPad.firmwareVersion.IsNewer({ 1, 1 })) {
+			myPad.featureLights = (bool)(identification.ledCount > 0);
+		}
+
 		UpdateLightsConfiguration(lightRules, ledMappings);
 		myPollingData.lastUpdate = system_clock::now();
 	}
 
-	void UpdateName(const NameReport& report)
+	~PadDevice()
 	{
-		myPad.name = widen((const char*)report.name, (size_t)report.size);
-		myChanges |= DCF_NAME;
+
 	}
 
-	void UpdatePadConfiguration(const vector<SensorReport>& sensors)
+	void UpdateName(const NameReport& report)
 	{
-		/*
-		for (int i = 0; i < myPad.numSensors; ++i)
-		{
-			auto buttonMapping = (uint8_t)report.sensorToButtonMapping[i];
-			mySensors[i].threshold = ToNormalizedSensorValue(ReadU16LE(report.sensorThresholds[i]));
-			mySensors[i].button = (buttonMapping >= myPad.numButtons ? 0 : (buttonMapping + 1));
-		}
-		myPad.releaseThreshold = ReadF32LE(report.releaseThreshold);
-		*/
+        if(report.size <= MAX_NAME_LENGTH) {
+            myPad.name = "";
+            myPad.name.append((const char*)report.name, (size_t)report.size);
+        }
+        else {
+            myPad.name = "Unknown";
+        }
 
-		for (auto& report : sensors)
-			UpdateSensor(report);
+        myChanges |= DCF_NAME;
 	}
 
 	void UpdateLightRule(const LightRuleReport& report)
@@ -352,30 +360,51 @@ public:
 			myPollingData.lastUpdate = now;
 		}
 
+		// Use the loop to save changes if needed
+		if (myHasUnsavedChanges && duration_cast<std::chrono::milliseconds>(now - myLastPendingChange).count() > 2000) {
+			SaveChanges();
+		}
+
 		return true;
 	}
 
 	bool SetThreshold(int sensorIndex, double threshold)
 	{
 		mySensors[sensorIndex].threshold = threshold;
+		mySensors[sensorIndex].releaseThreshold = threshold * myPad.releaseThreshold;
 
-		return SendSensor(sensorIndex);
+		// From v1.3 we have the SensorReport. Before that it's the PadConfiguration report
+		if (myPad.firmwareVersion.IsNewer({ 1, 2 })) {
+			return SendSensor(sensorIndex);
+		}
+		else {
+			return SendPadConfiguration();
+		}
 	}
 
 	bool SetReleaseThreshold(double threshold)
 	{
-		if()
-
-			if (for (int i = 0; i < myPad.numSensors; ++i))
-
 		myPad.releaseThreshold = clamp(threshold, 0.01, 1.00);
-		return SendPadConfiguration();
+
+		// From v1.3 we have the SensorReport. Before that it's the PadConfiguration report
+		if (myPad.firmwareVersion.IsNewer({ 1, 2 })) {
+			for (int i = 0; i < myPad.numSensors; ++i) {
+				mySensors[i].releaseThreshold = mySensors[i].threshold * myPad.releaseThreshold;
+				if (!SendSensor(i)) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+		else {
+			return SendPadConfiguration();
+		}
 	}
 
-	bool SetAdcConfig(int sensorIndex, int resistorValue, int aref)
+	bool SetAdcConfig(int sensorIndex, int resistorValue)
 	{
 		mySensors[sensorIndex].resistorValue = resistorValue;
-		mySensors[sensorIndex].aref = aref;
 
 		return SendSensor(sensorIndex);
 	}
@@ -389,7 +418,6 @@ public:
 		mySensors[sensor.index].threshold = ToNormalizedSensorValue(ReadU16LE(sensor.threshold));
 		mySensors[sensor.index].releaseThreshold = ToNormalizedSensorValue(ReadU16LE(sensor.releaseThreshold));
 		mySensors[sensor.index].resistorValue = sensor.resistorValue;
-		mySensors[sensor.index].aref = sensor.aref;
 		mySensors[sensor.index].button = (sensor.buttonMapping >= myPad.numButtons ? 0 : (sensor.buttonMapping + 1));
 	}
 
@@ -397,10 +425,10 @@ public:
 	{
 		SensorReport report = mySensors[sensorIndex].ToReport(sensorIndex);
 
-		bool success = myReporter->Send(report) && myReporter->Get(report);
+		bool success = myReporter->Send(report);
 
 		if (success) {
-			myHasUnsavedChanges = true;
+			NotifyUnsavedChanges();
 			UpdateSensor(report);
 		}
 
@@ -411,24 +439,32 @@ public:
 	{
 		mySensors[sensorIndex].button = button;
 		myChanges |= DCF_BUTTON_MAPPING;
-		return SendPadConfiguration();
+
+		// From v1.3 we have the SensorReport. Before that it's the PadConfiguration report
+		if (myPad.firmwareVersion.IsNewer({ 1, 2 })) {
+			return SendSensor(sensorIndex);
+		}
+		else {
+			return SendPadConfiguration();
+		}
 	}
 
-	bool SendName(const wchar_t* rawName)
+	bool SendName(const char* name)
 	{
-		NameReport report;
 
-		auto name = narrow(rawName, wcslen(rawName));
-		if (name.size() > sizeof(report.name))
+		NameReport report;
+		int length = strlen(name);
+
+		if (length > sizeof(report.name))
 		{
-			Log::Writef(L"SetName :: name '%ls' exceeds %i chars and was not set", rawName, sizeof(report.name));
+			Log::Writef(L"SetName :: name '%hs' exceeds %i chars and was not set", name, sizeof(report.name));
 			return false;
 		}
 
-		report.size = (uint8_t)name.length();
-		memcpy(report.name, name.data(), name.length());
-		bool result = myReporter->Send(report) && myReporter->Get(report);
-		myHasUnsavedChanges = true;
+		report.size = (uint8_t)length;
+		memcpy(report.name, name, length);
+		bool result = myReporter->SendAndGet(report);
+		NotifyUnsavedChanges();
 		UpdateName(report);
 		return result;
 	}
@@ -437,10 +473,13 @@ public:
 	{
 		if (!myReporter->Send(report))
 			return false;
-		
+
 		UpdateLedMapping(report);
-		myChanges |= DCF_LIGHTS;
-		myHasUnsavedChanges = true;
+
+        // Only set when to update the tab
+		// myChanges |= DCF_LIGHTS;
+
+		NotifyUnsavedChanges();
 		return true;
 	}
 
@@ -474,8 +513,11 @@ public:
 			return false;
 
 		UpdateLightRule(report);
-		myChanges |= DCF_LIGHTS;
-		myHasUnsavedChanges = true;
+
+		// Only set when to update the tab
+		// myChanges |= DCF_LIGHTS;
+
+		NotifyUnsavedChanges();
 		return true;
 	}
 
@@ -513,7 +555,6 @@ public:
 
 	bool SendPadConfiguration()
 	{
-		/*
 		PadConfigurationReport report;
 		for (int i = 0; i < myPad.numSensors; ++i)
 		{
@@ -522,14 +563,21 @@ public:
 		}
 		report.releaseThreshold = WriteF32LE((float)myPad.releaseThreshold);
 
-		bool sendResult = myReporter->Send(report);
-		bool getResult = myReporter->Get(report);
+		bool result = myReporter->SendAndGet(report);
 
+		NotifyUnsavedChanges();
+		return result;
+	}
+
+	void NotifyUnsavedChanges()
+	{
 		myHasUnsavedChanges = true;
-		UpdatePadConfiguration(report);
-		return sendResult && getResult;
-		*/
-		return false;
+		myLastPendingChange = system_clock::now();
+	}
+
+	bool HasUnsavedChanges()
+	{
+		return myHasUnsavedChanges;
 	}
 
 	void SaveChanges()
@@ -581,6 +629,11 @@ public:
 		return result;
 	}
 
+	void TriggerChange(int type)
+	{
+        myChanges |= type;
+	}
+
 private:
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
@@ -589,6 +642,7 @@ private:
 	SensorState mySensors[MAX_SENSOR_COUNT];
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
+	time_point<system_clock> myLastPendingChange;
 	PollingData myPollingData;
 };
 
@@ -623,7 +677,7 @@ public:
 			return ConnectToDeviceStage2(reporter, NULL);
 		}
 
-		auto foundDevices = hid_enumerate(0, 0);
+		auto foundDevices = hid_enumerate(0x0, 0x0);
 
 		// Devices that are incompatible or had a communication failure are tracked in a failed device list to prevent
 		// a loop of reconnection attempts. Remove unplugged devices from the list. Then, the user can attempt to
@@ -633,7 +687,7 @@ public:
 		{
 			if (!ContainsDevice(foundDevices, it->first))
 			{
-				Log::Writef(L"ConnectionManager :: failed device removed (%ls)", it->second.data());
+				Log::Writef(L"ConnectionManager :: failed device removed (%hs)", it->second.data());
 				it = myFailedDevices.erase(it);
 			}
 			else ++it;
@@ -669,12 +723,17 @@ public:
 		if (!compatible)
 			return false;
 
+		using namespace std::chrono_literals;
+		// Wait for any udev rules to run
+		std::this_thread::sleep_for(200ms);
+
 		// Open and configure HID for communicating with the pad.
 
 		auto hid = hid_open_path(deviceInfo->path);
 		if (!hid)
 		{
-			Log::Writef(L"ConnectionManager :: hid_open failed (%ls) :: %ls", hid_error(nullptr), deviceInfo->path);
+			Log::Writef(L"ConnectionManager :: hid_open failed (%ls) :: %hs", hid_error(nullptr), deviceInfo->path);
+
 			AddIncompatibleDevice(deviceInfo);
 			return false;
 		}
@@ -693,23 +752,26 @@ public:
 		bool result = ConnectToDeviceStage2(reporter, deviceInfo);
 		if(!result) {
 			AddIncompatibleDevice(deviceInfo);
-			hid_close(hid);
+			// hid_close already happend becuase Reporter gets destructed
 			return false;
 		}
-		
+
 		return result;
 	}
 
 	bool ConnectToDeviceStage2(unique_ptr<Reporter>& reporter, hid_device_info* deviceInfo)
 	{
 		NameReport name;
-		PadConfigurationReport padConfiguration;
 		IdentificationReport padIdentification;
 		IdentificationV2Report padIdentificationV2;
-		if (!reporter->Get(name) || !reporter->Get(padConfiguration))
+		vector<SensorReport> sensors;
+
+		if (!reporter->Get(name))
 		{
 			return false;
 		}
+
+		VersionType padVersion = versionTypeUnknown;
 
 		// The other checks were fine, which means the pad doesn't support identification yet. Loading defaults.
 		if (!reporter->Get(padIdentification))
@@ -722,27 +784,30 @@ public:
 			padIdentification.maxSensorValue = WriteU16LE(MAX_SENSOR_VALUE);
 			memset(padIdentification.boardType, 0, BOARD_TYPE_LENGTH);
 			strcpy(padIdentification.boardType, "unknown");
-			
+
 			memcpy(&padIdentificationV2, &padIdentification, sizeof(padIdentification));
 			padIdentificationV2.features = WriteU16LE(0);
 		}
 		else
 		{
-			int versionMajor = ReadU16LE(padIdentification.firmwareMajor);
-			int versionMinor = ReadU16LE(padIdentification.firmwareMinor);
-			 
-			if(versionMajor > 1 || (versionMajor == 1 && versionMinor >= 3)){
+			padVersion = { (uint16_t)ReadU16LE(padIdentification.firmwareMajor), (uint16_t)ReadU16LE(padIdentification.firmwareMinor) };
+
+			if (padVersion.IsNewer({1, 2})) {
 				if (!reporter->Get(padIdentificationV2)) {
 					memcpy(&padIdentificationV2, &padIdentification, sizeof(padIdentification));
 					padIdentificationV2.features = WriteU16LE(0);
 				}
+			}
+			else {
+				memcpy(&padIdentificationV2, &padIdentification, sizeof(padIdentification));
+				padIdentificationV2.features = WriteU16LE(0);
 			}
 		}
 
 		// If we got some lights, try to read the light rules.
 		vector<LightRuleReport> lightRules;
 		vector<LedMappingReport> ledMappings;
-		if (padIdentification.ledCount > 0)
+		if (padIdentification.ledCount > 0 && padVersion.IsNewer({1, 1}))
 		{
 			SetPropertyReport selectReport;
 
@@ -774,7 +839,7 @@ public:
 				}
 			}
 		}
-		
+
 		string devicePath = "";
 		if(deviceInfo != NULL) {
 			devicePath = deviceInfo->path;
@@ -783,20 +848,38 @@ public:
 			devicePath = "Dummy";
 		}
 
-		vector<SensorReport> sensors;
-		SetPropertyReport selectReport;
-
 		SensorReport sensorReport;
-		selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_SENSOR_INDEX);
-		for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
-		{
-			selectReport.propertyValue = WriteU32LE(i);
-			bool sendResult = reporter->Send(selectReport);
+		if (padVersion.IsNewer({ 1, 2 })) {
+			SetPropertyReport selectReport;
+			selectReport.propertyId = WriteU32LE(SetPropertyReport::SELECTED_SENSOR_INDEX);
 
-			if (sendResult && reporter->Get(sensorReport))
+			for (int i = 0; i < padIdentificationV2.sensorCount; ++i)
 			{
-				PrintSensorReport(sensorReport);
-				sensors.push_back(sensorReport);
+				selectReport.propertyValue = WriteU32LE(i);
+				bool sendResult = reporter->Send(selectReport);
+
+				if (sendResult && reporter->Get(sensorReport))
+				{
+					PrintSensorReport(sensorReport);
+					sensors.push_back(sensorReport);
+				}
+			}
+		}
+		else {
+			// Backwards compat
+			PadConfigurationReport padConfig;
+			if (reporter->Get(padConfig)) {
+				for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+				{
+					sensorReport.index = i;
+					sensorReport.threshold = padConfig.sensorThresholds[i];
+					sensorReport.releaseThreshold = WriteU16LE(ReadU16LE(padConfig.sensorThresholds[i]) * ReadF32LE(padConfig.releaseThreshold));
+					sensorReport.buttonMapping = padConfig.sensorToButtonMapping[i];
+					sensorReport.resistorValue = 0;
+					sensorReport.flags = WriteU16LE(0);
+
+					sensors.push_back(sensorReport);
+				}
 			}
 		}
 
@@ -809,22 +892,20 @@ public:
 			ledMappings,
 			sensors);
 
-		auto boardTypeString = BoardTypeToString(device->State().boardType);
 		Log::Write(L"ConnectionManager :: new device connected [");
-		Log::Writef(L"  Name: %ls", device->State().name.data());
-		Log::Writef(L"  Board: %ls", boardTypeString.c_str());
+		Log::Writef(L"  Name: %hs", device->State().name.c_str());
+		Log::Writef(L"  Board: %ls", BoardTypeToString(device->State().boardType));
 		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
 		Log::Writef(L"  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
 		if(deviceInfo != NULL) {
 			Log::Writef(L"  Product: %ls", deviceInfo->product_string);
 			Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
-			Log::Writef(L"  Path: %ls", widen(deviceInfo->path, strlen(deviceInfo->path)).data());
+			Log::Writef(L"  Path: %hs", deviceInfo->path);
 		}
 		else {
 			Log::Writef(L"  Product: Dummy");
 		}
 		Log::Write(L"]");
-		PrintPadConfigurationReport(padConfiguration);
 
 		myConnectedDevice.reset(device);
 		return true;
@@ -843,7 +924,7 @@ public:
 	void AddIncompatibleDevice(hid_device_info* device)
 	{
 		if (device->product_string) // Can be null on failure, apparently.
-			myFailedDevices[device->path] = device->product_string;
+			myFailedDevices[device->path] = narrow(device->product_string, wcslen(device->product_string));
 	}
 
 private:
@@ -864,7 +945,7 @@ void Device::Init()
 	hid_init();
 
 	connectionManager = new ConnectionManager();
-	
+
 	searching = true;
 }
 
@@ -934,6 +1015,12 @@ wstring Device::ReadDebug()
 	return device ? device->ReadDebug() : L"";
 }
 
+const bool Device::HasUnsavedChanges()
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->HasUnsavedChanges() : false;
+}
+
 bool Device::SetThreshold(int sensorIndex, double threshold)
 {
 	auto device = connectionManager->ConnectedDevice();
@@ -946,10 +1033,10 @@ bool Device::SetReleaseThreshold(double threshold)
 	return device ? device->SetReleaseThreshold(threshold) : false;
 }
 
-bool Device::SetAdcConfig(int sensorIndex, int resistorValue, int aref)
+bool Device::SetAdcConfig(int sensorIndex, int resistorValue)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->SetAdcConfig(sensorIndex, resistorValue, aref) : false;
+	return device ? device->SetAdcConfig(sensorIndex, resistorValue) : false;
 }
 
 bool Device::SetButtonMapping(int sensorIndex, int button)
@@ -958,7 +1045,7 @@ bool Device::SetButtonMapping(int sensorIndex, int button)
 	return device ? device->SetButtonMapping(sensorIndex, button) : false;
 }
 
-bool Device::SetDeviceName(const wchar_t* name)
+bool Device::SetDeviceName(const char* name)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->SendName(name) : false;
@@ -1013,79 +1100,72 @@ void Device::SetSearching(bool s)
 
 void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 {
-	if(groups & DPG_LIGHTS) {
+	if((groups & DPG_LIGHTS) > 0 && Pad()->featureLights) {
 		if(j["ledMappings"].is_array()) {
-			for(int key = 0; key < j.count("ledMappings"); key++) {
+			for(int key = 0; key < j["ledMappings"].size(); key++) {
 				auto value = j["ledMappings"][key];
-				
+
 				LedMapping lm = {
 					value["lightRuleIndex"],
 					value["sensorIndex"],
 					value["ledIndexBegin"],
 					value["ledIndexEnd"]
 				};
-				
+
 				SendLedMapping(key, lm);
 			}
 		}
-		
+
 		if(j["lightRules"].is_array()) {
-			for(int key = 0; key < j.count("lightRules"); key++) {
+			for(int key = 0; key < j["lightRules"].size(); key++) {
 				auto value = j["lightRules"][key];
-				
+
 				LightRule lr = {
 					value["fadeOn"],
 					value["fadeOff"],
-					RgbColor((string)value["onColor"]),
-					RgbColor((string)value["offColor"]),
-					RgbColor((string)value["fadeOnColor"]),
-					RgbColor((string)value["fadeOffColor"])
+					value["onColor"].is_string() ? RgbColor((string)value["onColor"]) : RgbColor(0,0,0),
+					value["offColor"].is_string() ? RgbColor((string)value["offColor"]) : RgbColor(0,0,0),
+					value["onFadeColor"].is_string() ? RgbColor((string)value["onFadeColor"]) : RgbColor(0,0,0),
+					value["offFadeColor"].is_string() ? RgbColor((string)value["offFadeColor"]) : RgbColor(0,0,0)
 				};
-				
+
 				SendLightRule(key, lr);
 			}
 		}
+
+		auto device = connectionManager->ConnectedDevice();
+		if(device) {
+            device->TriggerChange(DCF_LIGHTS);
+		}
 	}
-	
-	if(groups & DPG_SENSITIVITY) {
-		if(j["sensitivity"].is_array()) {
-			for(int key = 0; key < j.count("sensitivity"); key++) {
-				float value = j["sensitivity"][key];
-				
-				if(key < 0 || key > Device::Pad()->numSensors) {
-					continue;
-				}
-				
-				SetThreshold(key, value);
+
+	if (j["sensors"].is_array()) {
+		for (int key = 0; key < j["sensors"].size(); key++) {
+			auto sensor = j["sensors"][key];
+
+			if (groups & DPG_SENSITIVITY && sensor.contains("threshold")) {
+				SetThreshold(key, sensor["threshold"]);
+			}
+
+			if (groups & DPG_MAPPING && sensor.contains("button")) {
+				SetButtonMapping(key, sensor["button"]);
+			}
+
+			if (groups & DPG_MAPPING && sensor.contains("resistorValue") && Pad()->featureDigipot) {
+				SetAdcConfig(key, sensor["resistorValue"]);
 			}
 		}
-		
+	}
+
+	if(groups & DPG_SENSITIVITY) {
 		if(j["releaseThreshold"].is_number()) {
 			SetReleaseThreshold(j["releaseThreshold"]);
 		}
 	}
-	
-	if(groups & DPG_MAPPING) {
-		if(j["mapping"].is_array()) {
-			for(int key = 0; key < j.count("mapping"); key++) {
-				int value = j["mapping"][key];
-				
-				if(key < 0 || key > Device::Pad()->numSensors) {
-					continue;
-				}
-				
-				if(value < 0 || value > Device::Pad()->numButtons) {
-					continue;
-				}
-				
-				SetButtonMapping(key, value);
-			}
-		}
-	}
-	
+
 	if(groups & DPG_DEVICE) {
 		string name = j["name"];
-		SetDeviceName(widen(name.c_str(), name.length()).c_str());
+		SetDeviceName( ((std::string)j["name"]).c_str() );
 	}
 }
 
@@ -1095,7 +1175,7 @@ void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 
 	if(groups & DPG_LIGHTS) {
 		auto lights = Device::Lights();
-		
+
 		j["ledMappings"] = json::array();
 		for(const auto& [index, lm] : lights->ledMappings) {
 			j["ledMappings"][index]["lightRuleIndex"] = lm.lightRuleIndex;
@@ -1103,7 +1183,7 @@ void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 			j["ledMappings"][index]["ledIndexBegin"] = lm.ledIndexBegin;
 			j["ledMappings"][index]["ledIndexEnd"] = lm.ledIndexEnd;
 		}
-		
+
 		j["lightRules"] = json::array();
 		for(const auto& [index, lr] : lights->lightRules) {
 			j["lightRules"][index]["fadeOn"] = lr.fadeOn;
@@ -1113,30 +1193,29 @@ void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 			j["lightRules"][index]["onFadeColor"] = lr.onFadeColor.ToString();
 			j["lightRules"][index]["offFadeColor"] = lr.offFadeColor.ToString();
 		}
-		
+
 	}
-	
-	if(groups & DPG_SENSITIVITY) {
-		j["sensitivity"] = json::array();
+
+	if(groups & (DPG_SENSITIVITY | DPG_MAPPING)) {
+		j["sensors"] = json::array();
 		for (int i = 0; i < Device::Pad()->numSensors; ++i)
 		{
-			j["sensitivity"][i] = Device::Sensor(i)->threshold;
+			if (groups & DPG_SENSITIVITY) {
+				j["sensors"][i]["threshold"] = Device::Sensor(i)->threshold;
+				j["sensors"][i]["releaseThreshold"] = Device::Sensor(i)->releaseThreshold;
+			}
+
+			if (groups & DPG_MAPPING) {
+				j["sensors"][i]["button"] = Device::Sensor(i)->button;
+				j["sensors"][i]["resistorValue"] = Device::Sensor(i)->resistorValue;
+			}
 		}
-		
+
 		j["releaseThreshold"] = Device::Pad()->releaseThreshold;
-	}
-		
-	if(groups & DPG_MAPPING) {
-		j["mapping"] = json::array();
-		for (int i = 0; i < Device::Pad()->numSensors; ++i)
-		{
-			j["mapping"][i] = Device::Sensor(i)->button;
-		}
 	}
 
 	if(groups & DPG_DEVICE) {
-		const wchar_t* name = Pad()->name.c_str();
-		j["name"] = narrow(name, wcslen(name));
+		j["name"] = Pad()->name;
 	}
 }
 

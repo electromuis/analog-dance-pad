@@ -1,0 +1,10 @@
+#/bin/bash
+
+if [ -n "$SUDO_USER" ]; then
+    usermod -aG dialout,plugdev ${SUDO_USER}
+    echo "Added ${SUDO_USER} to device groups"
+fi
+
+udevadm control --reload-rules
+udevadm trigger
+ 

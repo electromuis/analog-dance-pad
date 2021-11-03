@@ -62,7 +62,9 @@ MappingTab::MappingTab(wxWindow* owner, const PadState* pad)
     for (int i = 1; i <= pad->numButtons; ++i)
         options.Add(wxString::Format("Button %i", i));
 
-    auto sizer = new wxGridSizer(pad->numSensors, 4, 4, 4);
+    bool configButton = Device::Pad()->featureDigipot;
+
+    auto sizer = new wxGridSizer(pad->numSensors, configButton ? 4 : 3, 4, 4);
     for (int i = 0; i < pad->numSensors; ++i)
     {
         auto text = new wxStaticText(this, wxID_ANY, wxString::Format("Sensor %i", i + 1),
@@ -79,9 +81,11 @@ MappingTab::MappingTab(wxWindow* owner, const PadState* pad)
         sizer->Add(bar, 1, wxEXPAND);
         mySensorBars.push_back(bar);
 
-        auto configButton = new wxButton(this, i, "Config");
-        configButton->Bind(wxEVT_BUTTON, &MappingTab::OnSensorConfig, this);
-        sizer->Add(configButton, 1, wxEXPAND);
+        if (configButton) {
+            auto configButton = new wxButton(this, i, "Config");
+            configButton->Bind(wxEVT_BUTTON, &MappingTab::OnSensorConfig, this);
+            sizer->Add(configButton, 1, wxEXPAND);
+        }
     }
     UpdateButtonMapping();
 
@@ -137,14 +141,7 @@ SensorConfigDialog::SensorConfigDialog(int sensorNumber)
 
     auto sensor = Device::Sensor(sensorNumber);
 
-    wxArrayString options;
-    options.Add(L"5v");
-    options.Add(L"3v");
-    arefSelection = new wxComboBox(this, NULL, sensor->aref == 3 ? "3v" : "5v", wxDefaultPosition, wxDefaultSize, options);
-    arefSelection->Bind(wxEVT_COMBOBOX, &SensorConfigDialog::Save, this);
-    topSizer->Add(arefSelection, 1, wxEXPAND | wxBOTTOM, 5);
-
-    resistorSlider = new wxSlider(this, NULL, sensor->resistorValue, 0, 254, wxDefaultPosition, wxDefaultSize);
+    resistorSlider = new wxSlider(this, NULL, 254 - sensor->resistorValue, 0, 254, wxDefaultPosition, wxDefaultSize);
     resistorSlider->Bind(wxEVT_SLIDER, &SensorConfigDialog::Save, this);
     topSizer->Add(resistorSlider, 1, wxEXPAND | wxBOTTOM, 5);
 
@@ -179,7 +176,7 @@ void SensorConfigDialog::Done(wxCommandEvent& event)
 
 void SensorConfigDialog::Save(wxCommandEvent& event)
 {
-    Device::SetAdcConfig(sensorNumber, resistorSlider->GetValue(), arefSelection->GetValue() == "3v" ? 3 : 5);
+    Device::SetAdcConfig(sensorNumber, 254 - resistorSlider->GetValue());
 }
 
 }; // namespace adp.

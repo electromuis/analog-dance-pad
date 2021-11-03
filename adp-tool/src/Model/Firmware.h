@@ -19,6 +19,7 @@ namespace adp {
 enum BoardType {
 	BOARD_UNKNOWN,
 	BOARD_FSRMINIPAD,
+	BOARD_FSRMINIPAD_V2,
 	BOARD_TEENSY2,
 	BOARD_LEONARDO,
 	BOARD_FSRIO_V1
@@ -71,7 +72,7 @@ private:
 
 
 enum BoardType ParseBoardType(const std::string& str);
-wstring BoardTypeToString(BoardType boardType);
-wstring BoardTypeToString(BoardType boardType, bool firmwareFile);
+const wchar_t* BoardTypeToString(BoardType boardType);
+const wchar_t* BoardTypeToString(BoardType boardType, bool firmwareFile);
 
 }; // namespace adp.

@@ -3,13 +3,16 @@
 #include <stdio.h>
 
 #include "wx/setup.h"
-#if wxUSE_WEBREQUEST_WINHTTP
-	#include "wx/msw/wrapwin.h"
-	#include <winhttp.h>
+#if wxUSE_WEBREQUEST
+    #if wxUSE_WEBREQUEST_WINHTTP
+        #include "wx/msw/wrapwin.h"
+        #include <winhttp.h>
+    #endif
+
+    #include "wx/webrequest.h"
 #endif
 
 #include "wx/string.h"
-#include "wx/webrequest.h"
 #include "wx/stdstream.h"
 #include "wx/event.h"
 #include <wx/regex.h>
@@ -24,6 +27,7 @@
 #include "Model/Firmware.h"
 #include "Model/Log.h"
 #include "Model/Device.h"
+#include "Model/Utils.h"
 
 using namespace std;
 
@@ -33,12 +37,13 @@ static SoftwareUpdate adpUpdate(versionTypeUnknown, SW_TYPE_ADP_OTHER, BOARD_UNK
 
 void SoftwareUpdate::Install(void (*updateInstalledCallback)(bool))
 {
-	
 
+#if wxUSE_WEBREQUEST
 	if (softwareType == SW_TYPE_ADP_TOOL) {
 		Log::Write(L"Installing ADP update");
 
 		wxString appPath(wxStandardPaths::Get().GetExecutablePath());
+
 
 		wxEvtHandler* myEvtHandler = new wxEvtHandler();
 		wxWebRequest request = wxWebSession::GetDefault().CreateRequest(
@@ -151,7 +156,7 @@ void SoftwareUpdate::Install(void (*updateInstalledCallback)(bool))
 			}
 			// Request failed
 			case wxWebRequest::State_Failed:
-				Log::Writef(L"Downloading update failed: %s", evt.GetErrorDescription());
+				Log::Writef(L"Downloading update failed: %ls", evt.GetErrorDescription());
 				(*updateInstalledCallback)(false);
 				delete myEvtHandler;
 				break;
@@ -161,35 +166,36 @@ void SoftwareUpdate::Install(void (*updateInstalledCallback)(bool))
 		request.Start();
 		return;
 	}
-	
+
+#endif
 	(*updateInstalledCallback)(false);
 	return;
 }
 
 void Updater::Init()
 {
-	wxEvtHandler* myEvtHandler = new wxEvtHandler();
-	wxTimer timer(myEvtHandler);
-	myEvtHandler->Bind(wxEVT_TIMER, [myEvtHandler](wxTimerEvent& event) {
+	wxEvtHandler myEvtHandler;
+	wxTimer timer(&myEvtHandler);
+
+	myEvtHandler.Bind(wxEVT_TIMER, [](wxTimerEvent& event) {
 		// Delete old app file
 		wxString cleanupAppPath(wxStandardPaths::Get().GetExecutablePath() + ".remove");
 
 		if (wxFileExists(cleanupAppPath)) {
 			wxRemoveFile(cleanupAppPath);
 		}
-
-		delete myEvtHandler;
 	});
 
 	// Wait until the old instance has closed
 	timer.StartOnce(200);
-
+#if wxUSE_WEBREQUEST
 	wxWebSession::GetDefault().AddCommonHeader("User-Agent", ADP_USER_AGENT);
+#endif
 }
 
 void Updater::Shutdown()
 {
-	
+
 }
 
 VersionType Updater::AdpVersion()
@@ -199,7 +205,7 @@ VersionType Updater::AdpVersion()
 
 VersionType Updater::ParseString(string input)
 {
-	wxRegEx re = "v([0-9]+).([0-9]+)";
+	wxRegEx re = wxRegEx("v([0-9]+).([0-9]+)");
 
 	if (re.Matches(input)) {
 		uint16_t major, minor;
@@ -215,23 +221,11 @@ VersionType Updater::ParseString(string input)
 	return versionTypeUnknown;
 }
 
-bool Updater::IsNewer(VersionType current, VersionType check)
-{
-	if (check.major > current.major) {
-		return true;
-	}
-
-	if (check.major == current.major && check.minor > current.minor) {
-		return true;
-	}
-
-	return false;
-}
-
 void Updater::CheckForAdpUpdates(void (*updateFoundCallback)(SoftwareUpdate&))
 {
 	auto currentVersion = Updater::AdpVersion();
 
+#if wxUSE_WEBREQUEST
 	wxEvtHandler* myEventHandler = new wxEvtHandler();
 
 	// Create the request object
@@ -262,12 +256,12 @@ void Updater::CheckForAdpUpdates(void (*updateFoundCallback)(SoftwareUpdate&))
 			}
 			else {
 
-				for (auto& release : j) 
-				for (auto& asset : release["assets"]) 
+				for (auto& release : j)
+				for (auto& asset : release["assets"])
 				if (asset["name"] == "adp-tool.exe") {
 
 					auto version = Updater::ParseString(release["tag_name"]);
-					if (Updater::IsNewer(currentVersion, version)) {
+					if (version.IsNewer(currentVersion)) {
 						adpUpdate = SoftwareUpdate(version, SW_TYPE_ADP_TOOL, BOARD_UNKNOWN, asset["url"], asset["name"]);
 						Log::Writef(L"ADP Update available: v%i.%i", version.major, version.minor);
 						(*updateFoundCallback)(adpUpdate);
@@ -283,13 +277,14 @@ void Updater::CheckForAdpUpdates(void (*updateFoundCallback)(SoftwareUpdate&))
 		}
 		// Request failed
 		case wxWebRequest::State_Failed:
-			Log::Writef(L"Finding updates failed: %s", evt.GetErrorDescription());
+			Log::Writef(L"Finding updates failed: %hs", evt.GetErrorDescription());
 			delete myEventHandler;
 			break;
 		}
 		});
 	// Start the request
 	request.Start();
+#endif
 }
 
 void Updater::CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate&))
@@ -306,6 +301,7 @@ void Updater::CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate
 
 	auto currentVersion = pad->firmwareVersion;
 
+#if wxUSE_WEBREQUEST
 	wxEvtHandler* myEventHandler = new wxEvtHandler();
 
 	// Create the request object
@@ -315,7 +311,7 @@ void Updater::CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate
 	);
 	request.SetHeader("Accept", "application/vnd.github.v3+json");
 
-	Log::Writef(L"Finding %s updates ...", BoardTypeToString(pad->boardType));
+	Log::Writef(L"Finding %ls updates ...", BoardTypeToString(pad->boardType));
 
 	if (!request.IsOk()) {
 		// This is not expected, but handle the error somehow.
@@ -333,7 +329,7 @@ void Updater::CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate
 			wxStdInputStream in(*evt.GetResponse().GetStream());
 			in >> j;
 
-			wxRegEx re = BoardTypeToString(pad->boardType, true) + "-v([0-9]+).([0-9]+).hex";
+			wxRegEx re = wxRegEx(wxString::Format("%ls-v([0-9]+).([0-9]+).hex", BoardTypeToString(pad->boardType, true)));
 
 			if (!j.is_array()) {
 				break;
@@ -344,9 +340,9 @@ void Updater::CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate
 					for (auto& asset : release["assets"]) {
 						if (re.Matches((string)asset["name"])) {
 							auto version = Updater::ParseString(asset["name"]);
-							if (Updater::IsNewer(currentVersion, version)) {
+							if (version.IsNewer(currentVersion)) {
 								adpUpdate = SoftwareUpdate(version, SW_TYPE_ADP_FIRMWARE, pad->boardType, asset["url"], asset["name"]);
-								Log::Writef(L"%s, update available: v%i.%i", BoardTypeToString(pad->boardType), version.major, version.minor);
+								Log::Writef(L"%ls, update available: v%i.%i", BoardTypeToString(pad->boardType), version.major, version.minor);
 								(*updateFoundCallback)(adpUpdate);
 								delete myEventHandler;
 								return;
@@ -361,13 +357,14 @@ void Updater::CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate
 		}
 		// Request failed
 		case wxWebRequest::State_Failed:
-			Log::Writef(L"Finding updates failed: %s", evt.GetErrorDescription());
+			Log::Writef(L"Finding updates failed: %ls", evt.GetErrorDescription());
 			delete myEventHandler;
 			break;
 		}
 		});
 	// Start the request
 	request.Start();
+#endif
 }
 
 }; // namespace adp.

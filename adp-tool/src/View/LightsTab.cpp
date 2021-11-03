@@ -143,7 +143,8 @@ public:
 
         // Label text.
         auto rect = wxRect(size.x / 2 - 20, 5, 40, 20);
-        bool isBright = centerColor.GetLuminance() > 0.5;
+        auto luminance = (0.299*centerColor.Red() + 0.587*centerColor.Green() + 0.114*centerColor.Blue()) / 255.0;
+        bool isBright = luminance > 0.5;
         dc.SetTextForeground(isBright ? *wxBLACK : *wxWHITE);
         dc.DrawLabel(myLabel, rect, wxALIGN_CENTER);
     }
@@ -228,37 +229,41 @@ public:
         for (int i = 1; i <= pad->numSensors; ++i)
             options.Add(wxString::Format("Sensor %i", i));
 
-        mySensorSelect = new wxComboBox(this, 0, options[0],
-            wxPoint(0, 0), wxSize(100, 25), options, wxCB_READONLY);
-        mySensorSelect->Bind(wxEVT_COMBOBOX, &LedMappingPanel::OnSensorChanged, this);
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
 
-        auto lfrom = new wxStaticText(
-            this, wxID_ANY, L"LED", wxPoint(105, 5), wxSize(30, 25), wxALIGN_CENTRE_HORIZONTAL);
+        mySensorSelect = new wxComboBox(this, 0, options[0],
+            wxPoint(0, 0), wxSize(115, 25), options, wxCB_READONLY);
+        mySensorSelect->Bind(wxEVT_COMBOBOX, &LedMappingPanel::OnSensorChanged, this);
+        sizer->Add(mySensorSelect);
+
+        auto lfrom = new wxStaticText(this, wxID_ANY, L"LED");
         mySensorFrom = new wxSpinCtrl(
-            this, wxID_ANY, L"", wxPoint(140, 0), wxSize(80, 25), wxSP_ARROW_KEYS, 0, 100, 0);
-        auto lto = new wxStaticText(
-            this, wxID_ANY, L"to", wxPoint(225, 5), wxSize(30, 25), wxALIGN_CENTRE_HORIZONTAL);
+            this, wxID_ANY, L"", wxDefaultPosition, wxSize(115, 25), wxSP_ARROW_KEYS, 0, 100, 0);
+        auto lto = new wxStaticText(this, wxID_ANY, L"to");
         mySensorTo = new wxSpinCtrl(
-            this, wxID_ANY, L"", wxPoint(260, 0), wxSize(80, 25), wxSP_ARROW_KEYS, 0, 100, 0);
+            this, wxID_ANY, L"", wxDefaultPosition, wxSize(115, 25), wxSP_ARROW_KEYS, 0, 100, 0);
 
         mySensorFrom->Bind(wxEVT_SPINCTRL, &LedMappingPanel::OnLedIndexChanged, this);
         mySensorTo->Bind(wxEVT_SPINCTRL, &LedMappingPanel::OnLedIndexChanged, this);
+
+        sizer->Add(lfrom, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, 5);
+        sizer->Add(mySensorFrom, 0, wxLEFT, 5);
+        sizer->Add(lto, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, 5);
+        sizer->Add(mySensorTo, 0, wxLEFT, 5);
 
         mySensorFrom->SetValue(mapping.ledIndexBegin);
         mySensorTo->SetValue(mapping.ledIndexEnd);
         mySensorSelect->SetSelection(mapping.sensorIndex);
 
-        myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(350, 12), wxDefaultSize);
-        myDeleteButton = new wxButton(this, DELETE_LED_MAPPING, L"\u2715", wxDefaultPosition, wxSize(25, 25));
-    }
+        myHLine = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+        myDeleteButton = new wxButton(this, DELETE_LED_MAPPING, L"\u2715", wxDefaultPosition, wxSize(35, 25));
 
-    void RecomputeLayout()
-    {
-        auto size = GetSize();
-        myDeleteButton->SetPosition(wxPoint(size.x - 25, 0));
-        myHLine->SetSize(size.x - 385, wxDefaultCoord);
-    }
+        sizer->Add(myHLine, 1, wxALIGN_CENTRE_VERTICAL | wxLEFT, 5);
+        sizer->Add(myDeleteButton, 0, wxLEFT, 5);
 
+        SetSizer(sizer);
+    }
+    
     void OnSensorChanged(wxCommandEvent& event)
     {
         SendToDevice();
@@ -344,16 +349,16 @@ public:
         myOnSetting->Bind(EVT_COLOR_CHANGED, &LightRulePanel::OnColorChanged, this);
         myOffSetting->Bind(EVT_COLOR_CHANGED, &LightRulePanel::OnColorChanged, this);
 
-        myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(0, 35), wxSize(50, 20));
+        myFadeOnBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(0, 35), wxSize(70, 20));
         myFadeOnBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnFadeOnToggled, this);
         myFadeOnBox->SetValue(rule.fadeOn);
 
-        myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(50, 20));
+        myFadeOffBox = new wxCheckBox(this, wxID_ANY, L"Fade", wxPoint(150, 35), wxSize(70, 20));
         myFadeOffBox->Bind(wxEVT_CHECKBOX, &LightRulePanel::OnFadeOffToggled, this);
         myFadeOffBox->SetValue(rule.fadeOff);
 
         myHLine = new wxStaticLine(this, wxID_ANY, wxPoint(300, 14), wxDefaultSize);
-        myDeleteButton = new wxButton(this, DELETE_LIGHT_RULE, L"\u2715", wxDefaultPosition, wxSize(30, 30));
+        myDeleteButton = new wxButton(this, DELETE_LIGHT_RULE, L"\u2715", wxDefaultPosition, wxSize(35, 35));
 
         if (state)
         {
@@ -383,12 +388,11 @@ public:
             int itemH = 25;
             item->SetPosition(wxPoint(0, contentH));
             item->SetSize(wxSize(size.x, itemH));
-            item->RecomputeLayout();
             contentH += itemH + 5;
         }
 
-        myDeleteButton->SetPosition(wxPoint(size.x - 30, 0));
-        myHLine->SetSize(size.x - 340, wxDefaultCoord);
+        myDeleteButton->SetPosition(wxPoint(size.x - 35, 0));
+        myHLine->SetSize(size.x - 345, wxDefaultCoord);
         myAddLedMappingButton->SetPosition(wxPoint(0, contentH));
 
         Refresh();
@@ -518,11 +522,7 @@ LightsTab::LightsTab(wxWindow* owner, const LightsState* state)
 {
     myAddSettingButton = new wxButton(this, ADD_LIGHT_RULE, L"Add light setting", wxDefaultPosition, wxSize(200, 30));
 
-    //todo fix linux
-#ifdef _MSC_VER
     UpdateSettings(state);
-#endif
-
     SetScrollRate(5, 5);
 }
 
@@ -546,12 +546,9 @@ void LightsTab::HandleChanges(DeviceChanges changes)
 {
     if (changes & DCF_LIGHTS)
     {
-        // Updating on every change causes the UI to flicker. Since all changes should originate from the tab itself,
-        // let's assume that updating is not necessary since the controls should already be in sync with the device.
-
-        /* auto lights = Device::Lights();
+        auto lights = Device::Lights();
         if (lights)
-            UpdateSettings(lights); */
+            UpdateSettings(lights);
     }
 }
 

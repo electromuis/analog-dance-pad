@@ -8,9 +8,7 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
-
+#include "wx/setup.h"
 #include "wx/wx.h"
 #include "wx/notebook.h"
 #include "wx/wfstream.h"
@@ -55,11 +53,11 @@ public:
         wxMenu* fileMenu = new wxMenu();
 
         menuBar->Append(fileMenu, wxT("File"));
-        
+
         fileMenu->Append(PROFILE_LOAD, wxT("Load profile"));
         fileMenu->Append(PROFILE_SAVE, wxT("Save profile"));
         fileMenu->Append(MENU_EXIT, wxT("Exit"));
-        
+
         SetMenuBar(menuBar);
 
         auto sizer = new wxBoxSizer(wxVERTICAL);
@@ -84,28 +82,33 @@ public:
 		if(!Device::Pad()) {
 			return;
 		}
-		
-        wxFileDialog dlg(this, L"Open XYZ file", L"", L"", L"ADP profile (*.json)|*.json",
+
+        wxFileDialog dlg(this, L"Load ADP profile", L"", lastProfile, L"ADP profile (*.json)|*.json|All files (*)|*",
         wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
         if (dlg.ShowModal() == wxID_CANCEL)
             return;
-	
+
 		ifstream fileStream;
 		fileStream.open((std::string)dlg.GetPath());
 		if(!fileStream.is_open())
 		{
-			Log::Writef(L"Could not read profile: %s", dlg.GetPath());
+			Log::Writef(L"Could not read profile: %ls", dlg.GetPath());
             return;
         }
 
+        try {
+            lastProfile = dlg.GetPath();
 
-		json j;
-		
-		fileStream >> j;
-		fileStream.close();
-		
-		Device::LoadProfile(j, DGP_ALL);
+            json j;
+
+            fileStream >> j;
+            fileStream.close();
+
+            Device::LoadProfile(j, DGP_ALL);
+		} catch (exception e) {
+            Log::Writef(L"Could not read profile: %hs", e.what());
+		}
     }
 
     void ProfileSave(wxCommandEvent & event)
@@ -113,8 +116,13 @@ public:
 		if(!Device::Pad()) {
 			return;
 		}
-		
-        wxFileDialog dlg(this, L"Save XYZ file", L"", L"", L"ADP profile (*.json)|*.json",
+
+		wxString path = "";
+		if(lastProfile.Length() > 0) {
+            path = wxFileName(lastProfile).GetPath();
+		}
+
+        wxFileDialog dlg(this, L"Save ADP profile", path, L"profile", L"ADP profile (*.json)|*.json|All files (*)|*",
         wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
 
         if (dlg.ShowModal() == wxID_CANCEL)
@@ -123,17 +131,23 @@ public:
         wxFileOutputStream output_stream(dlg.GetPath());
         if (!output_stream.IsOk())
         {
-			Log::Writef(L"Could not save profile: %s", dlg.GetPath());
+			Log::Writef(L"Could not save profile: %ls", dlg.GetPath());
             return;
         }
 
-        json j;
-		
-        Device::SaveProfile(j, DGP_ALL);
+        try {
+            lastProfile = dlg.GetPath();
 
-        wxStringInputStream input_stream(wxString(j.dump()));
-        output_stream.Write(input_stream);
-        output_stream.Close();
+            json j;
+
+            Device::SaveProfile(j, DGP_ALL);
+
+            wxStringInputStream input_stream(wxString(j.dump(4)));
+            output_stream.Write(input_stream);
+            output_stream.Close();
+        } catch (exception e) {
+            Log::Writef(L"Could not save profile: %hs", e.what());
+        }
     }
 
     void Tick()
@@ -142,9 +156,11 @@ public:
 
         if (changes & DCF_DEVICE) {
             UpdatePages();
+            /*
             Updater::CheckForFirmwareUpdates([](SoftwareUpdate& update) {
                 ShowUpdateDialog(update);
             });
+            */
         }
 
         if (changes & (DCF_DEVICE | DCF_NAME))
@@ -255,6 +271,7 @@ private:
         MainWindow* owner;
     };
 
+    wxString lastProfile = "";
     wxApp* myApp;
     wxNotebook* myTabs;
     vector<BaseTab*> myTabList;
@@ -278,7 +295,7 @@ Application::~Application()
     if (wxDirExists(tempDir)) {
         wxRmDir(tempDir);
     }
-        
+
     if (doRestart) {
         wxExecute(argv[0]);
     }
@@ -286,7 +303,7 @@ Application::~Application()
 
 wxString Application::GetTempDir()
 {
-    GetTempDir(true);
+    return GetTempDir(true);
 }
 
 wxString Application::GetTempDir(bool create)
@@ -311,7 +328,7 @@ bool Application::OnInit()
     auto now = wxDateTime::Now().FormatISOCombined(' ');
     Log::Writef(L"Application started: %ls - %ls", versionString.data(), now.wc_str());
 
-    Updater::Init();
+    //Updater::Init();
     Assets::Init();
     Device::Init();
 
@@ -319,20 +336,24 @@ bool Application::OnInit()
 
     wxIconBundle icons;
 
-    //todo fix linux
-#ifdef _MSC_VER
-    icons.AddIcon(Files::Icon16(), wxBITMAP_TYPE_PNG);
-    icons.AddIcon(Files::Icon32(), wxBITMAP_TYPE_PNG);
-    icons.AddIcon(Files::Icon64(), wxBITMAP_TYPE_PNG);
-#endif // _MSC_VER
+    auto icon16 = Files::Icon16();
+    icons.AddIcon(icon16, wxBITMAP_TYPE_PNG);
+
+    auto icon32 = Files::Icon32();
+    icons.AddIcon(icon32, wxBITMAP_TYPE_PNG);
+
+    auto icon64 = Files::Icon64();
+    icons.AddIcon(icon64, wxBITMAP_TYPE_PNG);
 
     myWindow = new MainWindow(this, versionString.data());
     myWindow->SetIcons(icons);
     myWindow->Show();
 
+    /*
     Updater::CheckForAdpUpdates([](SoftwareUpdate& update) {
         ShowUpdateDialog(update);
     });
+    */
 
     return true;
 }
@@ -345,7 +366,7 @@ void Application::Restart()
 
 int Application::OnExit()
 {
-    Updater::Shutdown();
+    //Updater::Shutdown();
     Device::Shutdown();
     Assets::Shutdown();
     Log::Shutdown();

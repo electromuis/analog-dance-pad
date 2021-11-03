@@ -78,10 +78,14 @@ void DeviceTab::OnRename(wxCommandEvent& event)
         return;
 
     wxTextEntryDialog dlg(this, L"Enter a new name for the device", L"Enter name", pad->name.data());
-    dlg.SetTextValidator(wxFILTER_ALPHANUMERIC | wxFILTER_SPACE);
+
+    wxTextValidator validator = wxTextValidator(wxFILTER_INCLUDE_CHAR_LIST);
+    validator.SetCharIncludes("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_ ()");
+    dlg.SetTextValidator(validator);
+
     dlg.SetMaxLength(pad->maxNameLength);
     if (dlg.ShowModal() == wxID_OK)
-        Device::SetDeviceName(dlg.GetValue().wc_str());
+        Device::SetDeviceName(dlg.GetValue());
 }
 
 void DeviceTab::OnFactoryReset(wxCommandEvent& event)
@@ -118,13 +122,13 @@ FirmwareDialog::FirmwareDialog(const wxString& title)
     auto font = GetFont();
     font.MakeBold();
     font.MakeLarger();
-    
+
     EnableCloseButton(false);
 
     auto topSizer = new wxBoxSizer(wxVERTICAL);
 
     auto rowSizer = new wxBoxSizer(wxHORIZONTAL);
-    
+
     auto lStatus = new wxStaticText(this, wxID_ANY, L"Status: ", wxDefaultPosition, wxDefaultSize);
     rowSizer->Add(lStatus, 0, 0, 0);
     statusText = new wxStaticText(this, wxID_ANY, L"waiting", wxDefaultPosition, wxDefaultSize);
@@ -157,7 +161,7 @@ void FirmwareDialog::UpdateFirmware(wstring file)
 
         if (answer == wxYES) {
             uploader.SetIgnoreBoardType(true);
-            FlashResult result = uploader.UpdateFirmware(file);
+            result = uploader.UpdateFirmware(file);
         }
         else {
             return;
@@ -195,6 +199,7 @@ void FirmwareDialog::OnAvrdude(wxCommandEvent& event)
                 lastTask = event.GetString();
             }
 
+            //TODO Fix
             progressBar->SetValue(tasksCompleted * 100 + event.GetInt());
 
             break;

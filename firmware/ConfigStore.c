@@ -9,7 +9,7 @@
 
 // just some random bytes to figure out what we have in eeprom
 // change these to reset configuration!
-static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
+static const uint8_t magicBytes[5] = {9, 74, 9, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
 
 // where magic bytes (which indicate that a pad configuration is, in fact, stored) exist
 #define MAGIC_BYTES_ADDRESS ((void *) 0x00)
@@ -50,36 +50,31 @@ static const uint8_t magicBytes[5] = {9, 74, 9, 48, 99};
         .ledIndexEnd = lend,                            \
     }
 
+#define DEFAULT_SENSOR_CONFIG(button) 	\
+	{									\
+	.threshold = 400,					\
+	.releaseThreshold = 400 * 0.95,		\
+	.buttonMapping = button,			\
+	.resistorValue = 150,				\
+	.flags = 0							\
+	}
+
 static const Configuration DEFAULT_CONFIGURATION = {
     .padConfiguration = {
+		.sensors = {	
 		
-		.sensors = { [0 ... SENSOR_COUNT - 1] = {
-			.threshold = 400,
-			.releaseThreshold = 400 * 0.95,
-			.buttonMapping = 0xFF,
-			.resistorValue = 150,
-			.aref = 5,
-			.flags = 0
-		} }
-		
-		
-		/*
-        .sensorThresholds = { [0 ... SENSOR_COUNT - 1] = 400 },
-        .releaseMultiplier = 0.95,
-        .sensorToButtonMapping = {
-#if defined(BOARD_TYPE_FSRMINIPAD)
-			[0 ... 1] = 0xFF,
-			[2] = 0,
-			[3] = 1,
-			[4] = 2,
-			[5] = 3,
-			[6 ... SENSOR_COUNT - 1] = 0xFF
-#else
-			[0 ... SENSOR_COUNT - 1] = 0xFF 
-#endif
-
+			#if defined(BOARD_TYPE_FSRMINIPAD)
+				[0 ... 1] = DEFAULT_SENSOR_CONFIG(0xFF),
+				[2] = DEFAULT_SENSOR_CONFIG(0),
+				[3] = DEFAULT_SENSOR_CONFIG(1),
+				[4] = DEFAULT_SENSOR_CONFIG(2),
+				[5] = DEFAULT_SENSOR_CONFIG(3),
+				[6 ... SENSOR_COUNT - 1] = DEFAULT_SENSOR_CONFIG(0xFF)
+				
+			#else
+				[0 ... SENSOR_COUNT - 1] = DEFAULT_SENSOR_CONFIG(0xFF)
+			#endif
 		}
-*/
     },
     .nameAndSize = {
         .size = sizeof(DEFAULT_NAME) - 1, // we don't care about the null at the end.
@@ -88,6 +83,7 @@ static const Configuration DEFAULT_CONFIGURATION = {
 	.lightConfiguration = {
         .selectedLightRuleIndex = 0,
         .selectedLedMappingIndex = 0,
+		
 #if defined(BOARD_TYPE_FSRMINIPAD)
         .lightRules =
 		{
@@ -102,6 +98,7 @@ static const Configuration DEFAULT_CONFIGURATION = {
             DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
         }
 #endif
+
 	}
 };
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@
+Name=ADP-tool
+Comment=Desktop client for analog-dance-pad enabled devices (https://github.com/electromuis/analog-dance-pad)
+Exec=/usr/bin/adp-tool
+Path=
+Icon=adp-tool
+Terminal=false
+Type=Application
+Categories=Utility;Game;

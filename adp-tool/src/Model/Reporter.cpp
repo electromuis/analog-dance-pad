@@ -24,14 +24,12 @@ static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
 
 	auto size = sizeof(T);
 	auto expectedSize = sizeof(T);
-	#if _WIN32
-        expectedSize ++;
-	#endif
 
 	int bytesRead = hid_get_feature_report(hid, buffer, sizeof(buffer));
 	if (bytesRead == expectedSize)
 	{
 		memcpy(&report, buffer, size);
+		Log::Writef(L"%ls :: done", name);
 		return true;
 	}
 
@@ -53,14 +51,14 @@ static bool SendFeatureReport(hid_device* hid, const T& report, const wchar_t* n
 	int bytesWritten = hid_send_feature_report(hid, (const unsigned char*)&report, sizeof(T));
 	if (bytesWritten == sizeof(T))
 	{
-		Log::Writef(L"%s :: done", name);
+		Log::Writef(L"%ls :: done", name);
 		return true;
 	}
 
 	if (bytesWritten < 0)
-		Log::Writef(L"%s :: hid_send_feature_report failed (%s)", name, hid_error(hid));
+		Log::Writef(L"%ls :: hid_send_feature_report failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef(L"%s :: unexpected number of bytes written (%i)", name, bytesWritten);
+		Log::Writef(L"%ls :: unexpected number of bytes written (%i)", name, bytesWritten);
 	return false;
 }
 
@@ -90,7 +88,10 @@ static ReadDataResult ReadData(hid_device* hid, T& report, const wchar_t* name)
 
 static bool WriteData(hid_device* hid, uint8_t reportId, const wchar_t* name, bool performErrorCheck)
 {
-	int bytesWritten = hid_write(hid, &reportId, sizeof(reportId));
+	// Linux wants reports of at leats 2 bytes
+	uint8_t buf[2] = { reportId, 0 };
+
+	int bytesWritten = hid_write(hid, buf, sizeof(buf));
 	if (bytesWritten > 0 || !performErrorCheck)
 	{
 		Log::Writef(L"%ls :: done", name);
@@ -167,6 +168,14 @@ bool Reporter::Get(IdentificationReport& report)
 
 bool Reporter::Get(IdentificationV2Report& report)
 {
+	if (emulator) {
+		report.buttonCount = 12;
+		report.sensorCount = 12;
+		report.ledCount = 0;
+
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetIdentificationV2Report");
 }
 
@@ -190,12 +199,20 @@ bool Reporter::Get(LedMappingReport& report)
 
 bool Reporter::Get(SensorReport& report)
 {
+	if (emulator) {
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetSensorReport");
 }
 
 
 bool Reporter::Get(DebugReport& report)
 {
+	if (emulator) {
+		return true;
+	}
+
 	return GetFeatureReport(myHid, report, L"GetDebugReport");
 }
 
@@ -266,6 +283,34 @@ bool Reporter::Send(const SetPropertyReport& report)
 	}
 	
 	return SendFeatureReport(myHid, report, L"SendSetPropertyReport");
+}
+
+bool Reporter::SendAndGet(NameReport& report)
+{
+	if(!Send(report))
+		return false;
+
+	// Wait for the controller to get into a ready state
+	std::this_thread::sleep_for(2ms);
+
+	if (!Get(report))
+		return false;
+
+	return true;
+}
+
+bool Reporter::SendAndGet(PadConfigurationReport& report)
+{
+	if (!Send(report))
+		return false;
+
+	// Wait for the controller to get into a ready state
+	std::this_thread::sleep_for(2ms);
+
+	if (!Get(report))
+		return false;
+
+	return true;
 }
 
 }; // namespace adp.

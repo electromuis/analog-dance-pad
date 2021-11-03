@@ -21,7 +21,6 @@ typedef struct {
 	uint16_t releaseThreshold;
 	int8_t buttonMapping;
 	uint8_t resistorValue;
-	uint8_t aref;
 	uint16_t flags;
 } __attribute__((packed)) SensorConfig;
 

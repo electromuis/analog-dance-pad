@@ -16,6 +16,19 @@ namespace adp {
 struct VersionType {
 	uint16_t major;
 	uint16_t minor;
+
+	bool IsNewer(VersionType then)
+	{
+		if (major > then.major) {
+			return true;
+		}
+
+		if (major == then.major && minor > then.minor) {
+			return true;
+		}
+
+		return false;
+	}
 };
 
 enum SoftwareType {
@@ -64,7 +77,6 @@ public:
 
 	static VersionType AdpVersion();
 	static VersionType ParseString(string input);
-	static bool IsNewer(VersionType current, VersionType check);
 };
 
 }; // namespace adp.

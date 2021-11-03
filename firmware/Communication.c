@@ -47,4 +47,8 @@ void Communication_WriteIdentificationV2Report(IdentificationV2FeatureReport* Re
 	#if defined(FEATURE_DIGIPOT_ENABLED)
 		ReportData->features |= FEATURE_DIGIPOT;
 	#endif
+	
+	#if defined(FEATURE_LIGHTS_ENABLED)
+		ReportData->features |= FEATURE_LIGHTS;
+	#endif
 }

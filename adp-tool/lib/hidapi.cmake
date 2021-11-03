@@ -1,9 +1,5 @@
 cmake_minimum_required (VERSION 3.6)
 
-if(WIN32)
-	set(CMAKE_GENERATOR_PLATFORM win32)
-endif()
-
 set(HIDAPI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/hidapi")
 
 include_directories(

@@ -3,6 +3,7 @@
 #include "wx/brush.h"
 #include "wx/pen.h"
 #include "wx/mstream.h"
+#include "wx/colour.h"
 
 namespace adp {
 

@@ -47,7 +47,7 @@ typedef struct
 } __attribute__((packed)) LightConfiguration;
 
 void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration);
-void Lights_Update(void);
+void Lights_Update(bool force);
 
 extern LightConfiguration LIGHT_CONF;
 

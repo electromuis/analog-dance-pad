@@ -60,16 +60,8 @@ void Pad_UpdateConfiguration(const PadConfigurationV2* padConfiguration) {
 }
 
 void Pad_UpdateState(void) {
-    uint16_t newValues[SENSOR_COUNT]; 
-    
     for (int i = 0; i < SENSOR_COUNT; i++) {
-        newValues[i] = ADC_Read(i);
-    }
-    
-    for (int i = 0; i < SENSOR_COUNT; i++) {
-        // TODO: weight of old value and new value is not configurable for now
-        // because division by unknown value means ass performance.
-        PAD_STATE.sensorValues[i] = (PAD_STATE.sensorValues[i] + newValues[i]) / 2;
+        PAD_STATE.sensorValues[i] = ADC_Read(i);
     }
 
     for (int i = 0; i < BUTTON_COUNT; i++) {
@@ -105,5 +97,5 @@ void Pad_UpdateState(void) {
         PAD_STATE.buttonsPressed[i] = newButtonPressedState;
     }
 	
-	Lights_Update();
+	Lights_Update(false);
 }
