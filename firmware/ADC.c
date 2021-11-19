@@ -123,7 +123,7 @@ void ADC_Init(void) {
 	
 	#if defined(FEATURE_DIGIPOT_ENABLED)
 		DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
-		//SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
+		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
 	#endif
 }
 

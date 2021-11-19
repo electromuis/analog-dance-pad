@@ -70,7 +70,16 @@ static const Configuration DEFAULT_CONFIGURATION = {
 				[4] = DEFAULT_SENSOR_CONFIG(2),
 				[5] = DEFAULT_SENSOR_CONFIG(3),
 				[6 ... SENSOR_COUNT - 1] = DEFAULT_SENSOR_CONFIG(0xFF)
-				
+			#elif defined(BOARD_TYPE_FSRIO_1)
+				[0] = DEFAULT_SENSOR_CONFIG(0),
+				[1] = DEFAULT_SENSOR_CONFIG(1),
+				[2] = DEFAULT_SENSOR_CONFIG(2),
+				[3] = DEFAULT_SENSOR_CONFIG(3),
+				[4] = DEFAULT_SENSOR_CONFIG(4),
+				[5] = DEFAULT_SENSOR_CONFIG(5),
+				[6] = DEFAULT_SENSOR_CONFIG(6),
+				[7] = DEFAULT_SENSOR_CONFIG(7),
+				[8 ... SENSOR_COUNT - 1] = DEFAULT_SENSOR_CONFIG(0xFF)
 			#else
 				[0 ... SENSOR_COUNT - 1] = DEFAULT_SENSOR_CONFIG(0xFF)
 			#endif
@@ -97,8 +106,23 @@ static const Configuration DEFAULT_CONFIGURATION = {
             DEFAULT_LED_MAPPING(1, 2, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
             DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
         }
+#elif defined(BOARD_TYPE_FSRIO_1)
+		.lightRules =
+		{
+			DEFAULT_LIGHT_RULE_2
+		},
+		.ledMappings =
+		{
+			DEFAULT_LED_MAPPING(0, 0, 0, 1),
+			DEFAULT_LED_MAPPING(0, 1, 1, 2),
+			DEFAULT_LED_MAPPING(0, 2, 2, 3),
+			DEFAULT_LED_MAPPING(0, 3, 3, 4),
+			DEFAULT_LED_MAPPING(0, 4, 4, 5),
+			DEFAULT_LED_MAPPING(0, 5, 5, 6),
+			DEFAULT_LED_MAPPING(0, 6, 6, 7),
+			DEFAULT_LED_MAPPING(0, 7, 7, 8)
+		}
 #endif
-
 	}
 };
 

@@ -218,7 +218,7 @@ private:
             AddTab(1, new MappingTab(myTabs, pad), MappingTab::Title);
             AddTab(2, new DeviceTab(myTabs), DeviceTab::Title);
             auto lights = Device::Lights();
-            if (lights)
+            if (pad->featureLights && lights)
             {
                 AddTab(3, new LightsTab(myTabs, lights), LightsTab::Title);
             }

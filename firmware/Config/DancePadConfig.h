@@ -6,7 +6,7 @@
 
 	#define FEATURE_DEBUG 1 << 0
 	#define FEATURE_DIGIPOT 1 << 1
-	#define FEATURE_LIGHTS 2 << 1
+	#define FEATURE_LIGHTS 1 << 2
 	
 	//#define FEATURE_DEBUG_ENABLED
 	//#define FEATURE_DIGIPOT_ENABLED
@@ -55,6 +55,7 @@
         #define BOARD_TYPE "fsrio1";
         #define BOOTLOADER_ADDRESS "0x7000"
 		
+		#define FEATURE_LIGHTS_ENABLED
 		#define FEATURE_DIGIPOT_ENABLED
 		
 		#define LED_PANELS 8

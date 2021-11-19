@@ -1173,8 +1173,8 @@ void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 {
 	j["adpToolVersion"] = wxString::Format("v%i.%i", ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
 
-	if(groups & DPG_LIGHTS) {
-		auto lights = Device::Lights();
+	if((groups & DPG_LIGHTS) && Pad()->featureLights && Lights()) {
+		auto lights = Lights();
 
 		j["ledMappings"] = json::array();
 		for(const auto& [index, lm] : lights->ledMappings) {
