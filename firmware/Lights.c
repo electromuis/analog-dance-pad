@@ -13,7 +13,7 @@ LightConfiguration LIGHT_CONF;
 // Skip every x amount of light updates to improve polling rate
 #define UPDATE_WAIT_CYCLES 10
 
-#if defined(BOARD_TYPE_FSRIO_1)
+#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
 	#define LED_STRIP_PORT PORTB
 	#define LED_STRIP_DDR  DDRB
 	#define LED_STRIP_PIN  3

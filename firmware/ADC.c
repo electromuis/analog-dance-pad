@@ -7,7 +7,21 @@
 
 // see page 308 of https://cdn.sparkfun.com/datasheets/Dev/Arduino/Boards/ATMega32U4.pdf for these
 static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
-#if defined(BOARD_TYPE_FSRIO_1)	
+#if defined(BOARD_TYPE_FSRIO_2)
+	0b000000, //ADC0
+    0b000001, //ADC1
+	0b000100, //ADC4
+	0b000101, //ADC5
+	0b000110, //ADC6
+	0b000111, //ADC7
+	0b100000, //ADC8
+	0b100001, //ADC9
+	
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111
+#elif defined(BOARD_TYPE_FSRIO_1)	
     0b000111, //ADC7 A0
 	0b000110, //ADC6 A1
 	0b000101, //ADC5 A2
@@ -57,42 +71,50 @@ void ADC_LoadPot(uint8_t sensor) {
 	
 	// Set the correct muxer output
 	
-	if(sensor & 1) {
-		PORTD |= 1 << DDD1;
-	}
-	else {
-		PORTD &= ~(1 << DDD1);
-	}
-	
-	if(sensor & (1 << 1)) {
-		PORTD |= 1 << DDD0;
-	}
-	else {
-		PORTD &= ~(1 << DDD0);
-	}
-	
-	if(sensor & (1 << 2)) {
-		PORTC |= 1 << DDC6;
-	}
-	else {
-		PORTC &= ~(1 << DDC6);
-	}
-	
-	if(sensor & (1 << 3)) {
-		PORTE |= 1 << DDE6;
-	}
-	else {
-		PORTE &= ~(1 << DDE6);
-	}
+	#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
+		if(sensor & 1) {
+			PORTD |= 1 << DDD1;
+		}
+		else {
+			PORTD &= ~(1 << DDD1);
+		}
+		
+		if(sensor & (1 << 1)) {
+			PORTD |= 1 << DDD0;
+		}
+		else {
+			PORTD &= ~(1 << DDD0);
+		}
+		
+		if(sensor & (1 << 2)) {
+			PORTC |= 1 << DDC6;
+		}
+		else {
+			PORTC &= ~(1 << DDC6);
+		}
+		
+		if(sensor & (1 << 3)) {
+			PORTE |= 1 << DDE6;
+		}
+		else {
+			PORTE &= ~(1 << DDE6);
+		}
+	#else
+		PORTD = (PORTD & 0b11110000) | (sensor & 0b00001111);
+	#endif
 	
 	// Set the digipot via SPI
 	
-	#if defined(BOARD_TYPE_FSRIO_1)
+	#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
 		// Light pin is on the SPI register. Need to enable/disable SPI each time.
 		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
+		
+		PORTB &= ~(1 << DDB6);
+	#else
+		PORTE &= ~(1 << DDE6);
 	#endif
 	
-	PORTB &= ~(1 << DDB6);
+	
 	
 	SPDR = 0b00010001;
     while(! (SPSR & (1 << SPIF)) ) ;
@@ -100,11 +122,15 @@ void ADC_LoadPot(uint8_t sensor) {
 	SPDR = s.resistorValue;	
     while(! (SPSR & (1 << SPIF)) ) ;
 	
-	PORTB |= 1 << DDB6;
 	
-	#if defined(BOARD_TYPE_FSRIO_1)
+	
+	#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
+		PORTB |= 1 << DDB6;
+	
 		// Light pin is on the SPI register. Need to enable/disable SPI each time.
 		SPCR = 0;
+	#else
+		PORTE |= 1 << DDE6;
 	#endif
 }
 
@@ -115,14 +141,20 @@ void ADC_Init(void) {
     ADCSRA = (1 << ADEN) | prescaler;
     ADMUX = (1 << REFS0);
     ADCSRB = (1 << ADHSM); // enable high speed mode
-
-	// Muxer outputs
-	DDRD |= (1 << DDD0) | (1 << DDD1);
-	DDRC |= 1 << DDC6;
-	DDRE |= 1 << DDE6;
 	
 	#if defined(FEATURE_DIGIPOT_ENABLED)
-		DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
+		// Muxer outputs
+		#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
+			DDRD |= (1 << DDD0) | (1 << DDD1);
+			DDRC |= 1 << DDC6;
+			DDRE |= 1 << DDE6;
+			DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
+		#else
+			DDRD |= 0b00001111;
+			DDRE |= 1 << DDE6;
+			DDRB |= (1 << DDB2) | (1 << DDB1); //spi pins on port b MOSI, SCK outputs
+		#endif
+
 		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
 	#endif
 }

@@ -29,7 +29,18 @@
     #define MAX_LIGHT_RULES 16
     #define MAX_LED_MAPPINGS 16
 	
-	#if defined(BOARD_TYPE_FSRMINIPAD_2)
+
+	
+    #if defined(BOARD_TYPE_FSRMINIPAD)
+        #define BOARD_TYPE "fsrminipad";
+        #define BOOTLOADER_ADDRESS "0x7000"
+		
+		#define FEATURE_LIGHTS_ENABLED
+		
+		#define LED_PANELS 4
+		#define PANEL_LEDS 8
+		
+	#elif defined(BOARD_TYPE_FSRMINIPAD_2)
 		#define BOARD_TYPE "fsrminipad2";
         #define BOOTLOADER_ADDRESS "0x7000"
 		
@@ -41,15 +52,6 @@
 		
 		// Trigger existing exceptions
 		#define BOARD_TYPE_FSRMINIPAD
-	
-    #elif defined(BOARD_TYPE_FSRMINIPAD)
-        #define BOARD_TYPE "fsrminipad";
-        #define BOOTLOADER_ADDRESS "0x7000"
-		
-		#define FEATURE_LIGHTS_ENABLED
-		
-		#define LED_PANELS 4
-		#define PANEL_LEDS 8
 		
 	#elif defined(BOARD_TYPE_FSRIO_1)
         #define BOARD_TYPE "fsrio1";
@@ -60,6 +62,19 @@
 		
 		#define LED_PANELS 8
 		#define PANEL_LEDS 8
+		
+	#elif defined(BOARD_TYPE_FSRIO_2)
+        #define BOARD_TYPE "fsrio2";
+        #define BOOTLOADER_ADDRESS "0x7000"
+		
+		#define FEATURE_LIGHTS_ENABLED
+		#define FEATURE_DIGIPOT_ENABLED
+		
+		#define LED_PANELS 8
+		#define PANEL_LEDS 8
+		
+		// Trigger existing exceptions
+		#define BOARD_TYPE_FSRIO_1
 
     #elif defined(BOARD_TYPE_TEENSY2)
     	#define BOARD_TYPE "teensy2";
