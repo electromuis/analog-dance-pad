@@ -15,10 +15,17 @@
 #include "Model/Firmware.h"
 #include "Model/Updater.h"
 
+
 using namespace std;
 using namespace chrono;
 
 namespace adp {
+
+class WebSocketServer
+{
+public:
+	static void UpdatePadValues();
+};
 
 struct HidIdentifier
 {
@@ -348,6 +355,9 @@ public:
 				mySensors[i].pressed = button > 0 && IsBitSet(pressedButtons, button - 1);
 				mySensors[i].value = ToNormalizedSensorValue(value);
 			}
+
+			WebSocketServer::UpdatePadValues();
+
 			myPollingData.readsSinceLastUpdate += inputsRead;
 		}
 
@@ -930,7 +940,7 @@ public:
 private:
 	unique_ptr<PadDevice> myConnectedDevice;
 	map<DevicePath, DeviceName> myFailedDevices;
-	bool emulator = false;
+	bool emulator = true;
 };
 
 // ====================================================================================================================

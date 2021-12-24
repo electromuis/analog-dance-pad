@@ -32,6 +32,14 @@ using json = nlohmann::json;
 
 namespace adp {
 
+class WebSocketServer
+{
+public:
+    static void Init();
+    static void Shutdown();
+};
+
+
 enum Ids { PROFILE_LOAD = 1, PROFILE_SAVE = 2, MENU_EXIT = 3};
 
 
@@ -106,7 +114,7 @@ public:
             fileStream.close();
 
             Device::LoadProfile(j, DGP_ALL);
-		} catch (exception e) {
+		} catch (std::exception e) {
             Log::Writef(L"Could not read profile: %hs", e.what());
 		}
     }
@@ -145,7 +153,7 @@ public:
             wxStringInputStream input_stream(wxString(j.dump(4)));
             output_stream.Write(input_stream);
             output_stream.Close();
-        } catch (exception e) {
+        } catch (std::exception e) {
             Log::Writef(L"Could not save profile: %hs", e.what());
         }
     }
@@ -355,6 +363,8 @@ bool Application::OnInit()
     });
     */
 
+    WebSocketServer::Init();
+
     return true;
 }
 
@@ -366,6 +376,7 @@ void Application::Restart()
 
 int Application::OnExit()
 {
+    WebSocketServer::Shutdown();
     //Updater::Shutdown();
     Device::Shutdown();
     Assets::Shutdown();

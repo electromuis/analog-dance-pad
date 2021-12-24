@@ -7,12 +7,14 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURC
 include(lib/git.cmake)
 
 add_subdirectory (lib/avrdude)
+add_subdirectory (lib/CxxUrl)
 include(lib/hidapi.cmake)
 include(lib/serial.cmake)
 include(lib/wxWidgets.cmake)
 
 file(GLOB_RECURSE sources
      "src/*.h"
+	 "src/*.hpp"
      "src/*.cpp"
 )
 
@@ -26,10 +28,14 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${sources})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME}
+	PUBLIC "src"
 	PUBLIC "lib/wxWidgets/include"
 	PUBLIC "lib/avrdude"
 	PUBLIC "lib/json/single_include"
-	PUBLIC "src"
+	
+	PUBLIC "lib/websocketpp"
+	PUBLIC "lib/asio/asio/include"
+	PUBLIC "lib/CxxUrl"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -42,6 +48,7 @@ set(LIBRARIES
 	hidapi
 	avrdude
 	serial
+	CxxUrl
 )
 
 if(WIN32)
