@@ -56,7 +56,8 @@ static const uint8_t magicBytes[5] = {9, 74, 9, FIRMWARE_VERSION_MAJOR, FIRMWARE
 	.releaseThreshold = 400 * 0.95,		\
 	.buttonMapping = button,			\
 	.resistorValue = 150,				\
-	.flags = 0							\
+	.flags = 0,							\
+	.preload = 0						\
 	}
 
 static const Configuration DEFAULT_CONFIGURATION = {

@@ -11,15 +11,17 @@
 
 # Run "make help" for target help.
 
-BOARD_TYPE	 = 
+BOARD_TYPE	 = LEONARDO
+TARGET       = $(BOARD_TYPE)
 MCU          = atmega32u4
-ARCH         = AVR8
 BOARD        = LEONARDO
+
+
+ARCH         = AVR8
 F_CPU        = 16000000
 F_USB        = $(F_CPU)
 OPTIMIZATION = 3
-TARGET       = AnalogDancePad
-SRC          = ../$(TARGET).c ../Descriptors.c ../ADC.c ../Pad.c ../Communication.c ../ConfigStore.c ../Reset.c ../Lights.c ../Debug.c $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS)
+SRC          = ../AnalogDancePad.c ../Descriptors.c ../ADC.c ../Pad.c ../Communication.c ../ConfigStore.c ../Reset.c ../Lights.c ../Debug.c $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS)
 LUFA_PATH    = ../lufa/LUFA
 CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -I../Config/ -I.. -DBOARD_TYPE_$(BOARD_TYPE)
 LD_FLAGS     =

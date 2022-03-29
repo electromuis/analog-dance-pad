@@ -47,13 +47,14 @@
 	
 	typedef struct {
         uint8_t index;
-        SensorConfig sensor;
+        SensorConfigV13 sensor;
     } __attribute__((packed)) SensorHIDReport;
 
     // IDS used by SetPropertyHIDReport.
     #define SPID_SELECTED_LIGHT_RULE_INDEX  0
     #define SPID_SELECTED_LED_MAPPING_INDEX 1
     #define SPID_SELECTED_SENSOR_INDEX 2
+	#define SPID_SENSOR_CAL_PRELOAD 3
 
     typedef struct {
         uint32_t propertyId;

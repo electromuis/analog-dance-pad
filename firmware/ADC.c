@@ -176,5 +176,14 @@ uint16_t ADC_Read(uint8_t sensor) {
 	ADCSRA |= (1 << ADSC); // start conversion
 	while (ADCSRA & (1 << ADSC)) {}; // wait until done
 		
-    return ADC;
+    uint16_t reading = ADC;
+	
+	SensorConfig s = PAD_CONF.sensors[sensor];
+	
+	if(reading <= s.preload)
+		reading = 0;
+	else
+		reading -= s.preload;
+	
+	return reading;
 }

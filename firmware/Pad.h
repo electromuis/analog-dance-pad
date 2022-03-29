@@ -7,7 +7,7 @@
 
 enum SensorConfigFlags
 {
-	ADC_DISABLED     = 0x1
+	ADC_DISABLED     = 1
 };
 
 typedef struct {
@@ -22,6 +22,15 @@ typedef struct {
 	int8_t buttonMapping;
 	uint8_t resistorValue;
 	uint16_t flags;
+} __attribute__((packed)) SensorConfigV13;
+
+typedef struct {
+	uint16_t threshold;
+	uint16_t releaseThreshold;
+	int8_t buttonMapping;
+	uint8_t resistorValue;
+	uint16_t flags;
+	uint16_t preload;
 } __attribute__((packed)) SensorConfig;
 
 typedef struct {

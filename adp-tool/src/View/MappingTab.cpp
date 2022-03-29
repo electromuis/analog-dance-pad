@@ -149,6 +149,10 @@ SensorConfigDialog::SensorConfigDialog(int sensorNumber)
     doneButton->Bind(wxEVT_BUTTON, &SensorConfigDialog::Done, this);
     topSizer->Add(doneButton, 1, wxEXPAND | wxBOTTOM, 5);
 
+    auto calButton = new wxButton(this, wxID_ANY, L"Calibrate", wxDefaultPosition, wxSize(200, -1));
+    calButton->Bind(wxEVT_BUTTON, &SensorConfigDialog::Cal, this);
+    topSizer->Add(calButton, 1, wxEXPAND | wxBOTTOM, 5);
+
     mainSizer->Add(topSizer, 1, wxEXPAND | wxALL, 5);
     SetSizerAndFit(mainSizer);
 
@@ -161,6 +165,11 @@ SensorConfigDialog::~SensorConfigDialog()
 {
     updateTimer->Stop();
     delete updateTimer;
+}
+
+void SensorConfigDialog::Cal(wxCommandEvent& event)
+{
+    Device::CalibrateSensor(sensorNumber);
 }
 
 void SensorConfigDialog::Tick(wxTimerEvent& event)

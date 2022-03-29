@@ -43,6 +43,7 @@ public:
     SensorConfigDialog(int sensorNumber);
     ~SensorConfigDialog();
 
+    void Cal(wxCommandEvent& event);
     void Save(wxCommandEvent& event);
     void Done(wxCommandEvent& event);
     void Tick(wxTimerEvent& event);

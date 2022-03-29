@@ -148,7 +148,8 @@ struct SetPropertyReport
 	{
 		SELECTED_LIGHT_RULE_INDEX = 0,
 		SELECTED_LED_MAPPING_INDEX = 1,
-		SELECTED_SENSOR_INDEX = 2
+		SELECTED_SENSOR_INDEX = 2,
+		CALIBRATE_SENSOR = 3
 	};
 	uint8_t reportId = REPORT_SET_PROPERTY;
 	uint32_le propertyId;

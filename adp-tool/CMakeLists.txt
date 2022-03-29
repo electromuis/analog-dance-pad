@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.6)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-project(adp-tool VERSION 1.3.0)
+project(adp-tool VERSION 1.4.0)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
 include(lib/git.cmake)

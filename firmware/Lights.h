@@ -2,6 +2,10 @@
 #define _LIGHTS_H_
 
 #include "Config/DancePadConfig.h"
+#include <LUFA/Drivers/Board/LEDs.h>
+
+#define LED_BOOT LEDS_LED2
+#define LED_DATA LEDS_LED1
 
 typedef struct
 {

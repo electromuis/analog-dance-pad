@@ -545,6 +545,14 @@ public:
 		return SendLightRuleReport(report);
 	}
 
+	void CalibrateSensor(int sensorIndex)
+	{
+		SetPropertyReport report;
+		report.propertyId = WriteU32LE(SetPropertyReport::CALIBRATE_SENSOR);
+		report.propertyValue = WriteU32LE(sensorIndex);
+		bool result = myReporter->Send(report);
+	}
+
 	void Reset() { myReporter->SendReset(); }
 
 	void FactoryReset()
@@ -1073,6 +1081,12 @@ bool Device::DisableLightRule(int lightRuleIndex)
 {
 	auto device = connectionManager->ConnectedDevice();
 	return device ? device->DisableLightRule(lightRuleIndex) : false;
+}
+
+void Device::CalibrateSensor(int sensorIndex)
+{
+	auto device = connectionManager->ConnectedDevice();
+	return device ? device->CalibrateSensor(sensorIndex) : false;
 }
 
 void Device::SendDeviceReset()

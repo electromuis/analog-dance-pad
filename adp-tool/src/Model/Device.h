@@ -156,6 +156,8 @@ public:
 
 	static bool DisableLightRule(int lightRuleIndex);
 
+	static void CalibrateSensor(int sensorIndex);
+
 	static void SendDeviceReset();
 
 	static void SendFactoryReset();

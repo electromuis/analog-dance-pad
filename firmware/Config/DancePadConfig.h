@@ -2,7 +2,7 @@
 #define _DANCE_PAD_CONFIG_H_
     //Version 2 since Kauhsa's initial version will be considered version 0
     #define FIRMWARE_VERSION_MAJOR 1
-    #define FIRMWARE_VERSION_MINOR 3
+    #define FIRMWARE_VERSION_MINOR 4
 
 	#define FEATURE_DEBUG 1 << 0
 	#define FEATURE_DIGIPOT 1 << 1
@@ -80,15 +80,19 @@
     	#define BOARD_TYPE "teensy2";
     	#define BOOTLOADER_ADDRESS "0x7E00"
 
-    #else
+	#elif defined(BOARD_TYPE_LEONARDO)
+    
     	// Assuming generic atmega32u4 board like the arduino leonardo or pro micro
     	#define BOARD_TYPE "leonardo";
     	#define BOOTLOADER_ADDRESS "0x7000"
 		
-		#warning "No board type defined, using generic leonardo"
-		#pragma message ( "No board type defined, using generic leonardo" )
-
+	#else
+		#error "No/Unsupported board type defined"
     #endif
+	
+	#define XSTR(x) STR(x)
+	#define STR(x) #x
+	#pragma message("Using board type " XSTR(BOARD_TYPE))
 	
 	#if defined(FEATURE_LIGHTS_ENABLED)
 		#define LED_COUNT (LED_PANELS * PANEL_LEDS)

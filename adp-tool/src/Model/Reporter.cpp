@@ -206,7 +206,6 @@ bool Reporter::Get(SensorReport& report)
 	return GetFeatureReport(myHid, report, L"GetSensorReport");
 }
 
-
 bool Reporter::Get(DebugReport& report)
 {
 	if (emulator) {

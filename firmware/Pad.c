@@ -94,6 +94,9 @@ void Pad_UpdateState(void) {
             }
         }
 
+		if(newButtonPressedState)
+			LEDs_TurnOnLEDs(LED_DATA);
+		
         PAD_STATE.buttonsPressed[i] = newButtonPressedState;
     }
 	

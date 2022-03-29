@@ -35,7 +35,9 @@
 #include "Reset.h"
 #include "Lights.h"
 #include "Debug.h"
+#include "ADC.h"
 
+int dataCounter = 0;
 static Configuration configuration;
 
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
@@ -81,6 +83,11 @@ int main(void)
 /** Configures the board hardware and chip peripherals for the demo's functionality. */
 void SetupHardware(void)
 {
+	LEDs_Init();
+	LEDs_SetAllLEDs(LEDS_ALL_LEDS);
+	Delay_MS(200);
+	LEDs_SetAllLEDs(LED_BOOT);
+	
 #if (ARCH == ARCH_AVR8)
     /* Disable watchdog if enabled by bootloader/fuses */
     MCUSR &= ~(1 << WDRF);
@@ -148,10 +155,22 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 {
     if (*ReportID == 0)
     {
+		dataCounter ++;
+		bool led = false;
+		if(dataCounter > 8)
+		{
+			led = true;
+			dataCounter = 0;
+			LEDs_TurnOnLEDs(LED_DATA);
+		}
+		
         // no report id requested - write button and sensor data
         Communication_WriteInputHIDReport(ReportData);
         *ReportID = INPUT_REPORT_ID;
         *ReportSize = sizeof (InputHIDReport);
+		
+		if(led)
+			LEDs_TurnOffLEDs(LED_DATA);
     }
     else if (*ReportID == PAD_CONFIGURATION_REPORT_ID)
     {
@@ -275,10 +294,12 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
     }
     else if (ReportID == FACTORY_RESET_REPORT_ID)
     {
+		LEDs_SetAllLEDs(0);
         ConfigStore_FactoryDefaults(&configuration);
         ConfigStore_StoreConfiguration(&configuration);
 		SetupConfiguration();
         Reconnect_Usb();
+		LEDs_SetAllLEDs(LED_BOOT);
     }
     else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport))
     {
@@ -303,19 +324,33 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
             Lights_UpdateConfiguration(&configuration.lightConfiguration);
         }
     }
-    else if (ReportID == SENSOR_REPORT_ID && ReportSize == sizeof(SensorHIDReport))
+	
+	else if (ReportID == SENSOR_REPORT_ID && ReportSize == sizeof(SensorHIDReport))
     {
         const SensorHIDReport* report = ReportData;
         if (report->index < SENSOR_COUNT)
         {
+			SensorConfig* sc = &configuration.padConfiguration.sensors[report->index];
+			
+			sc->threshold = report->sensor.threshold;
+			sc->releaseThreshold = report->sensor.releaseThreshold;
+			sc->buttonMapping = report->sensor.buttonMapping;
+			sc->resistorValue = report->sensor.resistorValue;
+			sc->flags = report->sensor.flags;
+			
+			/*
             memcpy(
 				&configuration.padConfiguration.sensors[report->index],
 				&report->sensor,
 				sizeof(SensorConfig)
 			);
+			configuration.padConfiguration.sensors[report->index].preload = 0;
+			*/
+			
             Pad_UpdateConfiguration(&configuration.padConfiguration);
         }
     }
+	
     else if (ReportID == SET_PROPERTY_REPORT_ID && ReportSize == sizeof (SetPropertyHIDReport))
     {
         const SetPropertyHIDReport* report = ReportData;
@@ -332,6 +367,19 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
         case SPID_SELECTED_SENSOR_INDEX:
             PAD_CONF.selectedSensorIndex = (uint8_t)report->propertyValue;
             break;
+		case SPID_SENSOR_CAL_PRELOAD:
+			PAD_CONF.selectedSensorIndex = (uint8_t)report->propertyValue;
+			if (PAD_CONF.selectedSensorIndex < SENSOR_COUNT)
+			{
+				configuration.padConfiguration.sensors[PAD_CONF.selectedSensorIndex].preload = 0;
+				Pad_UpdateConfiguration(&configuration.padConfiguration);
+				
+				uint16_t value = ADC_Read(PAD_CONF.selectedSensorIndex);
+				
+				configuration.padConfiguration.sensors[PAD_CONF.selectedSensorIndex].preload = value;
+				Pad_UpdateConfiguration(&configuration.padConfiguration);
+			}
+			break;
         }
     }
 }
