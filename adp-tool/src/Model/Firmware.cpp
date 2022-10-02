@@ -1,23 +1,18 @@
-#include "Adp.h"
+#include <Adp.h>
 
 #include <chrono>
 #include <thread>
 #include <algorithm>
 #include <fstream>
 
-#include "wx/string.h"
-#include "wx/event.h"
-
-#include "Model/Firmware.h"
-#include "Model/Device.h"
-#include "Model/Log.h"
-#include "Model/Utils.h"
+#include <Model/Firmware.h>
+#include <Model/Device.h>
+#include <Model/Log.h>
+#include <Model/Utils.h>
 
 using namespace chrono;
 
 namespace adp {
-
-wxDEFINE_EVENT(EVT_AVRDUDE, wxCommandEvent);
 
 BoardType ParseBoardType(const std::string& str)
 {
@@ -28,47 +23,47 @@ BoardType ParseBoardType(const std::string& str)
 	else { return BOARD_UNKNOWN; }
 }
 
-const wchar_t* BoardTypeToString(BoardType boardType, bool firmwareFile)
+const char* BoardTypeToString(BoardType boardType, bool firmwareFile)
 {
 	if (boardType == BOARD_FSRIO_V1) {
-		return firmwareFile ? L"FSRioV1" : L"FSRio V1";
+		return firmwareFile ? "FSRioV1" : "FSRio V1";
 	}
 
 	if (boardType == BOARD_FSRMINIPAD) {
-		return firmwareFile ? L"FSRMiniPad" : L"FSR Mini pad";
+		return firmwareFile ? "FSRMiniPad" : "FSR Mini pad";
 	}
 
 	if (boardType == BOARD_FSRMINIPAD_V2) {
-		return firmwareFile ? L"FSRMiniPadV2" : L"FSR Mini pad V2";
+		return firmwareFile ? "FSRMiniPadV2" : "FSR Mini pad V2";
 	}
 
 	if (boardType == BOARD_TEENSY2) {
-		return firmwareFile ? L"Teensy2" : L"Teensy 2";
+		return firmwareFile ? "Teensy2" : "Teensy 2";
 	}
 
 	if (boardType == BOARD_LEONARDO) {
-		return firmwareFile ? L"Generic" : L"Arduino leonardo/pro micro";
+		return firmwareFile ? "Generic" : "Arduino leonardo/pro micro";
 	}
 
-	return L"Unknown";
+	return "Unknown";
 }
 
-const wchar_t* BoardTypeToString(BoardType boardType)
+const char* BoardTypeToString(BoardType boardType)
 {
 	return BoardTypeToString(boardType, false);
 }
 
-FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
+FlashResult FirmwareUploader::UpdateFirmware(string fileName)
 {
 	flashResult = FLASHRESULT_NOTHING;
 
-	errorMessage = L"";
+	errorMessage = "";
 
 	firmwareFile = fileName;
 
 	auto pad = Device::Pad();
 	if (pad == NULL) {
-		errorMessage = L"No compatible board connected";
+		errorMessage = "No compatible board connected";
 		flashResult = FLASHRESULT_FAILURE;
 		return flashResult;
 	}
@@ -80,7 +75,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	fileStream.open(fileNameThin);
 
 	if (!fileStream.is_open()) {
-		errorMessage = L"Could not read firmware file";
+		errorMessage = "Could not read firmware file";
 		flashResult = FLASHRESULT_FAILURE;
 		return flashResult;
 	}
@@ -104,7 +99,7 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
 		if (!ignoreBoardType) {
-			errorMessage = wxString::Format(L"Selected: %ls, connected: %ls", BoardTypeToString(boardType), BoardTypeToString(pad->boardType));
+			// errorMessage = wxString::Format("Selected: %ls, connected: %ls", BoardTypeToString(boardType), BoardTypeToString(pad->boardType));
 			flashResult = FLASHRESULT_FAILURE_BOARDTYPE;
 			return flashResult;
 		}
@@ -119,14 +114,14 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 	}
 	configBackup = new json;
 	Device::SaveProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
-	Log::Write(L"Saved device config");
+	Log::Write("Saved device config");
 	Device::SendDeviceReset();
 
 	while (!foundNewPort)
 	{
 		auto timeSpent = duration_cast<std::chrono::seconds>(system_clock::now() - startTime);
 		if (timeSpent.count() > 10) {
-			errorMessage = L"Could not find the device in bootloader mode";
+			errorMessage = "Could not find the device in bootloader mode";
 			flashResult = FLASHRESULT_FAILURE;
 			return flashResult;
 		}
@@ -158,129 +153,11 @@ FlashResult FirmwareUploader::UpdateFirmware(wstring fileName)
 
 FlashResult FirmwareUploader::WriteFirmware()
 {
-	AvrDude avrdude;
-
-	auto comPort = this->comPort.port;
-	auto firmwareFile = this->firmwareFile;
-	auto eventHandler = this->eventHandler;
-
-	avrdude
-		.on_run([eventHandler, comPort, firmwareFile, this](AvrDude::Ptr avrdude) {
-			this->myAvrdude = std::move(avrdude);
-
-			std::vector<std::string> args{ {
-				"-v",
-				"-p", "atmega32u4",
-				"-c", "avr109",
-				"-P", comPort,
-				"-b", "115200",
-				"-D",
-				"-U", wxString::Format("flash:w:1:%s:i", firmwareFile).ToStdString(),
-			} };
-
-			this->myAvrdude->push_args(std::move(args));
-
-			if (eventHandler) {
-				auto evt = new wxCommandEvent(EVT_AVRDUDE);
-				evt->SetExtraLong(AE_START);
-				wxQueueEvent(eventHandler, evt);
-			}
-		})
-		.on_message([eventHandler](const char* msg, unsigned size) {
-			auto wxmsg = wxString::FromUTF8(msg);
-			Log::Write(L"avrdude: " + wxmsg);
-
-			if (eventHandler) {
-				auto evt = new wxCommandEvent(EVT_AVRDUDE);
-				evt->SetExtraLong(AE_MESSAGE);
-				evt->SetString(std::move(wxmsg));
-				wxQueueEvent(eventHandler, evt);
-			}
-		})
-		.on_progress([eventHandler](const char* task, unsigned progress) {
-			auto wxmsg = wxString::FromUTF8(task);
-
-			if (eventHandler) {
-				auto evt = new wxCommandEvent(EVT_AVRDUDE);
-				evt->SetExtraLong(AE_PROGRESS);
-				evt->SetInt(progress);
-				evt->SetString(wxmsg);
-				wxQueueEvent(eventHandler, evt);
-			}
-		})
-		.on_complete([eventHandler, this]() {
-			Log::Write(L"avrdude done");
-
-			int exitCode = this->myAvrdude->exit_code();
-			this->WritingDone(exitCode);
-
-			if (eventHandler) {
-				auto evt = new wxCommandEvent(EVT_AVRDUDE);
-				evt->SetExtraLong(AE_EXIT);
-				evt->SetInt(exitCode);
-				wxQueueEvent(eventHandler, evt);
-			}
-		});
-
-
-	// Wait a bit since the COM port might still be initializing
-	this_thread::sleep_for(500ms);
-
-	Device::SetSearching(false);
-	avrdude.run();
-
-	flashResult = FLASHRESULT_RUNNING;
-	return flashResult;
+	return FLASHRESULT_NOTHING;
 }
 
 void FirmwareUploader::WritingDone(int exitCode)
 {
-	// Wait for the device to come back online so we can restore the config
-	Device::SetSearching(true);
-	auto startTime = system_clock::now();
-	do {
-		auto timeSpent = duration_cast<std::chrono::seconds>(system_clock::now() - startTime);
-
-		if (eventHandler) {
-			auto evt = new wxCommandEvent(EVT_AVRDUDE);
-			evt->SetExtraLong(AE_PROGRESS);
-			evt->SetInt(timeSpent.count() * 20);
-			evt->SetString("Restarting");
-			wxQueueEvent(eventHandler, evt);
-		}
-
-		if (timeSpent.count() > 5) {
-			errorMessage = L"Device failed to come back online";
-			flashResult = FLASHRESULT_FAILURE;
-			return;
-		}
-
-		this_thread::sleep_for(100ms);
-	} while (!Device::Pad());
-
-	if (configBackup) {
-		try {
-			Device::LoadProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
-			Device::SaveChanges();
-			Log::Write(L"Restored device config");
-
-			delete configBackup;
-		}
-		catch (std::exception e) {
-			Log::Writef(L"Restoring config failed: %hs", e.what());
-		}
-	}
-
-	if (exitCode == 0) {
-		flashResult = FLASHRESULT_SUCCESS;
-	}
-	else {
-		errorMessage = L"Flashing failed, see log tab for more details.";
-		flashResult = FLASHRESULT_FAILURE;
-	}
-
-	//if (myAvrdude) { myAvrdude->join(); }
-	//myAvrdude.reset();
 }
 
 void FirmwareUploader::SetIgnoreBoardType(bool ignoreBoardType)
@@ -288,12 +165,7 @@ void FirmwareUploader::SetIgnoreBoardType(bool ignoreBoardType)
 	this->ignoreBoardType = ignoreBoardType;
 }
 
-void FirmwareUploader::SetEventHandler(wxEvtHandler* handler)
-{
-	this->eventHandler = handler;
-}
-
-wstring FirmwareUploader::GetErrorMessage()
+string FirmwareUploader::GetErrorMessage()
 {
 	return errorMessage;
 }

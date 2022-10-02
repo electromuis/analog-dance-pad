@@ -1,6 +1,6 @@
-#include "Adp.h"
+#include <Adp.h>
 
-#include "Model/Utils.h"
+#include <Model/Utils.h>
 
 using namespace std;
 
@@ -145,6 +145,11 @@ wstring widen(const char* s, size_t len)
 			out.push_back(ReadU8(p, end));
 	}
 	return out;
+}
+
+std::wstring widen(const std::string str)
+{
+	return widen(str.data(), str.length());
 }
 
 }; // namespace adp.

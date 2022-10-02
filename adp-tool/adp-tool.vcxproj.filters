@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Model\Device.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\Firmware.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\Log.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\Reporter.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\Updater.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\Utils.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\Application.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\Colors.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\DeviceTab.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\Image.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\LightsTab.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\MappingTab.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="src\View\SensitivityTab.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Adp.h" />
+    <ClInclude Include="src\Model\Device.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\Firmware.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\Log.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\Reporter.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\Updater.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\Utils.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\Application.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\Colors.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\DeviceTab.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\Image.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\LightsTab.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\MappingTab.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="src\View\SensitivityTab.h">
+      <Filter>View</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Adp.h.in" />
+    <None Include="src\Assets\icon16.png.inl">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="src\Assets\icon32.png.inl">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="src\Assets\icon64.png.inl">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="src\Assets\Roboto-Regular.inl">
+      <Filter>Assets</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="View">
+      <UniqueIdentifier>{6d7801f4-7af7-4091-acbc-1fe8ca8d4819}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model">
+      <UniqueIdentifier>{0213a4be-5775-4f04-ac09-e3a0e641fead}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{d395fc66-b998-46b5-9fb5-d3eb4e06e451}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

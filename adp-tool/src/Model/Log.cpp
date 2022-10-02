@@ -1,4 +1,4 @@
-#include "Adp.h"
+#include <Adp.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -12,11 +12,11 @@ using namespace std;
 
 namespace adp {
 
-static vector<wstring>* messages = nullptr;
+static vector<string>* messages = nullptr;
 
 void Log::Init()
 {
-	messages = new vector<wstring>();
+	messages = new vector<string>();
 }
 
 void Log::Shutdown()
@@ -25,19 +25,19 @@ void Log::Shutdown()
 	messages = nullptr;
 }
 
-void Log::Write(const wchar_t* message)
+void Log::Write(const char* message)
 {
 	messages->emplace_back(message);
 }
 
-void Log::Writef(const wchar_t* format, ...)
+void Log::Writef(const char* format, ...)
 {
-	wchar_t buffer[256];
+	char buffer[256];
 	va_list args;
 	va_start(args, format);
 
-	size_t len = vswprintf(buffer, 256, format, args);
-	messages->emplace_back((const wchar_t*)buffer, len);
+	size_t len = vsprintf_s(buffer, 256, format, args);
+	messages->emplace_back((const char*)buffer, len);
 	
 	va_end (args);
 }
@@ -47,7 +47,7 @@ int Log::NumMessages()
 	return (int)messages->size();
 }
 
-const wstring& Log::Message(int index)
+const string& Log::Message(int index)
 {
 	return messages->at(index);
 }

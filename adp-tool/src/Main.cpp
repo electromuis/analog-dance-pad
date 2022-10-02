@@ -1,379 +1,289 @@
-#include "Adp.h"
-#include "Main.h"
+#include <Adp.h>
+
+#define _HAS_STD_BYTE 0
 
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <chrono>
+
+#include <Model/Device.h>
+#include <Model/Log.h>
+#include <Model/Utils.h>
+
+#include <View/Application.h>
+#include <View/Image.h>
+#include <View/DeviceTab.h>
+#include <View/LightsTab.h>
+#include <View/MappingTab.h>
+#include <View/SensitivityTab.h>
+
+#include <nfd.h>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include "wx/setup.h"
-#include "wx/wx.h"
-#include "wx/notebook.h"
-#include "wx/wfstream.h"
-#include "wx/sstream.h"
-#include "wx/filename.h"
+// ImGui backends.
+#include "backends/imgui_impl_vulkan.cpp"
+#include "backends/imgui_impl_glfw.cpp"
 
-#include "Assets/Assets.h"
-
-#include "View/BaseTab.h"
-#include "View/IdleTab.h"
-#include "View/SensitivityTab.h"
-#include "View/MappingTab.h"
-#include "View/LightsTab.h"
-#include "View/DeviceTab.h"
-#include "View/AboutTab.h"
-#include "View/LogTab.h"
-
-#include "Model/Log.h"
-#include "Model/Updater.h"
-#include "View/UpdaterView.h"
+typedef std::chrono::steady_clock Clock;
 
 namespace adp {
 
-enum Ids { PROFILE_LOAD = 1, PROFILE_SAVE = 2, MENU_EXIT = 3};
+static const char* TOOL_NAME = "ADP Tool";
 
-
-// ====================================================================================================================
-// Main window.
-// ====================================================================================================================
-
-class MainWindow : public wxFrame
+class AdpApplication : public Walnut::Application
 {
 public:
-    MainWindow(wxApp* app, const wchar_t* versionString)
-        : wxFrame(nullptr, wxID_ANY, TOOL_NAME, wxDefaultPosition, wxSize(500, 500))
-        , myApp(app)
-    {
-        SetMinClientSize(wxSize(400, 400));
-        SetStatusBar(CreateStatusBar(2));
+	AdpApplication();
 
-        wxMenuBar* menuBar = new wxMenuBar();
-        wxMenu* fileMenu = new wxMenu();
+	void MenuCallback() override;
+	void RenderCallback() override;
 
-        menuBar->Append(fileMenu, wxT("File"));
+	void RenderIdleTab();
+	void RenderAboutTab();
+	void RenderLogTab();
 
-        fileMenu->Append(PROFILE_LOAD, wxT("Load profile"));
-        fileMenu->Append(PROFILE_SAVE, wxT("Save profile"));
-        fileMenu->Append(MENU_EXIT, wxT("Exit"));
-
-        SetMenuBar(menuBar);
-
-        auto sizer = new wxBoxSizer(wxVERTICAL);
-        myTabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_NOPAGETHEME);
-        AddTab(0, new AboutTab(myTabs, versionString), AboutTab::Title);
-        AddTab(1, new LogTab(myTabs), LogTab::Title);
-        sizer->Add(myTabs, 1, wxEXPAND);
-        SetSizer(sizer);
-        UpdatePages();
-
-        myUpdateTimer = make_unique<UpdateTimer>(this);
-        myUpdateTimer->Start(10);
-    }
-
-    ~MainWindow()
-    {
-        myUpdateTimer->Stop();
-    }
-
-    void ProfileLoad(wxCommandEvent & event)
-    {
-		if(!Device::Pad()) {
-			return;
-		}
-
-        wxFileDialog dlg(this, L"Load ADP profile", L"", lastProfile, L"ADP profile (*.json)|*.json|All files (*)|*",
-        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-
-        if (dlg.ShowModal() == wxID_CANCEL)
-            return;
-
-		ifstream fileStream;
-		fileStream.open((std::string)dlg.GetPath());
-		if(!fileStream.is_open())
-		{
-			Log::Writef(L"Could not read profile: %ls", dlg.GetPath());
-            return;
-        }
-
-        try {
-            lastProfile = dlg.GetPath();
-
-            json j;
-
-            fileStream >> j;
-            fileStream.close();
-
-            Device::LoadProfile(j, DGP_ALL);
-		} catch (exception e) {
-            Log::Writef(L"Could not read profile: %hs", e.what());
-		}
-    }
-
-    void ProfileSave(wxCommandEvent & event)
-    {
-		if(!Device::Pad()) {
-			return;
-		}
-
-		wxString path = "";
-		if(lastProfile.Length() > 0) {
-            path = wxFileName(lastProfile).GetPath();
-		}
-
-        wxFileDialog dlg(this, L"Save ADP profile", path, L"profile", L"ADP profile (*.json)|*.json|All files (*)|*",
-        wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
-
-        if (dlg.ShowModal() == wxID_CANCEL)
-            return;
-
-        wxFileOutputStream output_stream(dlg.GetPath());
-        if (!output_stream.IsOk())
-        {
-			Log::Writef(L"Could not save profile: %ls", dlg.GetPath());
-            return;
-        }
-
-        try {
-            lastProfile = dlg.GetPath();
-
-            json j;
-
-            Device::SaveProfile(j, DGP_ALL);
-
-            wxStringInputStream input_stream(wxString(j.dump(4)));
-            output_stream.Write(input_stream);
-            output_stream.Close();
-        } catch (exception e) {
-            Log::Writef(L"Could not save profile: %hs", e.what());
-        }
-    }
-
-    void Tick()
-    {
-        auto changes = Device::Update();
-
-        if (changes & DCF_DEVICE) {
-            UpdatePages();
-            /*
-            Updater::CheckForFirmwareUpdates([](SoftwareUpdate& update) {
-                ShowUpdateDialog(update);
-            });
-            */
-        }
-
-        if (changes & (DCF_DEVICE | DCF_NAME))
-            UpdateStatusText();
-
-        wstring debugMessage = Device::ReadDebug();
-
-        if (!debugMessage.empty()) {
-            Log::Writef(L"\\/ \\/ \\/ Debug \\/ \\/ \\/\n%ls", debugMessage.c_str());
-        }
-
-        UpdatePollingRate();
-
-        if (changes)
-        {
-            for (auto tab : myTabList)
-                tab->HandleChanges(changes);
-        }
-
-        auto activeTab = GetActiveTab();
-        if (activeTab)
-            activeTab->Tick();
-    }
-
-    void CloseApp(wxCommandEvent & event)
-    {
-        myUpdateTimer->Stop();
-        myApp->ExitMainLoop();
-        event.Skip(); // Default handler will close window.
-    }
-
-    void OnClose(wxCloseEvent& event)
-    {
-        myUpdateTimer->Stop();
-        myApp->ExitMainLoop();
-        event.Skip(); // Default handler will close window.
-    }
-
-    DECLARE_EVENT_TABLE()
+	void LoadProfile();
+	void SaveProfile();
 
 private:
-    void UpdatePages()
-    {
-        // Delete all pages except "About" and "Log" at the end.
-        while (myTabs->GetPageCount() > 2)
-        {
-            myTabList.erase(myTabList.begin());
-            myTabs->DeletePage(0);
-        }
-
-        auto pad = Device::Pad();
-        if (pad)
-        {
-            AddTab(0, new SensitivityTab(myTabs, pad), SensitivityTab::Title, true);
-            AddTab(1, new MappingTab(myTabs, pad), MappingTab::Title);
-            AddTab(2, new DeviceTab(myTabs), DeviceTab::Title);
-            auto lights = Device::Lights();
-            if (pad->featureLights && lights)
-            {
-                AddTab(3, new LightsTab(myTabs, lights), LightsTab::Title);
-            }
-        }
-        else
-        {
-            AddTab(0, new IdleTab(myTabs), IdleTab::Title, true);
-        }
-    }
-
-    void UpdateStatusText()
-    {
-        auto pad = Device::Pad();
-        if (pad)
-            SetStatusText(L"Connected to: " + pad->name, 0);
-        else
-            SetStatusText(wxEmptyString, 0);
-    }
-
-    void UpdatePollingRate()
-    {
-        auto rate = Device::PollingRate();
-        if (rate > 0)
-            SetStatusText(wxString::Format("%iHz", rate), 1);
-        else
-            SetStatusText(wxEmptyString, 1);
-    }
-
-    void AddTab(int index, BaseTab* tab, const wchar_t* title, bool select = false)
-    {
-        myTabs->InsertPage(index, tab->GetWindow(), title, select);
-        myTabList.insert(myTabList.begin() + index, tab);
-    }
-
-    BaseTab* GetActiveTab()
-    {
-        auto page = myTabs->GetCurrentPage();
-        for (auto tab : myTabList)
-        {
-            if (tab->GetWindow() == page)
-                return tab;
-        }
-        return nullptr;
-    }
-
-    struct UpdateTimer : public wxTimer
-    {
-        UpdateTimer(MainWindow* owner) : owner(owner) {}
-        void Notify() override { owner->Tick(); }
-        MainWindow* owner;
-    };
-
-    wxString lastProfile = "";
-    wxApp* myApp;
-    wxNotebook* myTabs;
-    vector<BaseTab*> myTabList;
-    unique_ptr<wxTimer> myUpdateTimer;
+	string myLastProfile;
+	DeviceTab myDeviceTab;
+	LightsTab myLightsTab;
+	MappingTab myMappingTab;
+	SensitivityTab mySensitivityTab;
+	Clock::time_point myLastUpdateTime;
 };
 
-BEGIN_EVENT_TABLE(MainWindow, wxFrame)
-    EVT_CLOSE(MainWindow::OnClose)
-    EVT_MENU(MENU_EXIT, MainWindow::CloseApp)
-    EVT_MENU(PROFILE_LOAD, MainWindow::ProfileLoad)
-    EVT_MENU(PROFILE_SAVE, MainWindow::ProfileSave)
-END_EVENT_TABLE()
-
-// ====================================================================================================================
-// Application.
-// ====================================================================================================================
-
-Application::~Application()
+AdpApplication::AdpApplication()
+	: Walnut::Application(800, 800, TOOL_NAME)
 {
-    wxString tempDir = GetTempDir(false);
-    if (wxDirExists(tempDir)) {
-        wxRmDir(tempDir);
-    }
-
-    if (doRestart) {
-        wxExecute(argv[0]);
-    }
 }
 
-wxString Application::GetTempDir()
+void AdpApplication::LoadProfile()
 {
-    return GetTempDir(true);
+	if (!Device::Pad()) {
+		return;
+	}
+
+	nfdchar_t* rawOutPath = nullptr;
+	const nfdchar_t* defaultPath = myLastProfile.empty() ? nullptr : myLastProfile.data();
+	auto result = NFD_OpenDialog("json", nullptr, &rawOutPath);
+	string outPath(rawOutPath ? rawOutPath : "");
+	free(rawOutPath);
+
+	if (result != NFD_OKAY)
+		return;
+
+	ifstream fileStream;
+	fileStream.open(outPath);
+
+	if (!fileStream.is_open())
+	{
+		Log::Writef("Could not read profile: %s", outPath.data());
+		return;
+	}
+
+	try {
+		myLastProfile = outPath;
+
+		json j;
+
+		fileStream >> j;
+		fileStream.close();
+
+		Device::LoadProfile(j, DGP_ALL);
+	}
+	catch (exception e) {
+		Log::Writef("Could not read profile: %s", e.what());
+	}
 }
 
-wxString Application::GetTempDir(bool create)
+void AdpApplication::SaveProfile()
 {
-    wxString dir = wxFileName::GetTempDir().Append(TOOL_NAME);
-    if (!wxDirExists(dir) && create) {
-        wxMkdir(dir);
-    }
-    return dir;
+	if (!Device::Pad()) {
+		return;
+	}
+
+	string path;
+	nfdchar_t* rawOutPath = NULL;
+	const nfdchar_t* defaultPath = myLastProfile.empty() ? nullptr : myLastProfile.data();
+	auto result = NFD_SaveDialog("json", defaultPath, &rawOutPath);
+	string outPath(rawOutPath);
+	free(rawOutPath);
+
+	if (result != NFD_OKAY)
+		return;
+
+	ofstream output_stream(outPath);
+	if (!output_stream)
+	{
+		Log::Writef("Could not save profile: %s", outPath.data());
+		return;
+	}
+
+	try {
+		myLastProfile = outPath;
+
+		json j;
+
+		Device::SaveProfile(j, DGP_ALL);
+
+		output_stream << j.dump(4);
+		output_stream.close();
+	}
+	catch (exception e) {
+		Log::Writef("Could not save profile: %s", e.what());
+	}
 }
 
-bool Application::OnInit()
+void AdpApplication::MenuCallback()
 {
-    if (!wxApp::OnInit())
-        return false;
+	if (ImGui::BeginMenu("File"))
+	{
+		if (ImGui::MenuItem("Load profile"))
+			LoadProfile();
 
-    Log::Init();
+		if (ImGui::MenuItem("Save profile"))
+			SaveProfile();
 
-    auto versionString = wstring(TOOL_NAME) + L" " +
-        to_wstring(ADP_VERSION_MAJOR) + L"." + to_wstring(ADP_VERSION_MINOR);
+		if (ImGui::MenuItem("Exit"))
+			Close();
 
-    auto now = wxDateTime::Now().FormatISOCombined(' ');
-    Log::Writef(L"Application started: %ls - %ls", versionString.data(), now.wc_str());
-
-    //Updater::Init();
-    Assets::Init();
-    Device::Init();
-
-    wxImage::AddHandler(new wxPNGHandler());
-
-    wxIconBundle icons;
-
-    auto icon16 = Files::Icon16();
-    icons.AddIcon(icon16, wxBITMAP_TYPE_PNG);
-
-    auto icon32 = Files::Icon32();
-    icons.AddIcon(icon32, wxBITMAP_TYPE_PNG);
-
-    auto icon64 = Files::Icon64();
-    icons.AddIcon(icon64, wxBITMAP_TYPE_PNG);
-
-    myWindow = new MainWindow(this, versionString.data());
-    myWindow->SetIcons(icons);
-    myWindow->Show();
-
-    /*
-    Updater::CheckForAdpUpdates([](SoftwareUpdate& update) {
-        ShowUpdateDialog(update);
-    });
-    */
-
-    return true;
+		ImGui::EndMenu();
+	}
 }
 
-void Application::Restart()
+static void RenderTab(const function<void()>& render, const char* name)
 {
-    doRestart = true;
-    ExitMainLoop();
+	if (ImGui::BeginTabItem(name))
+	{
+		auto id = format("{}Content", name);
+		ImGui::BeginChild(id.data(), ImVec2(0, 0), false,
+			ImGuiWindowFlags_AlwaysUseWindowPadding |
+			ImGuiWindowFlags_HorizontalScrollbar);
+		render();
+		ImGui::EndChild();
+		ImGui::EndTabItem();
+	}
 }
 
-int Application::OnExit()
+void AdpApplication::RenderCallback()
 {
-    //Updater::Shutdown();
-    Device::Shutdown();
-    Assets::Shutdown();
-    Log::Shutdown();
+	/*
+	ImGui::ShowDemoWindow();
+	return;
+	//*/
 
-    return wxApp::OnExit();
+	auto now = Clock::now();
+	if (now - myLastUpdateTime > 10ms)
+	{
+		Device::Update();
+		myLastUpdateTime = now;
+	}
+
+	float statusH = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+	ImGui::BeginChild("StatusRegion", ImVec2(0, -statusH), false, ImGuiWindowFlags_None);
+	ImGui::BeginTabBar("MainTabs", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton);
+	
+	auto pad = Device::Pad();
+	if (pad)
+	{
+		RenderTab(bind(&SensitivityTab::Render, &mySensitivityTab), "Sensitivity");
+		RenderTab(bind(&MappingTab::Render, &myMappingTab), "Mapping");
+		RenderTab(bind(&DeviceTab::Render, &myDeviceTab), "Device");
+		RenderTab(bind(&LightsTab::Render, &myLightsTab), "Lights");
+	}
+	else
+	{
+		RenderTab(bind(&AdpApplication::RenderIdleTab, this), "Idle");
+	}
+	RenderTab(bind(&AdpApplication::RenderAboutTab, this), "About");
+	RenderTab(bind(&AdpApplication::RenderLogTab, this), "Log");
+
+	ImGui::EndTabBar();
+	ImGui::EndChild();
+
+	if (pad)
+	{
+		auto wp = ImGui::GetWindowPos();
+		auto ws = ImGui::GetWindowSize();
+		auto wdl = ImGui::GetWindowDrawList();
+		wdl->AddRectFilled(
+			{ wp.x, wp.y + ws.y - statusH },
+			{ wp.x + ws.x, wp.y + ws.y },
+			ImGui::GetColorU32(ImGuiCol_FrameBg, 0.25f));
+		ImGui::SetCursorPos({ 6, ws.y - statusH + 6 });
+		ImGui::Text("Connected to: %s", pad->name.data());
+
+		auto rate = Device::PollingRate();
+		if (rate > 0)
+		{
+			string str = format("{}Hz", rate);
+			auto ts = ImGui::CalcTextSize(str.data());
+			ImGui::SetCursorPos({ ws.x - ts.x - 6, ws.y - statusH + 6 });
+			ImGui::TextUnformatted(str.data());
+		}
+	}
+};
+
+void AdpApplication::RenderIdleTab()
+{
+	const char* text = "Connect an ADP enabled device to continue.";
+	auto ws = ImGui::GetWindowSize();
+	auto ts = ImGui::CalcTextSize(text);
+	ImGui::SetCursorPos(ImVec2(ws.x/2 - ts.x/2, ws.y/2 - ts.y/2));
+	ImGui::Text(text);
+}
+
+void AdpApplication::RenderAboutTab()
+{
+	auto ws = ImGui::GetWindowSize();
+	const char* lines[] =
+	{
+		"ADP Tool " ADP_VERSION_STR,
+		"(c) Bram van de Wetering 2022",
+		"(c) DDR-EXP",
+	};
+	ImGui::SetCursorPosY(round(ws.y / 2 - 80));
+	ImGui::SetCursorPosX(round(ws.x / 2 - 32));
+	auto ico = m_Icon64.get();
+	auto size = ImVec2(float(ico->GetWidth()), float(ico->GetHeight()));
+	ImGui::Image(ico->GetDescriptorSet(), size);
+	ImGui::SetCursorPosY(round(ws.y / 2));
+	for (int i = 0; i < std::size(lines); ++i)
+	{
+		auto ts = ImGui::CalcTextSize(lines[i]);
+		ImGui::SetCursorPosX(ws.x / 2 - ts.x / 2);
+		ImGui::Text(lines[i]);
+	}
+}
+
+void AdpApplication::RenderLogTab()
+{
+	for (int i = 0; i < Log::NumMessages(); ++i)
+		ImGui::TextUnformatted(Log::Message(i).data());
+}
+
+int Main(int argc, char** argv)
+{
+	Log::Init();
+
+	auto versionString = format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+	auto now = format("{:%FT%TZ}", chrono::system_clock::now());
+	Log::Writef("Application started: %s - %s", versionString.data(), now.data());
+
+	Device::Init();
+
+	AdpApplication app;
+	app.Run();
+
+	Device::Shutdown();
+	Log::Shutdown();
+
+	return 0;
 }
 
 }; // namespace adp.
-
-wxIMPLEMENT_APP(adp::Application);
