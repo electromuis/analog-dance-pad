@@ -14,7 +14,7 @@
 	path = adp-tool/lib/imgui
 	url = https://github.com/ocornut/imgui
 [submodule "adp-tool/lib/GLFW"]
-	path = adp-tool/lib/glfw
+	path = adp-tool/lib/GLFW
 	url = https://github.com/glfw/glfw
 [submodule "adp-tool/lib/nfd"]
 	path = adp-tool/lib/nfd
