@@ -627,24 +627,24 @@ public:
 		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
 	}
 
-	wstring ReadDebug()
+	std::string ReadDebug()
 	{
 		if (!myPad.featureDebug) {
-			return L"";
+			return "";
 		}
 
 		DebugReport report;
 		if (!myReporter->Get(report)) {
-			return L"";
+			return "";
 		}
 
 		int messageSize = ReadU16LE(report.messageSize);
 
 		if (messageSize == 0) {
-			return L"";
+			return "";
 		}
 
-		return widen(report.messagePacket, messageSize);
+		return report.messagePacket;
 	}
 
 	DeviceChanges PopChanges()
@@ -1036,10 +1036,10 @@ const SensorState* Device::Sensor(int sensorIndex)
 	return device ? device->Sensor(sensorIndex) : nullptr;
 }
 
-wstring Device::ReadDebug()
+std::string Device::ReadDebug()
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->ReadDebug() : L"";
+	return device ? device->ReadDebug() : "";
 }
 
 const bool Device::HasUnsavedChanges()
@@ -1191,8 +1191,10 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 	}
 
 	if(groups & DPG_DEVICE) {
-		string name = j["name"];
-		SetDeviceName( ((std::string)j["name"]).c_str() );
+		if(j.contains("name")) {
+			string name = j["name"];
+			SetDeviceName( ((std::string)j["name"]).c_str() );
+		}
 	}
 }
 

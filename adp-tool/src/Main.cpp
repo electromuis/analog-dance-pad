@@ -27,6 +27,7 @@ using json = nlohmann::json;
 #include "backends/imgui_impl_vulkan.cpp"
 #include "backends/imgui_impl_glfw.cpp"
 
+using namespace std;
 typedef std::chrono::steady_clock Clock;
 
 namespace adp {

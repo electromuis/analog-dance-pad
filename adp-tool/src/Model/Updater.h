@@ -7,8 +7,6 @@ using json = nlohmann::json;
 
 #include "Model/Firmware.h"
 
-using namespace std;
-
 namespace adp {
 
 #define ADP_USER_AGENT "adp-tool"
@@ -46,8 +44,8 @@ public:
 		VersionType version,
 		SoftwareType softwareType,
 		BoardType boardType,
-		string downloadUrl,
-		string binaryName)
+		std::string downloadUrl,
+		std::string binaryName)
 		:version(version),
 		softwareType(softwareType),
 		boardType(boardType),
@@ -63,8 +61,8 @@ private:
 	VersionType version;
 	SoftwareType softwareType;
 	BoardType boardType;
-	string downloadUrl;
-	string binaryName;
+	std::string downloadUrl;
+	std::string binaryName;
 };
 
 class Updater
@@ -76,7 +74,7 @@ public:
 	static void CheckForFirmwareUpdates(void (*updateFoundCallback)(SoftwareUpdate&));
 
 	static VersionType AdpVersion();
-	static VersionType ParseString(string input);
+	static VersionType ParseString(std::string input);
 };
 
 }; // namespace adp.

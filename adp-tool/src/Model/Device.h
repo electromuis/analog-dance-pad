@@ -115,7 +115,7 @@ public:
 
 	static const SensorState* Sensor(int sensorIndex);
 
-	static wstring ReadDebug();
+	static std::string ReadDebug();
 
 	static const bool HasUnsavedChanges();
 

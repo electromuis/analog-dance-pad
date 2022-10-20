@@ -7,6 +7,8 @@
 #include <View/Colors.h>
 #include <View/MappingTab.h>
 
+using namespace std;
+
 namespace adp {
 
 static string ButtonIndexToText(int index)

@@ -10,6 +10,7 @@
 #include <Model/Log.h>
 #include <Model/Utils.h>
 
+using namespace std;
 using namespace chrono;
 
 namespace adp {

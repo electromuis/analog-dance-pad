@@ -1,9 +1,10 @@
 cmake_minimum_required (VERSION 3.6)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-project(adp-tool VERSION 1.3.0)
+project(adp-tool VERSION 2.0)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
+# Load dependencies start
 include(lib/git.cmake)
 
 add_subdirectory (lib/avrdude)
@@ -13,51 +14,71 @@ include(lib/nfd.cmake)
 include(lib/hidapi.cmake)
 include(lib/serial.cmake)
 
-file(GLOB_RECURSE sources
-     "src/*.h"
-     "src/*.cpp"
-)
+include_directories(
+	"lib/stb_image"
+	"lib/avrdude"
+	"lib/argparse"
+	"lib/json/single_include"
+	"src")
 
-if(WIN32)
-	# list(APPEND sources "src/Assets/Resource.rc")
-endif()
-
-add_executable (${PROJECT_NAME} ${sources})
-
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${sources})
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-
-target_include_directories(${PROJECT_NAME}
-	PUBLIC "lib/stb_image"
-	PUBLIC "lib/avrdude"
-	PUBLIC "lib/json/single_include"
-	PUBLIC "src"
-)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-	CXX_STANDARD 20
-	CXX_EXTENSIONS OFF
-)
-
-set(LIBRARIES
+set(GLOBAL_LIBS
 	hidapi
 	avrdude
 	serial
-	imgui
-	glfw
-	nfd
-	Vulkan::Vulkan
-	fmt
-)
+	fmt)
 
 if(WIN32)
-	list(APPEND LIBRARIES setupapi)
+	list(APPEND GLOBAL_LIBS setupapi)
 elseif(UNIX)
-	list(APPEND LIBRARIES udev X11)
+	list(APPEND GLOBAL_LIBS udev X11)
 endif()
+# Load dependencies end
 
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+# GUI application start
+file(GLOB_RECURSE GUI_SOURCES
+     "src/*.h"
+     "src/Assets/*.cpp"
+     "src/Model/*.cpp"
+     "src/View/*.cpp"
+	 "src/Main.cpp")
 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${GUI_SOURCES})
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+
+set(GUI_LIBS
+	${GLOBAL_LIBS}
+	imgui
+	glfw
+	nfd)
+
+# if(WIN32) list(APPEND sources "src/Assets/Resource.rc") endif()
+
+add_executable (${PROJECT_NAME} ${GUI_SOURCES})
+set_target_properties(${PROJECT_NAME} PROPERTIES
+	CXX_STANDARD 20
+	CXX_EXTENSIONS OFF)
+target_link_libraries(${PROJECT_NAME} ${GUI_LIBS})
+# GUI application end
+
+# CLI application start
+file(GLOB_RECURSE CLI_SOURCES
+     "src/*.h"
+     "src/Model/*.cpp"
+	 "src/Cli.cpp")
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
+
+add_executable ("adp-cli" ${CLI_SOURCES})
+set_target_properties("adp-cli" PROPERTIES
+	CXX_STANDARD 20
+	CXX_EXTENSIONS OFF)
+target_link_libraries("adp-cli" ${GLOBAL_LIBS})
+# CLI application end
+
+
+
+
+# Debian installation start
 if(UNIX)	
 	install(
 	    TARGETS ${PROJECT_NAME}
@@ -88,3 +109,4 @@ if(UNIX)
 
 	include(CPack)
 endif()
+# Debian installation end

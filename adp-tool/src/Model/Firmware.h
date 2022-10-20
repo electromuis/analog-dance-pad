@@ -9,7 +9,6 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-using namespace std;
 using namespace Slic3r;
 using namespace serial;
 
@@ -46,10 +45,10 @@ enum AvrdudeEvent
 class FirmwareUploader
 {
 public:
-	FlashResult UpdateFirmware(string fileName);
+	FlashResult UpdateFirmware(std::string fileName);
 	void SetIgnoreBoardType(bool ignoreBoardType);
 	void WritingDone(int exitCode);
-	string GetErrorMessage();
+	std::string GetErrorMessage();
 	FlashResult GetFlashResult();
 
 	AvrDude::Ptr myAvrdude;
@@ -58,8 +57,8 @@ private:
 	FlashResult WriteFirmware();
 
 	PortInfo comPort;
-	string firmwareFile;
-	string errorMessage;
+	std::string firmwareFile;
+	std::string errorMessage;
 	FlashResult flashResult = FLASHRESULT_NOTHING;
 	json* configBackup = NULL;
 	bool ignoreBoardType = false;

@@ -9,6 +9,8 @@
 #include <View/Colors.h>
 #include <View/LightsTab.h>
 
+using namespace std;
+
 namespace adp {
 
 struct LedMappingWithIndex
