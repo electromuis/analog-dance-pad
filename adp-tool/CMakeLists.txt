@@ -7,9 +7,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURC
 include(lib/git.cmake)
 
 add_subdirectory (lib/avrdude)
+include(lib/imgui.cmake)
+include(lib/nfd.cmake)
 include(lib/hidapi.cmake)
 include(lib/serial.cmake)
-include(lib/wxWidgets.cmake)
 
 file(GLOB_RECURSE sources
      "src/*.h"
@@ -17,38 +18,45 @@ file(GLOB_RECURSE sources
 )
 
 if(WIN32)
-	list(APPEND sources "src/Assets/Resource.rc")
+	# list(APPEND sources "src/Assets/Resource.rc")
 endif()
 
-add_executable (${PROJECT_NAME} WIN32 ${sources})
+add_executable (${PROJECT_NAME} ${sources})
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${sources})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME}
-	PUBLIC "lib/wxWidgets/include"
+	PUBLIC "lib/stb_image"
 	PUBLIC "lib/avrdude"
 	PUBLIC "lib/json/single_include"
 	PUBLIC "src"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-	CXX_STANDARD 17
+	CXX_STANDARD 20
 	CXX_EXTENSIONS OFF
 )
 
 set(LIBRARIES
-	${WX_LIBS}
 	hidapi
 	avrdude
 	serial
+	imgui
+	glfw
+	nfd
+	Vulkan::Vulkan
 )
 
 if(WIN32)
 	list(APPEND LIBRARIES setupapi)
 elseif(UNIX)
 	list(APPEND LIBRARIES udev X11)
-	
+endif()
+
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+
+if(UNIX)	
 	install(
 	    TARGETS ${PROJECT_NAME}
 	    DESTINATION "/usr/bin/"
@@ -77,7 +85,4 @@ elseif(UNIX)
 	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/postinst;${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/postrm")
 
 	include(CPack)
-	
 endif()
-
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})

@@ -10,6 +10,12 @@
 [submodule "adp-tool/lib/json"]
 	path = adp-tool/lib/json
 	url = https://github.com/nlohmann/json
-[submodule "adp-tool/lib/wxWidgets"]
-	path = adp-tool/lib/wxWidgets
-	url = https://github.com/wxWidgets/wxWidgets
+[submodule "adp-tool/lib/imgui"]
+	path = adp-tool/lib/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "adp-tool/lib/GLFW"]
+	path = adp-tool/lib/glfw
+	url = https://github.com/glfw/glfw
+[submodule "adp-tool/lib/nfd"]
+	path = adp-tool/lib/nfd
+	url = https://github.com/mlabbe/nativefiledialog
