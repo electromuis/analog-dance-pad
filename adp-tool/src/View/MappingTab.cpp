@@ -1,6 +1,7 @@
 #include <Adp.h>
 
 #include <imgui.h>
+#include <fmt/core.h>
 
 #include <Model/Device.h>
 #include <View/Colors.h>
@@ -10,12 +11,12 @@ namespace adp {
 
 static string ButtonIndexToText(int index)
 {
-    return (index == 0) ? "-" : format("Button {}", index);
+    return (index == 0) ? "-" : fmt::format("Button {}", index);
 }
 
 static void RenderSensorBar(int sensorIndex)
 {
-    auto sensorBarId = format("##SensorMappingBar{}", sensorIndex);
+    auto sensorBarId = fmt::format("##SensorMappingBar{}", sensorIndex);
 
     ImGui::BeginChild(sensorBarId.data(), ImVec2(200, ImGui::GetFrameHeight()));
 
@@ -46,17 +47,17 @@ void MappingTab::Render()
 
     string buttonOptions("-\0", 2);
     for (int i = 1; i <= pad->numButtons; ++i)
-        buttonOptions.append(format("Button {}{}", i, '\0'));
+        buttonOptions.append(fmt::format("Button {}{}", i, '\0'));
 
     for (int i = 0; i < pad->numSensors; ++i)
     {
-        auto sensorText = format("Sensor {}", i);
+        auto sensorText = fmt::format("Sensor {}", i);
         int selected = Device::Sensor(i)->button;
         ImGui::TextUnformatted(sensorText.data());
         ImGui::SameLine();
         ImGui::SetCursorPosX(100);
 
-        auto sensorId = format("##SensorMapping{}", i);
+        auto sensorId = fmt::format("##SensorMapping{}", i);
         ImGui::PushItemWidth(200);
         if (ImGui::Combo(sensorId.data(), &selected, buttonOptions.data()))
             Device::SetButtonMapping(i, selected);

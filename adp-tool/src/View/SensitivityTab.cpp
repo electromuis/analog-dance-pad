@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <imgui.h>
+#include <fmt/core.h>
 
 #include <Model/Device.h>
 #include <View/Colors.h>
@@ -76,7 +77,7 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
         IM_COL32_WHITE);
 
     // Small text block at the top displaying sensitivity threshold.
-    auto thresholdStr = format("{}%%", (int)std::lround(threshold * 100.0));
+    auto thresholdStr = fmt::format("{}%%", (int)std::lround(threshold * 100.0));
     auto ts = ImGui::CalcTextSize(thresholdStr.data());
     ImGui::SetCursorPos({ colX + (colW - ts.x) / 2, colY + 10 });
     ImGui::Text(thresholdStr.data());

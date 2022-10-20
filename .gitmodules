@@ -19,3 +19,9 @@
 [submodule "adp-tool/lib/nfd"]
 	path = adp-tool/lib/nfd
 	url = https://github.com/mlabbe/nativefiledialog
+[submodule "adp-tool/adp-tool/lib/fmt"]
+	path = adp-tool/adp-tool/lib/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "adp-tool/lib/fmt"]
+	path = adp-tool/lib/fmt
+	url = https://github.com/fmtlib/fmt

@@ -7,6 +7,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURC
 include(lib/git.cmake)
 
 add_subdirectory (lib/avrdude)
+add_subdirectory (lib/fmt)
 include(lib/imgui.cmake)
 include(lib/nfd.cmake)
 include(lib/hidapi.cmake)
@@ -46,6 +47,7 @@ set(LIBRARIES
 	glfw
 	nfd
 	Vulkan::Vulkan
+	fmt
 )
 
 if(WIN32)

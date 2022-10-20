@@ -109,7 +109,7 @@ namespace Walnut {
 			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			err = vkCreateImage(device, &info, nullptr, &m_Image);
-			check_vk_result(err);
+			my_check_vk_result(err);
 			VkMemoryRequirements req;
 			vkGetImageMemoryRequirements(device, m_Image, &req);
 			VkMemoryAllocateInfo alloc_info = {};
@@ -117,9 +117,9 @@ namespace Walnut {
 			alloc_info.allocationSize = req.size;
 			alloc_info.memoryTypeIndex = Utils::GetVulkanMemoryType(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, req.memoryTypeBits);
 			err = vkAllocateMemory(device, &alloc_info, nullptr, &m_Memory);
-			check_vk_result(err);
+			my_check_vk_result(err);
 			err = vkBindImageMemory(device, m_Image, m_Memory, 0);
-			check_vk_result(err);
+			my_check_vk_result(err);
 		}
 
 		// Create the Image View:
@@ -133,7 +133,7 @@ namespace Walnut {
 			info.subresourceRange.levelCount = 1;
 			info.subresourceRange.layerCount = 1;
 			err = vkCreateImageView(device, &info, nullptr, &m_ImageView);
-			check_vk_result(err);
+			my_check_vk_result(err);
 		}
 
 		// Create sampler:
@@ -150,7 +150,7 @@ namespace Walnut {
 			info.maxLod = 1000;
 			info.maxAnisotropy = 1.0f;
 			VkResult err = vkCreateSampler(device, &info, nullptr, &m_Sampler);
-			check_vk_result(err);
+			my_check_vk_result(err);
 		}
 
 		// Create the Descriptor Set:
@@ -198,7 +198,7 @@ namespace Walnut {
 				buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 				buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 				err = vkCreateBuffer(device, &buffer_info, nullptr, &m_StagingBuffer);
-				check_vk_result(err);
+				my_check_vk_result(err);
 				VkMemoryRequirements req;
 				vkGetBufferMemoryRequirements(device, m_StagingBuffer, &req);
 				m_AlignedSize = req.size;
@@ -207,9 +207,9 @@ namespace Walnut {
 				alloc_info.allocationSize = req.size;
 				alloc_info.memoryTypeIndex = Utils::GetVulkanMemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
 				err = vkAllocateMemory(device, &alloc_info, nullptr, &m_StagingBufferMemory);
-				check_vk_result(err);
+				my_check_vk_result(err);
 				err = vkBindBufferMemory(device, m_StagingBuffer, m_StagingBufferMemory, 0);
-				check_vk_result(err);
+				my_check_vk_result(err);
 			}
 
 		}
@@ -218,14 +218,14 @@ namespace Walnut {
 		{
 			char* map = NULL;
 			err = vkMapMemory(device, m_StagingBufferMemory, 0, m_AlignedSize, 0, (void**)(&map));
-			check_vk_result(err);
+			my_check_vk_result(err);
 			memcpy(map, data, upload_size);
 			VkMappedMemoryRange range[1] = {};
 			range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 			range[0].memory = m_StagingBufferMemory;
 			range[0].size = m_AlignedSize;
 			err = vkFlushMappedMemoryRanges(device, 1, range);
-			check_vk_result(err);
+			my_check_vk_result(err);
 			vkUnmapMemory(device, m_StagingBufferMemory);
 		}
 

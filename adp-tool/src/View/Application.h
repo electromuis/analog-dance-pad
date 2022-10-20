@@ -10,7 +10,7 @@
 
 #include <View/Image.h>
 
-void check_vk_result(VkResult err);
+void my_check_vk_result(VkResult err);
 
 struct GLFWwindow;
 

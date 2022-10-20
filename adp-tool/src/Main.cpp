@@ -18,8 +18,8 @@
 #include <View/MappingTab.h>
 #include <View/SensitivityTab.h>
 
+#include <fmt/core.h>
 #include <nfd.h>
-
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -160,7 +160,7 @@ static void RenderTab(const function<void()>& render, const char* name)
 {
 	if (ImGui::BeginTabItem(name))
 	{
-		auto id = format("{}Content", name);
+		auto id = fmt::format("{}Content", name);
 		ImGui::BeginChild(id.data(), ImVec2(0, 0), false,
 			ImGuiWindowFlags_AlwaysUseWindowPadding |
 			ImGuiWindowFlags_HorizontalScrollbar);
@@ -221,7 +221,7 @@ void AdpApplication::RenderCallback()
 		auto rate = Device::PollingRate();
 		if (rate > 0)
 		{
-			string str = format("{}Hz", rate);
+			string str = fmt::format("{}Hz", rate);
 			auto ts = ImGui::CalcTextSize(str.data());
 			ImGui::SetCursorPos({ ws.x - ts.x - 6, ws.y - statusH + 6 });
 			ImGui::TextUnformatted(str.data());
@@ -271,9 +271,9 @@ int Main(int argc, char** argv)
 {
 	Log::Init();
 
-	auto versionString = format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
-	auto now = format("{:%FT%TZ}", chrono::system_clock::now());
-	Log::Writef("Application started: %s - %s", versionString.data(), now.data());
+	auto versionString = fmt::format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+	//auto now = fmt::format("{}", chrono::system_clock::now());
+	//Log::Writef("Application started: %s - %s", versionString.data(), now.data());
 
 	Device::Init();
 

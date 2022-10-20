@@ -1,6 +1,7 @@
 #include <Adp.h>
 
 #include <imgui.h>
+#include <fmt/core.h>
 
 #include <Model/Reporter.h>
 #include <Model/Device.h>
@@ -37,17 +38,17 @@ static void DrawColorControls(
 	ImGui::TextUnformatted(label);
 	ImGui::SameLine(100);
 
-	auto fadeId = format("Fade##Fade{}LR{}", label, ruleIndex);
+	auto fadeId = fmt::format("Fade##Fade{}LR{}", label, ruleIndex);
 	if (ImGui::Checkbox(fadeId.data(), &fade))
 		Device::SendLightRule(ruleIndex, rule);
 
 	ImGui::SameLine(200);
-	auto baseColId = format("Base Color##{}BaseColorLR{}", label, ruleIndex);
+	auto baseColId = fmt::format("Base Color##{}BaseColorLR{}", label, ruleIndex);
 	DrawColorPicker(baseColId.data(), ruleIndex, rule, baseColor);
 	if (fade)
 	{
 		ImGui::SameLine();
-		auto fadeColId = format("Fade Color##{}FadeColorLR{}", label, ruleIndex);
+		auto fadeColId = fmt::format("Fade Color##{}FadeColorLR{}", label, ruleIndex);
 		DrawColorPicker(fadeColId.data(), ruleIndex, rule, fadeColor);
 	}
 }
@@ -59,31 +60,31 @@ static bool DrawLedMappingControls(
 {
 	string options;
 	for (int i = 1; i <= pad->numSensors; ++i)
-		options.append(format("Sensor {}{}", i, '\0'));
+		options.append(fmt::format("Sensor {}{}", i, '\0'));
 
 	ImGui::TextUnformatted("Map");
 
 	ImGui::SameLine();
 	ImGui::PushItemWidth(120);
-	string sensorId = format("to LED##SensorLM{}", mappingIndex);
+	string sensorId = fmt::format("to LED##SensorLM{}", mappingIndex);
 	if (ImGui::Combo(sensorId.data(), &mapping.sensorIndex, options.data()))
 		Device::SendLedMapping(mappingIndex, mapping);
 
 	ImGui::SameLine();
 	ImGui::PushItemWidth(120);
-	string ledFromId = format("up to##LedFromLM{}", mappingIndex);
+	string ledFromId = fmt::format("up to##LedFromLM{}", mappingIndex);
 	if (ImGui::InputInt(ledFromId.data(), &mapping.ledIndexBegin, 1, 1))
 		Device::SendLedMapping(mappingIndex, mapping);
 
 	ImGui::SameLine();
 	ImGui::PushItemWidth(120);
-	string ledToId = format("##LedToLM{}", mappingIndex);
+	string ledToId = fmt::format("##LedToLM{}", mappingIndex);
 	if (ImGui::InputInt(ledToId.data(), &mapping.ledIndexEnd, 1, 1))
 		Device::SendLedMapping(mappingIndex, mapping);
 
 	ImGui::SameLine();
 	ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 100);
-	string removeId = format("Remove##RemoveLM{}", mappingIndex);
+	string removeId = fmt::format("Remove##RemoveLM{}", mappingIndex);
 	return ImGui::Button(removeId.data(), ImVec2(100, 0));
 }
 
@@ -105,7 +106,7 @@ void LightsTab::Render()
 		ImGui::Separator();
 
 		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 100);
-		auto removeId = format("Remove##RemoveLR{}", ruleIndex);
+		auto removeId = fmt::format("Remove##RemoveLR{}", ruleIndex);
 		if (ImGui::Button(removeId.data(), ImVec2(100, 0)))
 			lightRulesToRemove.push_back(ruleIndex);
 		ImGui::SameLine();
@@ -120,7 +121,7 @@ void LightsTab::Render()
 				ledMappingsToRemove.push_back(mapping.mappingIndex);
 		}
 
-		string addMappingId = format("+ Add LED Mapping##AddMappingLR{}", ruleIndex);
+		string addMappingId = fmt::format("+ Add LED Mapping##AddMappingLR{}", ruleIndex);
 		if (ImGui::Button(addMappingId.data()))
 		{
 			LedMapping toAdd = {};

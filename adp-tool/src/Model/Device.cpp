@@ -7,6 +7,7 @@
 #include <thread>
 
 #include "hidapi.h"
+#include <fmt/core.h>
 
 #include <Model/Device.h>
 #include <Model/Reporter.h>
@@ -68,7 +69,7 @@ RgbColor::RgbColor()
 
 std::string RgbColor::ToString() const
 {
-	return std::format("#{:02x}{:02x}{:02x}", red, green, blue);
+	return fmt::format("#{:02x}{:02x}{:02x}", red, green, blue);
 }
 
 // ====================================================================================================================
@@ -1197,7 +1198,7 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 
 void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 {
-	j["adpToolVersion"] = std::format("v{}.{}", ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+	j["adpToolVersion"] = fmt::format("v{}.{}", ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
 
 	if((groups & DPG_LIGHTS) && Pad()->featureLights && Lights()) {
 		auto lights = Lights();
