@@ -6,11 +6,8 @@
 #include <functional>
 
 #include "imgui.h"
-#include "vulkan/vulkan.h"
 
 #include <View/Image.h>
-
-void my_check_vk_result(VkResult err);
 
 struct GLFWwindow;
 
@@ -28,20 +25,13 @@ namespace Walnut {
 		virtual void MenuCallback() = 0;
 		virtual void RenderCallback() = 0;
 
-		static VkInstance GetInstance();
-		static VkPhysicalDevice GetPhysicalDevice();
-		static VkDevice GetDevice();
-
-		static VkCommandBuffer GetCommandBuffer();
-		static void FlushCommandBuffer(VkCommandBuffer commandBuffer);
-
 		static void SubmitResourceFree(std::function<void()>&& func);
 
 	protected:
 		std::unique_ptr<Walnut::Image> m_Icon64;
 
 	private:
-		void Init(int width, int height, const char* title);
+		bool Init(int width, int height, const char* title);
 		void Shutdown();
 
 	private:

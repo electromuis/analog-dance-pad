@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "vulkan/vulkan.h"
+typedef unsigned int GLuint;
 
 namespace Walnut {
 
@@ -17,12 +17,12 @@ namespace Walnut {
 	{
 	public:
 		Image(std::string_view path);
-		Image(uint32_t width, uint32_t height, ImageFormat format, const void* data = nullptr);
 		~Image();
 
 		void SetData(const void* data);
 
-		VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
+		GLuint* GetDescriptorSet() { return &image_texture; }
+		void LoadImageData(uint8_t* data);
 
 		void Resize(uint32_t width, uint32_t height);
 
@@ -34,20 +34,10 @@ namespace Walnut {
 	private:
 		uint32_t m_Width = 0, m_Height = 0;
 
-		VkImage m_Image = nullptr;
-		VkImageView m_ImageView = nullptr;
-		VkDeviceMemory m_Memory = nullptr;
-		VkSampler m_Sampler = nullptr;
+		GLuint image_texture;
 
 		ImageFormat m_Format = ImageFormat::None;
-
-		VkBuffer m_StagingBuffer = nullptr;
-		VkDeviceMemory m_StagingBufferMemory = nullptr;
-
 		size_t m_AlignedSize = 0;
-
-		VkDescriptorSet m_DescriptorSet = nullptr;
-
 		std::string m_Filepath;
 	};
 

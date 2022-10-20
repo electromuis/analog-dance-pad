@@ -9,7 +9,7 @@ option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
 option(GLFW_INSTALL "Generate installation target" OFF)
 option(GLFW_DOCUMENT_INTERNALS "Include internals in documentation" OFF)
 
-find_package(Vulkan REQUIRED)
+# find_package(Vulkan REQUIRED)
 add_subdirectory (${GLFW_DIR})
 
 # ImGui
@@ -22,9 +22,8 @@ include_directories(
 )
 
 add_library(imgui
-    # Already being included by Application.cpp
-    #${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-    #${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
@@ -32,4 +31,4 @@ add_library(imgui
     ${IMGUI_DIR}/imgui_widgets.cpp
 )
 
-target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
+target_link_libraries(imgui PUBLIC glfw gdi32 opengl32 imm32)
