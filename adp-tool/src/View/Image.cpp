@@ -1,7 +1,10 @@
 #include "Image.h"
 #include "Application.h"
 
-#include <windows.h>
+#ifdef __WIN32__
+	#include <windows.h>
+#endif
+
 extern "C" {
 #include <GL/gl.h>
 }

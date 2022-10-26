@@ -1,14 +1,20 @@
 #include <View/Application.h>
 
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
-#include <stdio.h>          // printf, fprintf
-#include <stdlib.h>         // abort
+#define GLFW_INCLUDE_ES3
+#include <GLES3/gl3.h>
 #include <GLFW/glfw3.h>
 
-#include <iostream>
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include "stb_image.h"
+#include <stdio.h>          // printf, fprintf
+#include <stdlib.h>         // abort
+#include <iostream>
 
 // Emedded assets
 #include <Assets/Roboto-Regular.inl>
@@ -52,9 +58,10 @@ bool Application::Init(int width, int height, const char* title)
 		return false;
 	}
 
-	const char* glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	//const char* glsl_version = "#version 130";
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	m_WindowHandle = glfwCreateWindow(width, height, title, NULL, NULL);
 	if(m_WindowHandle == NULL) {
@@ -95,14 +102,14 @@ bool Application::Init(int width, int height, const char* title)
 		return false;
 	}
 
-	if(!ImGui_ImplOpenGL3_Init(glsl_version)) {
+	if(!ImGui_ImplOpenGL3_Init()) {
 		std::cerr << "Could not initalize OpenGL (2)!\n";
 		return false;
 	}
 	
 	// Load icons
 	GLFWimage icons[3] = {};
-	// icons[0].pixels = stbi_load_from_memory(Icon16, sizeof(Icon16), &icons[0].width, &icons[0].height, nullptr, 4);
+	icons[0].pixels = stbi_load_from_memory(Icon16, sizeof(Icon16), &icons[0].width, &icons[0].height, nullptr, 4);
 	// icons[1].pixels = stbi_load_from_memory(Icon32, sizeof(Icon32), &icons[1].width, &icons[1].height, nullptr, 4);
 	// icons[2].pixels = stbi_load_from_memory(Icon64, sizeof(Icon64), &icons[2].width, &icons[2].height, nullptr, 4);
 	// glfwSetWindowIcon(m_WindowHandle, 3, icons);

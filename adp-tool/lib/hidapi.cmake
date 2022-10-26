@@ -6,7 +6,9 @@ include_directories(
 	${HIDAPI_PATH}/hidapi
 )
 
-if(APPLE)
+if(EMSCRIPTEN)
+    list(APPEND HIDAPI_SRC ${HIDAPI_PATH}/wasm/hid.cpp)
+elseif(APPLE)
     list(APPEND HIDAPI_SRC ${HIDAPI_PATH}/mac/hid.c)
 elseif(UNIX)
     list(APPEND HIDAPI_SRC ${HIDAPI_PATH}/linux/hid.c)

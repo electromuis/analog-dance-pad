@@ -3,14 +3,17 @@
 #include "stdint.h"
 #include <string>
 
-#include "avrdude-slic3r.hpp"
-#include "serial/serial.h"
-
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-using namespace Slic3r;
-using namespace serial;
+#ifndef __EMSCRIPTEN__
+	#include "avrdude-slic3r.hpp"
+	#include "serial/serial.h"
+
+	using namespace Slic3r;
+	using namespace serial;
+#endif // __EMSCRIPTEN__
+
 
 namespace adp {
 
@@ -42,6 +45,7 @@ enum AvrdudeEvent
 	AE_EXIT,
 };
 
+#ifndef __EMSCRIPTEN__
 class FirmwareUploader
 {
 public:
@@ -63,6 +67,7 @@ private:
 	json* configBackup = NULL;
 	bool ignoreBoardType = false;
 };
+#endif //__EMSCRIPTEN__
 
 
 enum BoardType ParseBoardType(const std::string& str);

@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <iostream>
 
 #include "Log.h"
 
@@ -28,6 +29,7 @@ void Log::Shutdown()
 void Log::Write(const char* message)
 {
 	messages->emplace_back(message);
+	cout << message << endl;
 }
 
 void Log::Writef(const char* format, ...)
@@ -45,6 +47,13 @@ void Log::Writef(const char* format, ...)
 	messages->emplace_back((const char*)buffer, len);
 	
 	va_end (args);
+
+	for(int i=0 ; i<len ; ++i)
+	{
+		cout << buffer[i];
+	}
+
+	cout << endl;
 }
 
 int Log::NumMessages()

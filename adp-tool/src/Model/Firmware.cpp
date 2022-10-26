@@ -54,6 +54,8 @@ const char* BoardTypeToString(BoardType boardType)
 	return BoardTypeToString(boardType, false);
 }
 
+
+#ifndef __EMSCRIPTEN__
 FlashResult FirmwareUploader::UpdateFirmware(string fileName)
 {
 	flashResult = FLASHRESULT_NOTHING;
@@ -175,5 +177,6 @@ FlashResult FirmwareUploader::GetFlashResult()
 {
 	return flashResult;
 }
+#endif //__EMSCRIPTEN__
 
 }; // namespace adp.

@@ -1,0 +1,28 @@
+pkgname="adp-tool"
+pkgver="2.0"
+pkgrel=1
+arch=('i686' 'x86_64')
+depends=('gtk3')
+makedepends=('cmake' 'ninja' 'git' 'vulkan-headers')
+source=("git+https://github.com/electromuis/analog-dance-pad.git#branch=cli")
+sha1sums=('SKIP')
+
+build() {
+    mkdir -p "$srcdir/adp-tool/build"
+    cd "$srcdir/adp-tool/build"
+
+    cmake "$srcdir/analog-dance-pad/${pkgname%-git}" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -G Ninja
+
+    ninja
+}
+
+check() {
+    ctest --test-dir build --output-on-failure
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install build
+}
