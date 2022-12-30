@@ -90,6 +90,25 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
 }
 
 static rgb_color LED_COLORS[LED_COUNT];
+static bool manualMode = false;
+
+void Lights_SetManualMode(bool mode)
+{
+    manualMode = true;
+    Lights_Update(true);
+}
+
+void Lights_SetManual(int index, rgb_color color)
+{
+    if(index < 0 || index >= LED_COUNT) {
+        return;
+    }
+
+    const LedMapping* mapping = &LIGHT_CONF.ledMappings[index];
+    for (uint8_t led = mapping->ledIndexBegin; led < mapping->ledIndexEnd; ++led) {
+        LED_COLORS[led] = color;
+    }
+}
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -102,14 +121,9 @@ void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration) {
 
 int updateWait = 0;
 
-void Lights_Update(bool force)
+bool Lights_Process()
 {
-	if(updateWait > 0 && !force) {
-		updateWait --;
-		return;
-	}
-	
-	for (uint8_t led = 0; led < LED_COUNT; ++led) {
+    for (uint8_t led = 0; led < LED_COUNT; ++led) {
 		LED_COLORS[led] = (rgb_color) {0, 0, 0};
 	}
 	
@@ -174,7 +188,24 @@ void Lights_Update(bool force)
             LED_COLORS[led] = color;
 		}
 	}
+
+    return update;
+}
+
+void Lights_Update(bool force)
+{
+	if(updateWait > 0 && !force) {
+		updateWait --;
+		return;
+	}
+
+    bool update = false;
 	
+    if(!manualMode)
+    {
+        update = Lights_Process();
+    }
+
 	if(update || force) {
 		led_strip_write(LED_COLORS, LED_COUNT);
 	}

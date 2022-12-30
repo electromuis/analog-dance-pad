@@ -87,6 +87,7 @@
 		#endif
 		
 		#define IDENTIFICATION_V2_REPORT_ID      0xE
+        #define LIGHTS_REPORT_ID                 0xF
 
     /* Macros: */
         /** Endpoint address of the Generic HID reporting IN endpoint. */

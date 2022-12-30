@@ -217,6 +217,28 @@ bool CALLBACK_HID_Device_CreateHIDReport(
             memset(&report->sensor, 0, sizeof(SensorConfig));
         *ReportSize = sizeof(SensorHIDReport);
     }
+    
+    
+    
+    
+    else if (*ReportID == RESET_REPORT_ID)
+    {
+        Reset_JumpToBootloader();
+    }
+    else if (*ReportID == SAVE_CONFIGURATION_REPORT_ID)
+    {
+        ConfigStore_StoreConfiguration(&configuration);
+    }
+    else if (*ReportID == FACTORY_RESET_REPORT_ID)
+    {
+        ConfigStore_FactoryDefaults(&configuration);
+        ConfigStore_StoreConfiguration(&configuration);
+		SetupConfiguration();
+        Reconnect_Usb();
+    }
+
+
+
 	#if defined(FEATURE_DEBUG_ENABLED)
 	else if (*ReportID == DEBUG_REPORT_ID)
     {
@@ -333,5 +355,15 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
             PAD_CONF.selectedSensorIndex = (uint8_t)report->propertyValue;
             break;
         }
+    }
+    else if (ReportID == LIGHTS_REPORT_ID && ReportSize == sizeof(LightsHIDReport))
+    {
+        const LightsHIDReport* report = ReportData;
+
+        for(int i=0; i<MAX_LED_MAPPINGS; i++)
+        {
+            Lights_SetManual(i, report->lights[i]);
+        }
+        Lights_SetManualMode(true);
     }
 }
