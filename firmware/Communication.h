@@ -22,6 +22,10 @@
         uint16_t sensorValues[SENSOR_COUNT];
     } __attribute__((packed)) InputHIDReport;
 
+    typedef struct {
+        rgb_color lights[MAX_LED_MAPPINGS];
+    } __attribute__((packed)) LightsHIDReport;
+
     //
     // FEATURE REPORTS
     // ie. can be requested by computer and written by computer

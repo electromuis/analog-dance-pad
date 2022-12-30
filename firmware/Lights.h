@@ -52,6 +52,8 @@ typedef struct
 
 void Lights_UpdateConfiguration(const LightConfiguration* lightConfiguration);
 void Lights_Update(bool force);
+void Lights_SetManual(int index, rgb_color color);
+void Lights_SetManualMode(bool mode);
 
 extern LightConfiguration LIGHT_CONF;
 
