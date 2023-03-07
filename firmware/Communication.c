@@ -22,33 +22,3 @@ void Communication_WriteInputHIDReport(InputHIDReport* report) {
         report->sensorValues[i] = PAD_STATE.sensorValues[i];
     }
 }
-
-void Communication_WriteIdentificationReport(IdentificationFeatureReport* ReportData) {
-    ReportData->firmwareVersionMajor = FIRMWARE_VERSION_MAJOR;
-    ReportData->firmwareVersionMinor = FIRMWARE_VERSION_MINOR;
-    
-    ReportData->buttonCount = BUTTON_COUNT;
-    ReportData->sensorCount = SENSOR_COUNT;
-    ReportData->ledCount = LED_COUNT;
-    ReportData->maxSensorValue = MAX_SENSOR_VALUE;
-
-	memset(ReportData->boardType, 0, sizeof(ReportData->boardType));
-    strcpy(ReportData->boardType, boardType);
-}
-
-void Communication_WriteIdentificationV2Report(IdentificationV2FeatureReport* ReportData) {
-	Communication_WriteIdentificationReport(&ReportData->parent);
-	
-	ReportData->features = 0;
-	#if defined(FEATURE_DEBUG_ENABLED)
-		ReportData->features |= FEATURE_DEBUG;
-	#endif
-	
-	#if defined(FEATURE_DIGIPOT_ENABLED)
-		ReportData->features |= FEATURE_DIGIPOT;
-	#endif
-	
-	#if defined(FEATURE_LIGHTS_ENABLED)
-		ReportData->features |= FEATURE_LIGHTS;
-	#endif
-}

@@ -2,7 +2,7 @@
 #define _DANCE_PAD_CONFIG_H_
     //Version 2 since Kauhsa's initial version will be considered version 0
     #define FIRMWARE_VERSION_MAJOR 1
-    #define FIRMWARE_VERSION_MINOR 4
+    #define FIRMWARE_VERSION_MINOR 5
 
 	#define FEATURE_DEBUG 1 << 0
 	#define FEATURE_DIGIPOT 1 << 1
@@ -14,6 +14,7 @@
 	
 	// Set the board type if not provided to the make command
     // #define BOARD_TYPE_
+    #define BOARD_TYPE_FSRIO_2
 
     #define MAX_SENSOR_VALUE 1024
 

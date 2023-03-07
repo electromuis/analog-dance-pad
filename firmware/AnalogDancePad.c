@@ -36,6 +36,7 @@
 #include "Lights.h"
 #include "Debug.h"
 #include "ADC.h"
+#include "Reports/Reports.h"
 
 int dataCounter = 0;
 static Configuration configuration;
@@ -68,6 +69,8 @@ USB_ClassInfo_HID_Device_t Generic_HID_Interface =
  */
 int main(void)
 {
+    RegisterReports();
+
     SetupHardware();
     GlobalInterruptEnable();
     ConfigStore_LoadConfiguration(&configuration);
@@ -171,6 +174,8 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 		
 		if(led)
 			LEDs_TurnOffLEDs(LED_DATA);
+
+        return true;
     }
     else if (*ReportID == PAD_CONFIGURATION_REPORT_ID)
     {
@@ -185,46 +190,16 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 			report->configuration.sensorToButtonMapping[s] = configuration.padConfiguration.sensors[s].buttonMapping;
 		}
         *ReportSize = sizeof (PadConfigurationFeatureHIDReport);
+
+        return true;
     }
     else if (*ReportID == NAME_REPORT_ID)
     {
         NameFeatureHIDReport* report = ReportData;
         memcpy(&report->nameAndSize, &configuration.nameAndSize, sizeof (report->nameAndSize));
         *ReportSize = sizeof (NameFeatureHIDReport);
-    }
-    else if (*ReportID == LIGHT_RULE_REPORT_ID)
-    {
-        LightRuleHIDReport* report = ReportData;
-        report->index = LIGHT_CONF.selectedLightRuleIndex;
-        if (report->index < MAX_LIGHT_RULES)
-            memcpy(&report->rule, &LIGHT_CONF.lightRules[report->index], sizeof(LightRule));
-        else
-            memset(&report->rule, 0, sizeof(LightRule));
-        *ReportSize = sizeof(LightRuleHIDReport);
-    }
-    else if (*ReportID == IDENTIFICATION_REPORT_ID)
-    {
-        Communication_WriteIdentificationReport(ReportData);
-        *ReportSize = sizeof(IdentificationFeatureReport);
-		
-		Debug_Message("Welcome!\n");
-    }
-    else if (*ReportID == IDENTIFICATION_V2_REPORT_ID)
-    {
-        Communication_WriteIdentificationV2Report(ReportData);
-        *ReportSize = sizeof(IdentificationV2FeatureReport);
-		
-		Debug_Message("Welcome V2!\n");
-    }
-    else if (*ReportID == LED_MAPPING_REPORT_ID)
-    {
-        LedMappingHIDReport* report = ReportData;
-        report->index = LIGHT_CONF.selectedLedMappingIndex;
-        if (report->index < MAX_LED_MAPPINGS)
-            memcpy(&report->mapping, &LIGHT_CONF.ledMappings[report->index], sizeof(LedMapping));
-        else
-            memset(&report->mapping, 0, sizeof(LedMapping));
-        *ReportSize = sizeof(LedMappingHIDReport);
+
+        return true;
     }
     else if (*ReportID == SENSOR_REPORT_ID)
     {
@@ -235,18 +210,20 @@ bool CALLBACK_HID_Device_CreateHIDReport(
         else
             memset(&report->sensor, 0, sizeof(SensorConfig));
         *ReportSize = sizeof(SensorHIDReport);
+
+        return true;
     }
-    
-    
-    
-    
     else if (*ReportID == RESET_REPORT_ID)
     {
         Reset_JumpToBootloader();
+
+        return true;
     }
     else if (*ReportID == SAVE_CONFIGURATION_REPORT_ID)
     {
         ConfigStore_StoreConfiguration(&configuration);
+
+        return true;
     }
     else if (*ReportID == FACTORY_RESET_REPORT_ID)
     {
@@ -254,9 +231,9 @@ bool CALLBACK_HID_Device_CreateHIDReport(
         ConfigStore_StoreConfiguration(&configuration);
 		SetupConfiguration();
         Reconnect_Usb();
+
+        return true;
     }
-
-
 
 	#if defined(FEATURE_DEBUG_ENABLED)
 	else if (*ReportID == DEBUG_REPORT_ID)
@@ -276,10 +253,15 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 		}
 		
         *ReportSize = sizeof(DebugHIDReport);
+
+        return true;
     }
 	#endif
+    else {
+        return WriteReport(*ReportID, ReportData, ReportSize);
+    }
 
-    return true;
+    return false;
 }
 
 /** HID class driver callback function for the processing of HID reports from the host.
