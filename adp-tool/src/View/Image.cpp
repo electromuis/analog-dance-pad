@@ -13,29 +13,10 @@ extern "C" {
 
 namespace Walnut {
 
-	Image::Image(std::string_view path)
-		: m_Filepath(path)
+	Image::Image(uint32_t width, uint32_t height, ImageFormat format, const void* data)
+		: m_Width(width), m_Height(height), m_Format(format)
 	{
-		int width, height, channels;
-		uint8_t* data = nullptr;
-
-		if (stbi_is_hdr(m_Filepath.c_str()))
-		{
-			data = (uint8_t*)stbi_loadf(m_Filepath.c_str(), &width, &height, &channels, 4);
-			m_Format = ImageFormat::RGBA32F;
-		}
-		else
-		{
-			data = stbi_load(m_Filepath.c_str(), &width, &height, &channels, 4);
-			m_Format = ImageFormat::RGBA;
-		}
-
-		m_Width = width;
-		m_Height = height;
-		
 		LoadImageData(data);
-
-		stbi_image_free(data);
 	}
 
 	Image::~Image()
@@ -43,8 +24,21 @@ namespace Walnut {
 		glDeleteTextures(1, &image_texture);
 	}
 
-	void Image::LoadImageData(uint8_t* data)
+	void Image::LoadImageData(const void* image_data)
 	{
+		glGenTextures(1, &image_texture);
+		glBindTexture(GL_TEXTURE_2D, image_texture);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+
+
+		/*
 		image_texture = GLuint();
 		glGenTextures(1, &image_texture);
 		glBindTexture(GL_TEXTURE_2D, image_texture);
@@ -60,6 +54,7 @@ namespace Walnut {
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	#endif
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		*/
 	}
 
 }

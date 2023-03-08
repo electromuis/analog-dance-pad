@@ -246,9 +246,11 @@ void AdpApplication::RenderAboutTab()
 	};
 	ImGui::SetCursorPosY(round(ws.y / 2 - 80));
 	ImGui::SetCursorPosX(round(ws.x / 2 - 32));
-	auto ico = m_Icon64.get();
-	auto size = ImVec2(float(ico->GetWidth()), float(ico->GetHeight()));
-	ImGui::Image(ico->GetDescriptorSet(), size);
+	
+	Walnut::Image& icon = *m_Icon64;
+	auto size = ImVec2(float(icon.GetWidth()), float(icon.GetHeight()));
+	ImGui::Image(icon.GetDescriptorSet(), size);
+	
 	ImGui::SetCursorPosY(round(ws.y / 2));
 	for (int i = 0; i < std::size(lines); ++i)
 	{

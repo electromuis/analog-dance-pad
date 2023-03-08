@@ -104,18 +104,19 @@ bool Application::Init(int width, int height, const char* title)
 	GLFWimage icons[3] = {};
 	// icons[0].pixels = stbi_load_from_memory(Icon16, sizeof(Icon16), &icons[0].width, &icons[0].height, nullptr, 4);
 	// icons[1].pixels = stbi_load_from_memory(Icon32, sizeof(Icon32), &icons[1].width, &icons[1].height, nullptr, 4);
-	// icons[2].pixels = stbi_load_from_memory(Icon64, sizeof(Icon64), &icons[2].width, &icons[2].height, nullptr, 4);
+	icons[2].pixels = stbi_load_from_memory(Icon64, sizeof(Icon64), &icons[2].width, &icons[2].height, nullptr, 4);
 	// glfwSetWindowIcon(m_WindowHandle, 3, icons);
 
-	// m_Icon64 = std::make_unique<Image>(
-	// 	icons[2].width,
-	// 	icons[2].height,
-	// 	Walnut::ImageFormat::RGBA,
-	// 	icons[2].pixels);
+	 m_Icon64 = std::make_unique<Image>(
+	 	icons[2].width,
+	 	icons[2].height,
+	 	Walnut::ImageFormat::RGBA,
+	 	icons[2].pixels
+	);
 
 	// stbi_image_free(icons[0].pixels);
 	// stbi_image_free(icons[1].pixels);
-	// stbi_image_free(icons[2].pixels);
+	stbi_image_free(icons[2].pixels);
 
 	// Load default font
 	ImFontConfig fontConfig;
@@ -128,7 +129,7 @@ bool Application::Init(int width, int height, const char* title)
 
 void Application::Shutdown()
 {
-	//m_Icon64.reset();
+	m_Icon64.reset();
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
