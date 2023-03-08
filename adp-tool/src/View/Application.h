@@ -21,6 +21,7 @@ namespace Walnut {
 
 		void Run();
 		void Close();
+		void Loop();
 
 		virtual void MenuCallback() = 0;
 		virtual void RenderCallback() = 0;

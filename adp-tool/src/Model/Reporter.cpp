@@ -58,7 +58,7 @@ static bool SendFeatureReport(hid_device* hid, const T& report, const char* name
 	if (bytesWritten < 0)
 		Log::Writef("%s :: hid_send_feature_report failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef("%s :: unexpected number of bytes written (%i)", name, bytesWritten);
+		Log::Writef("%s :: unexpected number of bytes written (%i) expected (%i)", name, bytesWritten, sizeof(T));
 	return false;
 }
 

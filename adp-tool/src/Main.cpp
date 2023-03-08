@@ -20,6 +20,13 @@
 
 #ifndef __EMSCRIPTEN__
 	#include <nfd.h>
+#else
+	#include <emscripten.h>
+	#include <emscripten/val.h>
+
+	EM_JS(void, ScanDevices, (), {
+		navigator.hid.requestDevice({filters: []});
+	});
 #endif
 
 #include <fmt/core.h>
@@ -145,9 +152,10 @@ void AdpApplication::SaveProfile()
 
 void AdpApplication::MenuCallback()
 {
-#ifndef __EMSCRIPTEN__
+
 	if (ImGui::BeginMenu("File"))
 	{
+#ifndef __EMSCRIPTEN__
 		if (ImGui::MenuItem("Load profile"))
 			LoadProfile();
 
@@ -156,10 +164,14 @@ void AdpApplication::MenuCallback()
 
 		if (ImGui::MenuItem("Exit"))
 			Close();
+#else
+		if (ImGui::MenuItem("Connect"))
+			ScanDevices();
+#endif
 
 		ImGui::EndMenu();
 	}
-#endif
+
 }
 
 static void RenderTab(const function<void()>& render, const char* name)
@@ -178,13 +190,13 @@ static void RenderTab(const function<void()>& render, const char* name)
 
 void AdpApplication::RenderCallback()
 {
-	/*
-	ImGui::ShowDemoWindow();
-	return;
-	//*/
-
 	auto now = Clock::now();
+
+#ifdef __EMSCRIPTEN__
+	if (now - myLastUpdateTime > 1000ms)
+#else
 	if (now - myLastUpdateTime > 10ms)
+#endif
 	{
 		Device::Update();
 		myLastUpdateTime = now;
@@ -275,6 +287,15 @@ void AdpApplication::RenderLogTab()
 		ImGui::TextUnformatted(Log::Message(i).data());
 }
 
+#ifdef __EMSCRIPTEN__
+AdpApplication app;
+
+void loop()
+{
+	app.Loop();
+}
+#endif
+
 int Main(int argc, char** argv)
 {
 	Log::Init();
@@ -285,8 +306,15 @@ int Main(int argc, char** argv)
 
 	Device::Init();
 
+	
+
+#ifdef __EMSCRIPTEN__
+  	emscripten_set_main_loop(loop, 0, 1);
+#else
 	AdpApplication app;
 	app.Run();
+#endif
+	
 
 	Device::Shutdown();
 	Log::Shutdown();

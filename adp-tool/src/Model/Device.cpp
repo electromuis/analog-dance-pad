@@ -926,8 +926,10 @@ public:
 		Log::Writef("  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
 		if(deviceInfo != NULL) {
 			Log::Writef("  Product: %ls", deviceInfo->product_string);
+			#ifndef __EMSCRIPTEN__
 			Log::Writef("  Manufacturer: %ls", deviceInfo->manufacturer_string);
 			Log::Writef("  Path: %s", deviceInfo->path);
+			#endif
 		}
 		else {
 			Log::Writef("  Product: Dummy");
