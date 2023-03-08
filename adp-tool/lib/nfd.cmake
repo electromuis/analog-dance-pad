@@ -11,14 +11,29 @@ SET(NFD_SRC
 )
 
 if(WIN32)
-    list(APPEND NFD_SRC ${NFD_PATH}/src/nfd_win.cpp)
+    add_library(nfd
+        ${NFD_PATH}/src/nfd_common.c
+        ${NFD_PATH}/src/nfd_win.cpp
+    )
 else()
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-    
-    list(APPEND NFD_SRC ${NFD_PATH}/src/nfd_gtk.c)
+    add_library(nfd
+        ${NFD_PATH}/src/nfd_common.c
+        ${NFD_PATH}/src/nfd_gtk.c
+    )
 endif()
 
-add_library(nfd ${NFD_SRC})
-target_link_libraries(nfd ${GTK3_LIBRARIES})
-target_include_directories(nfd PRIVATE ${GTK3_INCLUDE_DIRS})
+
+if(UNIX)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
+    pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+
+    target_link_libraries(nfd
+        PkgConfig::deps
+        ${GTK3_LIBRARIES}
+    )
+
+    target_include_directories(nfd PRIVATE
+        ${GTK3_INCLUDE_DIRS}
+    )
+endif()

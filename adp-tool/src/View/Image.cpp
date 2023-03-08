@@ -1,7 +1,7 @@
 #include "Image.h"
 #include "Application.h"
 
-#include <windows.h>
+//#include <windows.h>
 extern "C" {
 #include <GL/gl.h>
 }
