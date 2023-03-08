@@ -25,8 +25,9 @@
 */
 
 #include "Descriptors.h"
-#include "Communication.h"
 #include "Reports/PadReports.h"
+#include "Reports/LightReports.h"
+#include "Reports/SensorReports.h"
 
 /** HID class report descriptor. This is a special descriptor constructed with values from the
  *  USBIF HID class specification to describe the reports and capabilities of the HID device. This

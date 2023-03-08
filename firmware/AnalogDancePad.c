@@ -29,17 +29,9 @@
 
 #include "Config/DancePadConfig.h"
 #include "AnalogDancePad.h"
-#include "Communication.h"
 #include "Descriptors.h"
-#include "Pad.h"
-#include "Reset.h"
-#include "Lights.h"
-#include "Debug.h"
-#include "ADC.h"
 #include "Reports/Reports.h"
-
-int dataCounter = 0;
-static Configuration configuration;
+#include "ConfigStore.h"
 
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
 static uint8_t PrevHIDReportBuffer[GENERIC_EPSIZE];
@@ -114,12 +106,6 @@ void SetupHardware(void)
     USB_Init();
 }
 
-void SetupConfiguration()
-{
-	Pad_Initialize(&configuration.padConfiguration);
-    Lights_UpdateConfiguration(&configuration.lightConfiguration);
-}
-
 /** Event handler for the library USB Configuration Changed event. */
 void EVENT_USB_Device_ConfigurationChanged(void)
 {
@@ -156,112 +142,16 @@ bool CALLBACK_HID_Device_CreateHIDReport(
     void* ReportData,
     uint16_t* const ReportSize)
 {
-    if (*ReportID == 0)
-    {
-		dataCounter ++;
-		bool led = false;
-		if(dataCounter > 8)
-		{
-			led = true;
-			dataCounter = 0;
-			LEDs_TurnOnLEDs(LED_DATA);
-		}
-		
-        // no report id requested - write button and sensor data
-        Communication_WriteInputHIDReport(ReportData);
+    if(*ReportID == 0) {
         *ReportID = INPUT_REPORT_ID;
-        *ReportSize = sizeof (InputHIDReport);
-		
-		if(led)
-			LEDs_TurnOffLEDs(LED_DATA);
-
-        return true;
     }
-    else if (*ReportID == PAD_CONFIGURATION_REPORT_ID)
-    {
-        PadConfigurationFeatureHIDReport* report = ReportData;
-		
-		report->configuration.releaseMultiplier =
-			configuration.padConfiguration.sensors[0].threshold /
-			configuration.padConfiguration.sensors[0].releaseThreshold;
-		
-		for (int s = 0; s < SENSOR_COUNT; s++) {
-			report->configuration.sensorThresholds[s] = configuration.padConfiguration.sensors[s].threshold;
-			report->configuration.sensorToButtonMapping[s] = configuration.padConfiguration.sensors[s].buttonMapping;
-		}
-        *ReportSize = sizeof (PadConfigurationFeatureHIDReport);
-
-        return true;
-    }
-    else if (*ReportID == NAME_REPORT_ID)
-    {
-        NameFeatureHIDReport* report = ReportData;
-        memcpy(&report->nameAndSize, &configuration.nameAndSize, sizeof (report->nameAndSize));
-        *ReportSize = sizeof (NameFeatureHIDReport);
-
-        return true;
-    }
-    else if (*ReportID == SENSOR_REPORT_ID)
-    {
-        SensorHIDReport* report = ReportData;
-        report->index = PAD_CONF.selectedSensorIndex;
-        if (report->index < SENSOR_COUNT)
-            memcpy(&report->sensor, &PAD_CONF.sensors[report->index], sizeof(SensorConfig));
-        else
-            memset(&report->sensor, 0, sizeof(SensorConfig));
-        *ReportSize = sizeof(SensorHIDReport);
-
-        return true;
-    }
-    else if (*ReportID == RESET_REPORT_ID)
-    {
-        Reset_JumpToBootloader();
-
-        return true;
-    }
-    else if (*ReportID == SAVE_CONFIGURATION_REPORT_ID)
-    {
-        ConfigStore_StoreConfiguration(&configuration);
-
-        return true;
-    }
-    else if (*ReportID == FACTORY_RESET_REPORT_ID)
-    {
-        ConfigStore_FactoryDefaults(&configuration);
-        ConfigStore_StoreConfiguration(&configuration);
-		SetupConfiguration();
-        Reconnect_Usb();
-
-        return true;
+    
+    if(!WriteReport(*ReportID, ReportData, ReportSize)) {
+        *ReportSize = 0;
+        *ReportID = 0;
     }
 
-	#if defined(FEATURE_DEBUG_ENABLED)
-	else if (*ReportID == DEBUG_REPORT_ID)
-    {
-        DebugHIDReport* report = ReportData;
-		
-		uint16_t readSize = Debug_Available();
-		uint16_t maxReadSize = sizeof(report->messagePacket);
-		
-		if(readSize > 0) {
-			if(readSize > maxReadSize) {
-				readSize = maxReadSize;
-			}
-			
-			report->messageSize = readSize;
-			Debug_ReadBuffer(&report->messagePacket, readSize);
-		}
-		
-        *ReportSize = sizeof(DebugHIDReport);
-
-        return true;
-    }
-	#endif
-    else {
-        return WriteReport(*ReportID, ReportData, ReportSize);
-    }
-
-    return false;
+    return true;
 }
 
 /** HID class driver callback function for the processing of HID reports from the host.
@@ -278,122 +168,5 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
                                           const void* ReportData,
                                           const uint16_t ReportSize)
 {
-    if (ReportID == PAD_CONFIGURATION_REPORT_ID && ReportSize == sizeof (PadConfigurationFeatureHIDReport))
-    {
-        const PadConfigurationFeatureHIDReport* report = ReportData;
-		for (int s = 0; s < SENSOR_COUNT; s++) {
-			configuration.padConfiguration.sensors[s].threshold = report->configuration.sensorThresholds[s];
-			configuration.padConfiguration.sensors[s].releaseThreshold = report->configuration.sensorThresholds[s] * report->configuration.releaseMultiplier;
-			configuration.padConfiguration.sensors[s].buttonMapping = report->configuration.sensorToButtonMapping[s];
-		}
-        Pad_UpdateConfiguration(&configuration.padConfiguration);
-    }
-    else if (ReportID == RESET_REPORT_ID)
-    {
-        Reset_JumpToBootloader();
-    }
-    else if (ReportID == SAVE_CONFIGURATION_REPORT_ID)
-    {
-        ConfigStore_StoreConfiguration(&configuration);
-    }
-    else if (ReportID == FACTORY_RESET_REPORT_ID)
-    {
-		LEDs_SetAllLEDs(0);
-        ConfigStore_FactoryDefaults(&configuration);
-        ConfigStore_StoreConfiguration(&configuration);
-		SetupConfiguration();
-        Reconnect_Usb();
-		LEDs_SetAllLEDs(LED_BOOT);
-    }
-    else if (ReportID == NAME_REPORT_ID && ReportSize == sizeof (NameFeatureHIDReport))
-    {
-        const NameFeatureHIDReport* report = ReportData;
-        memcpy(&configuration.nameAndSize, &report->nameAndSize, sizeof (configuration.nameAndSize));
-    }
-    else if (ReportID == LIGHT_RULE_REPORT_ID && ReportSize == sizeof (LightRuleHIDReport))
-    {
-        const LightRuleHIDReport* report = ReportData;
-        if (report->index < MAX_LIGHT_RULES)
-        {
-            memcpy(&configuration.lightConfiguration.lightRules[report->index], &report->rule, sizeof(LightRule));
-            Lights_UpdateConfiguration(&configuration.lightConfiguration);
-        }
-    }
-    else if (ReportID == LED_MAPPING_REPORT_ID && ReportSize == sizeof(LedMappingHIDReport))
-    {
-        const LedMappingHIDReport* report = ReportData;
-        if (report->index < MAX_LED_MAPPINGS)
-        {
-            memcpy(&configuration.lightConfiguration.ledMappings[report->index], &report->mapping, sizeof(LedMapping));
-            Lights_UpdateConfiguration(&configuration.lightConfiguration);
-        }
-    }
-	
-	else if (ReportID == SENSOR_REPORT_ID && ReportSize == sizeof(SensorHIDReport))
-    {
-        const SensorHIDReport* report = ReportData;
-        if (report->index < SENSOR_COUNT)
-        {
-			SensorConfig* sc = &configuration.padConfiguration.sensors[report->index];
-			
-			sc->threshold = report->sensor.threshold;
-			sc->releaseThreshold = report->sensor.releaseThreshold;
-			sc->buttonMapping = report->sensor.buttonMapping;
-			sc->resistorValue = report->sensor.resistorValue;
-			sc->flags = report->sensor.flags;
-			
-			/*
-            memcpy(
-				&configuration.padConfiguration.sensors[report->index],
-				&report->sensor,
-				sizeof(SensorConfig)
-			);
-			configuration.padConfiguration.sensors[report->index].preload = 0;
-			*/
-			
-            Pad_UpdateConfiguration(&configuration.padConfiguration);
-        }
-    }
-	
-    else if (ReportID == SET_PROPERTY_REPORT_ID && ReportSize == sizeof (SetPropertyHIDReport))
-    {
-        const SetPropertyHIDReport* report = ReportData;
-        switch (report->propertyId)
-        {
-        case SPID_SELECTED_LIGHT_RULE_INDEX:
-            LIGHT_CONF.selectedLightRuleIndex = (uint8_t)report->propertyValue;
-            break;
-
-        case SPID_SELECTED_LED_MAPPING_INDEX:
-            LIGHT_CONF.selectedLedMappingIndex = (uint8_t)report->propertyValue;
-            break;
-
-        case SPID_SELECTED_SENSOR_INDEX:
-            PAD_CONF.selectedSensorIndex = (uint8_t)report->propertyValue;
-            break;
-		case SPID_SENSOR_CAL_PRELOAD:
-			PAD_CONF.selectedSensorIndex = (uint8_t)report->propertyValue;
-			if (PAD_CONF.selectedSensorIndex < SENSOR_COUNT)
-			{
-				configuration.padConfiguration.sensors[PAD_CONF.selectedSensorIndex].preload = 0;
-				Pad_UpdateConfiguration(&configuration.padConfiguration);
-				
-				uint16_t value = ADC_Read(PAD_CONF.selectedSensorIndex);
-				
-				configuration.padConfiguration.sensors[PAD_CONF.selectedSensorIndex].preload = value;
-				Pad_UpdateConfiguration(&configuration.padConfiguration);
-			}
-			break;
-        }
-    }
-    else if (ReportID == LIGHTS_REPORT_ID && ReportSize == sizeof(LightsHIDReport))
-    {
-        const LightsHIDReport* report = ReportData;
-
-        for(int i=0; i<MAX_LED_MAPPINGS; i++)
-        {
-            Lights_SetManual(i, report->lights[i]);
-        }
-        Lights_SetManualMode(true);
-    }
+    ProcessReport(ReportID, ReportData, ReportSize);
 }

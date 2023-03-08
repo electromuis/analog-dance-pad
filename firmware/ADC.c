@@ -7,22 +7,8 @@
 
 // see page 308 of https://cdn.sparkfun.com/datasheets/Dev/Arduino/Boards/ATMega32U4.pdf for these
 static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
-#if defined(BOARD_TYPE_FSRIO_2)
-	0b000000, //ADC0
-    0b000001, //ADC1
-	0b000100, //ADC4
-	0b000101, //ADC5
-	0b000110, //ADC6
-	0b000111, //ADC7
-	0b100000, //ADC8
-	0b100001, //ADC9
-	
-	0b111111,
-	0b111111,
-	0b111111,
-	0b111111
-#elif defined(BOARD_TYPE_FSRIO_1)	
-    0b000111, //ADC7 A0
+#if ADC_LAYOUT == ADC_LAYOUT_LEONARDO
+	0b000111, //ADC7 A0
 	0b000110, //ADC6 A1
 	0b000101, //ADC5 A2
 	0b000100, //ADC4 A3
@@ -35,13 +21,28 @@ static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
 	0b111111,
 	0b111111,
 	0b111111
-#elif defined(BOARD_TYPE_FSRMINIPAD)	
-	0b111111,
-    0b111111,
+#elif ADC_LAYOUT == ADC_LAYOUT_MINIPAD_1
 	0b000100, //ADC4 A3
 	0b000101, //ADC5 A2
 	0b000110, //ADC6 A1
 	0b000111, //ADC7 A0
+
+	0b111111,
+    0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111
+#elif ADC_LAYOUT == ADC_LAYOUT_MINIPAD_2
+	0b000000, //ADC0
+	0b000100, //ADC4
+	0b000110, //ADC6
+	0b100000, //ADC8
+
+	0b111111,
+	0b111111,
 	0b111111,
 	0b111111,
 	0b111111,

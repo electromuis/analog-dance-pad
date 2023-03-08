@@ -11,7 +11,7 @@
 
 # Run "make help" for target help.
 
-BOARD_TYPE	 = LEONARDO
+BOARD_TYPE	 = 
 TARGET       = $(BOARD_TYPE)
 MCU          = atmega32u4
 BOARD        = LEONARDO
@@ -21,7 +21,7 @@ ARCH         = AVR8
 F_CPU        = 16000000
 F_USB        = $(F_CPU)
 OPTIMIZATION = 3
-SRC          = ../Reports/Reports.cpp ../Reports/PadReports.cpp ../AnalogDancePad.c ../Descriptors.c ../ADC.c ../Pad.c ../Communication.c ../ConfigStore.c ../Reset.c ../Lights.c ../Debug.c $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS)
+SRC          = ../Reports/Reports.cpp ../Reports/SensorReports.cpp ../Reports/PadReports.cpp ../Reports/LightReports.cpp ../AnalogDancePad.c ../Descriptors.c ../ADC.c ../Pad.c ../ConfigStore.c ../Reset.c ../Lights.c ../Debug.c $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS)
 LUFA_PATH    = ../lufa/LUFA
 CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -I../Config/ -I.. -DBOARD_TYPE_$(BOARD_TYPE)
 LD_FLAGS     =
@@ -47,3 +47,9 @@ include $(DMBS_PATH)/atprogram.mk
 
 install:
 	teensy_loader_cli --mcu=atmega32u4 -w ./AnalogDancePad.hex
+
+COM = COM3
+
+flash:
+	avrdude -p m32u4 -c avr109 -P $(COM) -U flash:w:$(BOARD_TYPE).hex:i
+	

@@ -1,36 +1,49 @@
 #include "ReportsInternal.h"
 #include "PadReports.h"
 #include "LightReports.h"
+#include "SensorReports.h"
 
-ReportRegistration registrations[16];
+typedef struct ReportRegistration {
+    ReportRegistration();
+    ReportRegistration(const uint8_t ReportID, uint16_t const ReportSize, WriteReportFunc* Write, ProcessReportFunc* Process);
+    
+    WriteReportFunc* Write;
+    ProcessReportFunc* Process;
 
-ReportRegistration::ReportRegistration()
-    :ReportID(0), ReportSize(0), Write(nullptr)
-{
+    uint8_t ReportID;
+    uint16_t ReportSize;
+} ReportRegistration;
 
-}
+ReportRegistration registrations[18];
 
-ReportRegistration::ReportRegistration(const uint8_t ReportID, uint16_t const ReportSize, WriteReportFunc* Write)
-    :ReportID(ReportID), ReportSize(ReportSize), Write(Write)
+void RegisterReportInternal(const uint8_t ReportID, uint16_t const ReportSize, WriteReportFunc* Write, ProcessReportFunc* Process)
 {
     registrations[ReportID].ReportID = ReportID;
     registrations[ReportID].ReportSize = ReportSize;
     registrations[ReportID].Write = Write;
+    registrations[ReportID].Process = Process;
+}
+
+ReportRegistration::ReportRegistration()
+    :ReportID(0), ReportSize(0), Write(nullptr), Process(nullptr)
+{
+
 }
 
 void RegisterReports()
 {
     RegisterPadReports();
     RegisterLightReports();
+    RegisterSensorReports();
 }
 
 bool WriteReport(const uint8_t ReportID, void* ReportData, uint16_t* const ReportSize)
 {
-    if(ReportID >= 16) {
+    if(ReportID >= 18) {
         return false;
     }
 
-    if(registrations[ReportID].ReportID == 0) {
+    if(registrations[ReportID].Write == nullptr) {
         return false;
     }
 
@@ -40,17 +53,17 @@ bool WriteReport(const uint8_t ReportID, void* ReportData, uint16_t* const Repor
     return true;
 }
 
-bool ProcessReport(const uint8_t ReportID, void* ReportData, uint16_t* const ReportSize)
+bool ProcessReport(const uint8_t ReportID, void* ReportData, uint16_t const ReportSize)
 {
     if(ReportID >= 16) {
         return false;
     }
 
-    if(registrations[ReportID].ReportID == 0) {
+    if(registrations[ReportID].Process == nullptr) {
         return false;
     }
 
-    if(*ReportSize != registrations[ReportID].ReportSize) {
+    if(ReportSize != registrations[ReportID].ReportSize && registrations[ReportID].ReportSize != 0) {
         return false;
     }
 

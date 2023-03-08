@@ -19,4 +19,7 @@
     void ConfigStore_LoadConfiguration(Configuration* conf);
     void ConfigStore_StoreConfiguration(const Configuration* conf);
     void ConfigStore_FactoryDefaults(Configuration* conf);
+    void SetupConfiguration();
+
+    extern Configuration configuration;
 #endif

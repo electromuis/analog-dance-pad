@@ -7,6 +7,9 @@
 
 LightConfiguration LIGHT_CONF;
 
+int dataCounter = 0;
+bool dataLedState = false;
+
 #if defined(FEATURE_LIGHTS_ENABLED)
 
 
@@ -22,6 +25,23 @@ LightConfiguration LIGHT_CONF;
 	#define LED_STRIP_DDR  DDRC
 	#define LED_STRIP_PIN  6
 #endif
+
+void Lights_DataLedCycle()
+{
+    dataCounter ++;
+
+    if(dataCounter < 8)
+        return;
+
+    dataLedState = !dataLedState;
+
+    if(dataLedState)
+        LEDs_TurnOnLEDs(LED_DATA);
+    else
+        LEDs_TurnOffLEDs(LED_DATA);
+
+    dataCounter = 0;
+}
 
 // led_strip_write sends a series of colors to the LED strip, updating the LEDs.
 // The colors parameter should point to an array of rgb_color structs that hold
@@ -70,10 +90,14 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
         "sbi %2, %3\n"                           // Drive the line high.
         "rol __tmp_reg__\n"                      // Rotate left through carry
 
-        "nop\n" "nop\n"
+        //"nop\n" "nop\n"
+        //"brcs .+2\n" "cbi %2, %3\n"              // If the bit to send is 0, drive the line low now.
+        //"brcc .+2\n" "cbi %2, %3\n"              // If the bit to send is 1, drive the line low now.
 
-        "brcs .+2\n" "cbi %2, %3\n"              // If the bit to send is 0, drive the line low now.
-        "brcc .+2\n" "cbi %2, %3\n"              // If the bit to send is 1, drive the line low now.
+        "nop\n" "nop\n"
+        "brcs .+2\n" "cbi %2, %3\n"
+        "nop\n" "nop\n" "nop\n" "nop\n" "nop\n"
+        "brcc .+2\n" "cbi %2, %3\n"
 
         "ret\n"
         "led_strip_asm_end%=: "
@@ -127,7 +151,6 @@ bool Lights_Process()
 		LED_COLORS[led] = (rgb_color) {0, 0, 0};
 	}
 	
-	updateWait = UPDATE_WAIT_CYCLES;
 	bool update = false;
 	
 	for (uint8_t m = 0; m < MAX_LED_MAPPINGS; ++m)
@@ -194,21 +217,20 @@ bool Lights_Process()
 
 void Lights_Update(bool force)
 {
-	if(updateWait > 0 && !force) {
-		updateWait --;
-		return;
-	}
-
-    bool update = false;
-	
-    if(!manualMode)
-    {
-        update = Lights_Process();
+    if(!manualMode) {
+        if(updateWait <= 0) {
+            updateWait = UPDATE_WAIT_CYCLES;
+            force = Lights_Process();
+        } else {
+            updateWait --;
+        }
     }
 
-	if(update || force) {
-		led_strip_write(LED_COLORS, LED_COUNT);
-	}
+    if(!force)
+        return;
+	
+    led_strip_write(LED_COLORS, LED_COUNT);
+	
 }
 
 
