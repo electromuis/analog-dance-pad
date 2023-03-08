@@ -77,10 +77,12 @@ void DeviceTab::Render()
     if (ImGui::Button("Bootloader mode", { 200, 30 }))
         Device::SendDeviceReset();
 
+#ifndef __EMSCRIPTEN__
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 20);
     ImGui::TextUnformatted(UpdateFirmwareMsg);
     if (ImGui::Button("Update firmware...", { 200, 30 }))
         OnUploadFirmware();
+#endif // __EMSCRIPTEN__
 
     ImGui::PopStyleVar();
 }

@@ -232,7 +232,7 @@ public:
 		const vector<LightRuleReport>& lightRules,
 		const vector<LedMappingReport>& ledMappings,
 		const vector<SensorReport>& sensors)
-		: myReporter(move(reporter))
+		: myReporter(std::move(reporter))
 		, myPath(path)
 	{
 		UpdateName(name);

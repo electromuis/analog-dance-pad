@@ -18,8 +18,11 @@
 #include <View/MappingTab.h>
 #include <View/SensitivityTab.h>
 
+#ifndef __EMSCRIPTEN__
+	#include <nfd.h>
+#endif
+
 #include <fmt/core.h>
-#include <nfd.h>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -42,8 +45,10 @@ public:
 	void RenderAboutTab();
 	void RenderLogTab();
 
+#ifndef __EMSCRIPTEN__
 	void LoadProfile();
 	void SaveProfile();
+#endif
 
 private:
 	string myLastProfile;
@@ -59,6 +64,7 @@ AdpApplication::AdpApplication()
 {
 }
 
+#ifndef __EMSCRIPTEN__
 void AdpApplication::LoadProfile()
 {
 	if (!Device::Pad()) {
@@ -135,9 +141,11 @@ void AdpApplication::SaveProfile()
 		Log::Writef("Could not save profile: %s", e.what());
 	}
 }
+#endif// __EMSCRIPTEN__
 
 void AdpApplication::MenuCallback()
 {
+#ifndef __EMSCRIPTEN__
 	if (ImGui::BeginMenu("File"))
 	{
 		if (ImGui::MenuItem("Load profile"))
@@ -151,6 +159,7 @@ void AdpApplication::MenuCallback()
 
 		ImGui::EndMenu();
 	}
+#endif
 }
 
 static void RenderTab(const function<void()>& render, const char* name)

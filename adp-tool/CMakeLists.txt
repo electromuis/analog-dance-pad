@@ -5,14 +5,21 @@ project(adp-tool VERSION 2.0)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
 # Load dependencies start
-include(lib/git.cmake)
+# include(lib/git.cmake)
 
-add_subdirectory (lib/avrdude)
 add_subdirectory (lib/fmt)
 include(lib/imgui.cmake)
-include(lib/nfd.cmake)
 include(lib/hidapi.cmake)
-include(lib/serial.cmake)
+
+if(NOT EMSCRIPTEN)
+	add_subdirectory (lib/avrdude)
+	include(lib/nfd.cmake)
+	include(lib/serial.cmake)
+else()
+	set(CMAKE_EXECUTABLE_SUFFIX ".html")
+	set(EM_FLAGS "-g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s INVOKE_RUN=0 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
+	add_compile_options(-g)
+endif()
 
 include_directories(
 	"lib/stb_image"
@@ -23,11 +30,15 @@ include_directories(
 
 set(GLOBAL_LIBS
 	hidapi
-	avrdude
-	serial
 	fmt)
 
-if(WIN32)
+if(NOT EMSCRIPTEN)
+	list(APPEND GLOBAL_LIBS avrdude serial)
+endif()
+
+if(EMSCRIPTEN)
+
+elseif(WIN32)
 	list(APPEND GLOBAL_LIBS setupapi)
 elseif(UNIX)
 	list(APPEND GLOBAL_LIBS udev X11)
@@ -42,14 +53,16 @@ file(GLOB_RECURSE GUI_SOURCES
      "src/View/*.cpp"
 	 "src/Main.cpp")
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${GUI_SOURCES})
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${GUI_SOURCES})
+#set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 set(GUI_LIBS
 	${GLOBAL_LIBS}
-	imgui
-	glfw
-	nfd)
+	imgui)
+
+if(NOT EMSCRIPTEN)
+	list(APPEND GUI_LIBS nfd)
+endif()
 
 # if(WIN32) list(APPEND sources "src/Assets/Resource.rc") endif()
 
@@ -58,6 +71,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	CXX_STANDARD 20
 	CXX_EXTENSIONS OFF)
 target_link_libraries(${PROJECT_NAME} ${GUI_LIBS})
+if(EMSCRIPTEN)
+	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS ${EM_FLAGS})
+endif()
 # GUI application end
 
 # CLI application start
@@ -66,13 +82,16 @@ file(GLOB_RECURSE CLI_SOURCES
      "src/Model/*.cpp"
 	 "src/Cli.cpp")
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
+#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
 
 add_executable ("adp-cli" ${CLI_SOURCES})
 set_target_properties("adp-cli" PROPERTIES
 	CXX_STANDARD 20
 	CXX_EXTENSIONS OFF)
 target_link_libraries("adp-cli" ${GLOBAL_LIBS})
+if(EMSCRIPTEN)
+	set_target_properties("adp-cli" PROPERTIES LINK_FLAGS ${EM_FLAGS})
+endif()
 # CLI application end
 
 
