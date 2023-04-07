@@ -14,10 +14,16 @@ InputHIDReport::InputHIDReport()
 {
     Pad_UpdateState();
 
+    bool hasPressed = false;
+
     // write buttons to the report
     for (int i = 0; i < BUTTON_COUNT; i++) {
         // trol https://stackoverflow.com/a/47990
         buttons[i / 8] ^= (-PAD_STATE.buttonsPressed[i] ^ buttons[i / 8]) & (1UL << i % 8);
+
+        if(PAD_STATE.buttonsPressed[i]) {
+            hasPressed = true;
+        }
     }
    
     // write sensor values to the report
@@ -25,7 +31,7 @@ InputHIDReport::InputHIDReport()
         sensorValues[i] = PAD_STATE.sensorValues[i];
     }
 
-    Lights_DataLedCycle();
+    Lights_DataLedCycle(hasPressed);
 }
 
 NameFeatureHIDReport::NameFeatureHIDReport()

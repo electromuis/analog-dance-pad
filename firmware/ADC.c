@@ -40,11 +40,25 @@ static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
 	0b000100, //ADC4
 	0b000110, //ADC6
 	0b100000, //ADC8
+	
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111
+#elif ADC_LAYOUT == ADC_LAYOUT_FSRIO_2
+	0b000000, //ADC0 A5
+    0b000001, //ADC1 A4
+	0b000100, //ADC4 A3
+	0b000101, //ADC5 A2
+	0b000110, //ADC6 A1
+	0b000111, //ADC7 A0
+	0b100000, //ADC8 A6
+	0b100001, //ADC9
 
-	0b111111,
-	0b111111,
-	0b111111,
-	0b111111,
 	0b111111,
 	0b111111,
 	0b111111,
@@ -65,57 +79,45 @@ static const uint8_t sensorToAnalogPin[SENSOR_COUNT] = {
 #endif
 };
 
+static const uint8_t sensorToMuxerIndex[SENSOR_COUNT] = {
+#if ADC_LAYOUT == ADC_LAYOUT_MINIPAD_2
+	0,
+	2,
+	4,
+	6,
+
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0
+#else
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
+	9,
+	10,
+	11
+#endif
+};
+
 void ADC_LoadPot(uint8_t sensor) {
 	SensorConfig s = PAD_CONF.sensors[sensor];
 	
-	// PD1 PD0 PC6 PE6
+	PORTD = (PORTD & 0b11110000) | (sensorToMuxerIndex[sensor] & 0b00001111);
 	
-	// Set the correct muxer output
-	
-	#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
-		if(sensor & 1) {
-			PORTD |= 1 << DDD1;
-		}
-		else {
-			PORTD &= ~(1 << DDD1);
-		}
+	// Select digipot SPI
+	PORTE &= ~(1 << DDE6);
 		
-		if(sensor & (1 << 1)) {
-			PORTD |= 1 << DDD0;
-		}
-		else {
-			PORTD &= ~(1 << DDD0);
-		}
-		
-		if(sensor & (1 << 2)) {
-			PORTC |= 1 << DDC6;
-		}
-		else {
-			PORTC &= ~(1 << DDC6);
-		}
-		
-		if(sensor & (1 << 3)) {
-			PORTE |= 1 << DDE6;
-		}
-		else {
-			PORTE &= ~(1 << DDE6);
-		}
-	#else
-		PORTD = (PORTD & 0b11110000) | (sensor & 0b00001111);
-	#endif
-	
-	// Set the digipot via SPI
-	
-	#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
-		// Light pin is on the SPI register. Need to enable/disable SPI each time.
-		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
-		
-		PORTB &= ~(1 << DDB6);
-	#else
-		PORTE &= ~(1 << DDE6);
-	#endif
-	
-	
 	
 	SPDR = 0b00010001;
     while(! (SPSR & (1 << SPIF)) ) ;
@@ -123,16 +125,8 @@ void ADC_LoadPot(uint8_t sensor) {
 	SPDR = s.resistorValue;	
     while(! (SPSR & (1 << SPIF)) ) ;
 	
-	
-	
-	#if defined(BOARD_TYPE_FSRIO_1) && !defined(BOARD_TYPE_FSRIO_2)
-		PORTB |= 1 << DDB6;
-	
-		// Light pin is on the SPI register. Need to enable/disable SPI each time.
-		SPCR = 0;
-	#else
-		PORTE |= 1 << DDE6;
-	#endif
+	// Unselect digipot SPI
+	PORTE |= 1 << DDE6;
 }
 
 void ADC_Init(void) {

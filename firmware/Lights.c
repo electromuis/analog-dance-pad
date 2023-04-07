@@ -26,11 +26,15 @@ bool dataLedState = false;
 	#define LED_STRIP_PIN  6
 #endif
 
-void Lights_DataLedCycle()
+void Lights_DataLedCycle(bool forceOn)
 {
+    if(forceOn) {
+        LEDs_TurnOnLEDs(LED_DATA);
+    }
+
     dataCounter ++;
 
-    if(dataCounter < 8)
+    if(dataCounter < 100)
         return;
 
     dataLedState = !dataLedState;

@@ -22,7 +22,7 @@
 	
 	// Set the board type if not provided to the make command
     // #define BOARD_TYPE_
-    #define BOARD_TYPE_FSRIO_2
+    //#define BOARD_TYPE_
 
     #define MAX_SENSOR_VALUE 1024
 
@@ -41,6 +41,7 @@
     #if defined(BOARD_TYPE_FSRMINIPAD)
         #define BOARD_TYPE "fsrminipad"
 		#define DEFAULT_NAME "FSR Mini pad V1"
+
         #define BOOTLOADER_ADDRESS "0x7000"
 		
 		#define FEATURE_LIGHTS_ENABLED
@@ -53,6 +54,8 @@
 		
 	#elif defined(BOARD_TYPE_FSRMINIPAD_2)
 		#define BOARD_TYPE "FSR Mini pad V2"
+		#define DEFAULT_NAME BOARD_TYPE
+
         #define BOOTLOADER_ADDRESS "0x7000"
 		
 		#define FEATURE_LIGHTS_ENABLED
@@ -66,6 +69,8 @@
 		
 	#elif defined(BOARD_TYPE_FSRIO_2)
         #define BOARD_TYPE "FSRio V2"
+		#define DEFAULT_NAME BOARD_TYPE
+
         #define BOOTLOADER_ADDRESS "0x7000"
 		
 		#define FEATURE_LIGHTS_ENABLED
@@ -79,6 +84,8 @@
 
     #elif defined(BOARD_TYPE_TEENSY2)
     	#define BOARD_TYPE "teensy2";
+		#define DEFAULT_NAME BOARD_TYPE
+
     	#define BOOTLOADER_ADDRESS "0x7E00"
 
 	#elif defined(BOARD_TYPE_LEONARDO)
@@ -94,10 +101,6 @@
 		#error "No/Unsupported board type defined"
     #endif
 
-	#ifndef DEFAULT_NAME
-		#define DEFAULT_NAME BOARD_TYPE
-	#endif
-	
 	#define XSTR(x) STR(x)
 	#define STR(x) #x
 	#pragma message("Using board type " XSTR(BOARD_TYPE))

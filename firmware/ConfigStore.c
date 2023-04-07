@@ -47,8 +47,8 @@ static const uint8_t magicBytes[5] = {9, 63, 9, FIRMWARE_VERSION_MAJOR, FIRMWARE
 
 #define DEFAULT_SENSOR_CONFIG(button) 	\
 	{									\
-	.threshold = 400,					\
-	.releaseThreshold = 400 * 0.95,		\
+	.threshold = 450,					\
+	.releaseThreshold = 450 * 0.95,		\
 	.buttonMapping = button,			\
 	.resistorValue = 150,				\
 	.flags = 0,							\
@@ -99,10 +99,10 @@ static const Configuration DEFAULT_CONFIGURATION = {
         },
         .ledMappings =
         {
-            DEFAULT_LED_MAPPING(0, 5, PANEL_LEDS * 0, PANEL_LEDS * 1), // LEFT
-            DEFAULT_LED_MAPPING(1, 4, PANEL_LEDS * 1, PANEL_LEDS * 2), // DOWN
-            DEFAULT_LED_MAPPING(1, 2, PANEL_LEDS * 3, PANEL_LEDS * 4), // UP
-            DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 2, PANEL_LEDS * 3)  // RIGHT
+            DEFAULT_LED_MAPPING(1, 0, PANEL_LEDS * 0, PANEL_LEDS * 1), // Up
+            DEFAULT_LED_MAPPING(0, 1, PANEL_LEDS * 1, PANEL_LEDS * 2), // Right
+            DEFAULT_LED_MAPPING(1, 2, PANEL_LEDS * 2, PANEL_LEDS * 3), // Down
+            DEFAULT_LED_MAPPING(0, 3, PANEL_LEDS * 3, PANEL_LEDS * 4)  // Left
         }
     #elif CONFIG_LAYOUT == CONFIG_LAYOUT_BOARD8
         .lightRules =
