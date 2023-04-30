@@ -1,228 +1,132 @@
-#include "Adp.h"
+#include <Adp.h>
 
 #include <map>
+#include <vector>
 
-#include "wx/dcbuffer.h"
-#include "wx/stattext.h"
+#include <imgui.h>
+#include <fmt/core.h>
 
-#include "Assets/Assets.h"
-
-#include "View/SensitivityTab.h"
+#include <Model/Device.h>
+#include <View/Colors.h>
+#include <View/SensitivityTab.h>
 
 using namespace std;
 
 namespace adp {
 
+static const char* ActivationMsg =
+    "Click inside a sensor bar to adjust its activation threshold.";
+
+static const char* ReleaseMsg =
+    "Adjust release threshold (percentage of activation threshold).";
+
 static constexpr int SENSOR_INDEX_NONE = -1;
 
-class SensorDisplay : public wxWindow
+SensitivityTab::SensitivityTab()
+    : myAdjustingSensorIndex(SENSOR_INDEX_NONE)
 {
-public:
-    SensorDisplay(SensitivityTab* owner)
-        : wxWindow(owner, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBG_STYLE_PAINT | wxFULL_REPAINT_ON_RESIZE)
-        , myOwner(owner)
+}
+
+void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float colW, float colH)
+{
+    auto wp = ImGui::GetWindowPos();
+    auto ws = ImGui::GetWindowSize();
+    auto wdl = ImGui::GetWindowDrawList();
+
+    auto releaseThreshold = Device::Pad()->releaseThreshold;
+    auto sensor = Device::Sensor(sensorIndex);
+    auto pressed = sensor ? sensor->pressed : false;
+
+    auto threshold = sensor ? sensor->threshold : 0.0;
+    if (myAdjustingSensorIndex == sensorIndex)
+        threshold = myAdjustingSensorThreshold;
+
+    auto fillH = sensor ? float(sensor->value) * colH : 0.f;
+    float thresholdY = colY + float(1 - threshold) * colH;
+
+    // Full bar.
+    wdl->AddRectFilled(
+        { wp.x + colX, wp.y + colY },
+        { wp.x + colX + colW, wp.y + colY + colH },
+        RgbColorf::SensorBar.ToU32());
+
+    // Filled bar that indicates current sensor reading.
+    wdl->AddRectFilled(
+        { wp.x + colX, wp.y + colY + colH - fillH },
+        { wp.x + colX + colW, wp.y + colY + colH },
+        pressed ? RgbColorf::SensorOn.ToU32() : RgbColorf::SensorOff.ToU32());
+
+    // Line representing where the release threshold would be for the current sensor.
+    if (releaseThreshold < 1.0)
     {
-        SetMinSize(wxSize(10, 50));
-        SetMaxSize(wxSize(500, 1000));
+        float releaseY = colY + float(1 - releaseThreshold * threshold) * colH;
+        wdl->AddRectFilled(
+            { wp.x + colX, wp.y + thresholdY },
+            { wp.x + colX + colW, wp.y + thresholdY + max(1.f, releaseY - thresholdY) },
+            IM_COL32(50, 50, 50, 100));
     }
 
-    void Tick()
+    // Line representing the sensitivity threshold.
+    wdl->AddRectFilled(
+        { wp.x + colX, wp.y + thresholdY - 2 },
+        { wp.x + colX + colW, wp.y + thresholdY + 1 },
+        IM_COL32_BLACK);
+    wdl->AddRectFilled(
+        { wp.x + colX, wp.y + thresholdY - 1 },
+        { wp.x + colX + colW, wp.y + thresholdY },
+        IM_COL32_WHITE);
+
+    // Small text block at the top displaying sensitivity threshold.
+    auto thresholdStr = fmt::format("{}%%", (int)std::lround(threshold * 100.0));
+    auto ts = ImGui::CalcTextSize(thresholdStr.data());
+    ImGui::SetCursorPos({ colX + (colW - ts.x) / 2, colY + 10 });
+    ImGui::Text(thresholdStr.data());
+
+    // Start/finish sensor threshold adjusting based on LMB click/release.
+    if (myAdjustingSensorIndex == SENSOR_INDEX_NONE)
     {
-        if (myAdjustingSensorIndex != SENSOR_INDEX_NONE)
+        if (ImGui::IsMouseClicked(ImGuiPopupFlags_MouseButtonLeft) && ImGui::IsMousePosValid())
         {
-            auto mouse = wxGetMouseState();
-            auto rect = GetScreenRect();
-            double value = double(mouse.GetY() - rect.y);
-            double range = max(1.0, (double)rect.height);
-            myAdjustingSensorThreshold = clamp(1.0 - (value / range), 0.0, 1.0);
-            if (!mouse.LeftIsDown())
+            auto pos = ImGui::GetMousePos();
+            if (pos.x >= wp.x + colX && pos.x < wp.x + colX + colW &&
+                pos.y >= wp.y + colY && pos.y < wp.y + colY + colH)
             {
-                Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold);
-                myAdjustingSensorIndex = SENSOR_INDEX_NONE;
+                myAdjustingSensorIndex = sensorIndex;
+                myAdjustingSensorThreshold = 0.0;
+                ImGui::CaptureMouseFromApp(true);
             }
         }
     }
-
-    void OnPaint(wxPaintEvent& evt)
+    else if (!ImGui::IsMouseDown(ImGuiPopupFlags_MouseButtonLeft))
     {
-        wxBufferedPaintDC dc(this);
-        auto size = GetClientSize();
-
-        int x = 0;
-        for (size_t i = 0; i < mySensorIndices.size(); ++i)
-        {
-            int barW = (i < mySensorIndices.size() - 1)
-                ? size.x * (i + 1) / mySensorIndices.size() - x
-                : size.x - x;
-
-            auto sensor = Device::Sensor(mySensorIndices[i]);
-            auto pressed = sensor ? sensor->pressed : false;
-
-            auto threshold = sensor ? sensor->threshold : 0.0;
-            if (myAdjustingSensorIndex == mySensorIndices[i])
-                threshold = myAdjustingSensorThreshold;
-
-            int barH = sensor ? (sensor->value * size.y) : 0;
-            int thresholdY = size.y - (threshold * size.y);
-
-            // Empty region above the current sensor value.
-            dc.SetPen(Pens::Black1px());
-            dc.SetBrush(Brushes::SensorBar());
-            dc.DrawRectangle(x, 0, barW, size.y - barH);
-
-            // Line representing where the release threshold would be for the current sensor.
-            auto releaseThreshold = myOwner->ReleaseThreshold();
-            if (releaseThreshold < 1.0)
-            {
-                dc.SetBrush(Brushes::ReleaseMargin());
-                int releaseY = size.y - (releaseThreshold * threshold * size.y);
-                dc.DrawRectangle(x, thresholdY, barW, max(1, releaseY - thresholdY));
-            }
-
-            // Coloured region below the current sensor value.
-            dc.SetBrush(pressed ? Brushes::SensorOn() : Brushes::SensorOff());
-            dc.DrawRectangle(x, size.y - barH, barW, barH);
-
-            // Line representing the sensitivity threshold.
-            dc.SetBrush(*wxWHITE_BRUSH);
-            dc.DrawRectangle(x, thresholdY - 1, barW, 3);
-
-            // Small text block at the top displaying sensitivity threshold.
-            auto sensitivityText = wxString::Format("%i%%", (int)std::lround(threshold * 100.0));
-            auto rect = wxRect(x + barW / 2 - 20, 5, 40, 20);
-            dc.SetBrush(Brushes::DarkGray());
-            dc.DrawRectangle(rect);
-            dc.SetTextForeground(*wxWHITE);
-            dc.DrawLabel(sensitivityText, rect, wxALIGN_CENTER);
-
-            x += barW;
-        }
+        Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold);
+        myAdjustingSensorIndex = SENSOR_INDEX_NONE;
     }
 
-    void OnClick(wxMouseEvent& event)
+    // If sensor threshold adjusting is active, update threshold based on mouse position.
+    if (myAdjustingSensorIndex != SENSOR_INDEX_NONE)
     {
-        auto pos = event.GetPosition();
-        auto rect = GetClientRect();
-        if (rect.Contains(pos))
-        {
-            int barIndex = (pos.x - rect.x) * mySensorIndices.size() / max(1, rect.width);
-            if (barIndex >= 0 && barIndex < (int)mySensorIndices.size())
-                myAdjustingSensorIndex = mySensorIndices[barIndex];
-        }
-    }
-
-    void SetTarget(int button, const vector<int>& sensorIndices)
-    {
-        myButton = button;
-        mySensorIndices = sensorIndices;
-    }
-
-    int button() const { return myButton; }
-
-    DECLARE_EVENT_TABLE()
-
-protected:
-    wxSize DoGetBestSize() const override { return wxSize(20, 100); }
-
-private:
-    SensitivityTab* myOwner;
-    int myButton = 0;
-    vector<int> mySensorIndices;
-    int myAdjustingSensorIndex = SENSOR_INDEX_NONE;
-    double myAdjustingSensorThreshold = 0.0;
-};
-
-BEGIN_EVENT_TABLE(SensorDisplay, wxWindow)
-    EVT_PAINT(SensorDisplay::OnPaint)
-    EVT_LEFT_DOWN(SensorDisplay::OnClick)
-END_EVENT_TABLE()
-
-static const wchar_t* ActivationMsg =
-    L"Click inside a sensor bar to adjust its activation threshold.";
-
-static const wchar_t* ReleaseMsg =
-    L"Adjust release threshold (percentage of activation threshold).";
-
-const wchar_t* SensitivityTab::Title = L"Sensitivity";
-
-SensitivityTab::SensitivityTab(wxWindow* owner, const PadState* pad)
-    : wxWindow(owner, wxID_ANY)
-{
-    auto sizer = new wxBoxSizer(wxVERTICAL);
-
-    auto activationLabel = new wxStaticText(this, wxID_ANY, ActivationMsg);
-    sizer->Add(activationLabel, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, 4);
-
-    mySensorSizer = new wxBoxSizer(wxHORIZONTAL);
-    sizer->Add(mySensorSizer, 1, wxEXPAND);
-    UpdateDisplays();
-
-    auto releaseLabel = new wxStaticText(this, wxID_ANY, ReleaseMsg);
-    sizer->Add(releaseLabel, 0, wxALIGN_CENTER_HORIZONTAL);
-
-    myReleaseThresholdSlider = new wxSlider(this, wxID_ANY, 100, 1, 100,
-        wxDefaultPosition, wxSize(300, -1), wxSL_VALUE_LABEL |  wxSL_TOP | wxSL_BOTH);
-
-    myReleaseThresholdSlider->Bind(wxEVT_SLIDER, &SensitivityTab::OnReleaseThresholdChanged, this);
-    sizer->Add(myReleaseThresholdSlider, 0, wxALIGN_CENTER_HORIZONTAL);
-
-    SetSizer(sizer);
-
-    myIsAdjustingReleaseThreshold = false;
-}
-
-void SensitivityTab::HandleChanges(DeviceChanges changes)
-{
-    if (changes & DCF_BUTTON_MAPPING)
-        UpdateDisplays();
-}
-
-void SensitivityTab::Tick()
-{
-    // Determine the current release threshold. While the user is dragging the slider, the slider value is visualized
-    // instead of the pad value. When the user releases the left mouse button, the slider value is applied to the pad.
-
-    if (myIsAdjustingReleaseThreshold)
-    {
-        myReleaseThreshold = myReleaseThresholdSlider->GetValue() * 0.01;
-        if (!wxGetMouseState().LeftIsDown())
-        {
-            Device::SetReleaseThreshold(myReleaseThreshold);
-            myIsAdjustingReleaseThreshold = false;
-        }
-    }
-    else
-    {
-        auto pad = Device::Pad();
-        auto threshold = pad ? pad->releaseThreshold : 1.0;
-        if (myReleaseThreshold != threshold)
-        {
-            myReleaseThreshold = threshold;
-            auto sliderValue = (int)lround(threshold * 100);
-            myReleaseThresholdSlider->SetValue(sliderValue);
-        }
-    }
-
-    for (auto display : mySensorDisplays)
-    {
-        display->Tick();
-        display->Refresh(false);
+        double value = double(ImGui::GetMousePos().y) - (wp.y + colY);
+        double range = max(1.0, double(colH));
+        myAdjustingSensorThreshold = clamp(1.0 - (value / range), 0.0, 1.0);
     }
 }
 
-double SensitivityTab::ReleaseThreshold() const
+void SensitivityTab::Render()
 {
-    return myReleaseThreshold;
-}
+	auto ws = ImGui::GetWindowSize();
 
-void SensitivityTab::OnReleaseThresholdChanged(wxCommandEvent& event)
-{
-    myIsAdjustingReleaseThreshold = true;
-}
+    int colorEditFlags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel;
+    ImGui::TextUnformatted(ActivationMsg);
+    ImGui::SameLine();
+    ImGui::ColorEdit3("SensorBar", RgbColorf::SensorBar.rgb, colorEditFlags);
+    ImGui::SameLine();
+    ImGui::ColorEdit3("SensorOn", RgbColorf::SensorOn.rgb, colorEditFlags);
+    ImGui::SameLine();
+    ImGui::ColorEdit3("SensorOff", RgbColorf::SensorOff.rgb, colorEditFlags);
 
-void SensitivityTab::UpdateDisplays()
-{
-    map<int, vector<int>> mapping; // button -> sensors[]
+    map<int, vector<int>> mappings; // button -> sensors[]
+    int numMappedSensors = 0;
 
     auto pad = Device::Pad();
     if (pad)
@@ -231,26 +135,26 @@ void SensitivityTab::UpdateDisplays()
         {
             auto sensor = Device::Sensor(i);
             if (sensor->button != 0)
-                mapping[sensor->button].push_back(i);
+            {
+                mappings[sensor->button].push_back(i);
+                ++numMappedSensors;
+            }
         }
     }
 
-    if (mapping.size() != mySensorDisplays.size())
+    float colX = 10;
+    float colY = ImGui::GetCursorPosY() + 10;
+    float colW = (ws.x - 10) / max(numMappedSensors, 1) - 10;
+    float colH = ws.y - ImGui::GetCursorPosY() - 50;
+
+    for (auto& button : mappings)
     {
-        mySensorSizer->Clear(true);
-        mySensorDisplays.clear();
-        for (auto mapping : mapping)
+        for (auto& sensor : button.second)
         {
-            auto display = new SensorDisplay(this);
-            mySensorDisplays.push_back(display);
-            mySensorSizer->Add(display, 1, wxALL | wxEXPAND, 4);
+            RenderSensor(sensor, colX, colY, colW, colH);
+            colX += colW + 10;
         }
-        mySensorSizer->Layout();
     }
-    
-    int index = 0;
-    for (auto mapping : mapping)
-        mySensorDisplays[index++]->SetTarget(mapping.first, mapping.second);
 }
 
 }; // namespace adp.

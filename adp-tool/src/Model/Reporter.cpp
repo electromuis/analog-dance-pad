@@ -1,12 +1,12 @@
-#include "Adp.h"
+#include <Adp.h>
 
 #include <cstring>
 #include <chrono>
 #include <thread>
 
-#include "Model/Reporter.h"
-#include "Model/Log.h"
-#include "Model/Utils.h"
+#include <Model/Reporter.h>
+#include <Model/Log.h>
+#include <Model/Utils.h>
 
 using namespace std;
 
@@ -17,7 +17,7 @@ namespace adp {
 // ====================================================================================================================
 
 template <typename T>
-static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
+static bool GetFeatureReport(hid_device* hid, T& report, const char* name)
 {
 	uint8_t buffer[MAX_REPORT_SIZE];
 	buffer[0] = report.reportId;
@@ -29,19 +29,19 @@ static bool GetFeatureReport(hid_device* hid, T& report, const wchar_t* name)
 	if (bytesRead == expectedSize)
 	{
 		memcpy(&report, buffer, size);
-		Log::Writef(L"%ls :: done", name);
+		Log::Writef("%s :: done", name);
 		return true;
 	}
 
 	if (bytesRead < 0)
-		Log::Writef(L"%ls :: hid_get_feature_report failed (%ls)", name, hid_error(hid));
+		Log::Writef("%s :: hid_get_feature_report failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef(L"%ls :: unexpected number of bytes read (%i) expected (%i)", name, bytesRead, expectedSize);
+		Log::Writef("%s :: unexpected number of bytes read (%i) expected (%i)", name, bytesRead, expectedSize);
 	return false;
 }
 
 template <typename T>
-static bool SendFeatureReport(hid_device* hid, const T& report, const wchar_t* name)
+static bool SendFeatureReport(hid_device* hid, const T& report, const char* name)
 {
 	using namespace std::chrono_literals;
 
@@ -51,19 +51,19 @@ static bool SendFeatureReport(hid_device* hid, const T& report, const wchar_t* n
 	int bytesWritten = hid_send_feature_report(hid, (const unsigned char*)&report, sizeof(T));
 	if (bytesWritten == sizeof(T))
 	{
-		Log::Writef(L"%ls :: done", name);
+		Log::Writef("%s :: done", name);
 		return true;
 	}
 
 	if (bytesWritten < 0)
-		Log::Writef(L"%ls :: hid_send_feature_report failed (%ls)", name, hid_error(hid));
+		Log::Writef("%s :: hid_send_feature_report failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef(L"%ls :: unexpected number of bytes written (%i)", name, bytesWritten);
+		Log::Writef("%s :: unexpected number of bytes written (%i) expected (%i)", name, bytesWritten, sizeof(T));
 	return false;
 }
 
 template <typename T>
-static ReadDataResult ReadData(hid_device* hid, T& report, const wchar_t* name)
+static ReadDataResult ReadData(hid_device* hid, T& report, const char* name)
 {
 	uint8_t buffer[MAX_REPORT_SIZE];
 	buffer[0] = report.reportId;
@@ -79,14 +79,14 @@ static ReadDataResult ReadData(hid_device* hid, T& report, const wchar_t* name)
 		return ReadDataResult::NO_DATA;
 
 	if (bytesRead < 0)
-		Log::Writef(L"%ls :: hid_read failed (%ls)", name, hid_error(hid));
+		Log::Writef("%s :: hid_read failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef(L"%ls :: unexpected number of bytes read (%i)", name, bytesRead);
+		Log::Writef("%s :: unexpected number of bytes read (%i)", name, bytesRead);
 
 	return ReadDataResult::FAILURE;
 }
 
-static bool WriteData(hid_device* hid, uint8_t reportId, const wchar_t* name, bool performErrorCheck)
+static bool WriteData(hid_device* hid, uint8_t reportId, const char* name, bool performErrorCheck)
 {
 	// Linux wants reports of at leats 2 bytes
 	uint8_t buf[2] = { reportId, 0 };
@@ -94,10 +94,10 @@ static bool WriteData(hid_device* hid, uint8_t reportId, const wchar_t* name, bo
 	int bytesWritten = hid_write(hid, buf, sizeof(buf));
 	if (bytesWritten > 0 || !performErrorCheck)
 	{
-		Log::Writef(L"%ls :: done", name);
+		Log::Writef("%s :: done", name);
 		return true;
 	}
-	Log::Writef(L"%ls :: hid_write failed (%ls)", name, hid_error(hid));
+	Log::Writef("%s :: hid_write failed (%ls)", name, hid_error(hid));
 	return false;
 }
 
@@ -112,7 +112,7 @@ Reporter::Reporter(hid_device* device)
 
 Reporter::Reporter()
 {
-	emulator = true;
+	emulator = false;
 }
 
 Reporter::~Reporter()
@@ -128,7 +128,7 @@ ReadDataResult Reporter::Get(SensorValuesReport& report)
 		return ReadDataResult::NO_DATA;
 	}
 	
-	return ReadData(myHid, report, L"GetSensorValuesReport");
+	return ReadData(myHid, report, "GetSensorValuesReport");
 }
 
 bool Reporter::Get(PadConfigurationReport& report)
@@ -137,7 +137,7 @@ bool Reporter::Get(PadConfigurationReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetPadConfigurationReport");
+	return GetFeatureReport(myHid, report, "GetPadConfigurationReport");
 }
 
 bool Reporter::Get(NameReport& report)
@@ -150,7 +150,7 @@ bool Reporter::Get(NameReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetNameReport");
+	return GetFeatureReport(myHid, report, "GetNameReport");
 }
 
 bool Reporter::Get(IdentificationReport& report)
@@ -163,7 +163,7 @@ bool Reporter::Get(IdentificationReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetIdentificationReport");
+	return GetFeatureReport(myHid, report, "GetIdentificationReport");
 }
 
 bool Reporter::Get(IdentificationV2Report& report)
@@ -176,7 +176,7 @@ bool Reporter::Get(IdentificationV2Report& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetIdentificationV2Report");
+	return GetFeatureReport(myHid, report, "GetIdentificationV2Report");
 }
 
 bool Reporter::Get(LightRuleReport& report)
@@ -185,7 +185,7 @@ bool Reporter::Get(LightRuleReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetLightRuleReport");
+	return GetFeatureReport(myHid, report, "GetLightRuleReport");
 }
 
 bool Reporter::Get(LedMappingReport& report)
@@ -194,7 +194,7 @@ bool Reporter::Get(LedMappingReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetLedMappingReport");
+	return GetFeatureReport(myHid, report, "GetLedMappingReport");
 }
 
 bool Reporter::Get(SensorReport& report)
@@ -203,7 +203,7 @@ bool Reporter::Get(SensorReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetSensorReport");
+	return GetFeatureReport(myHid, report, "GetSensorReport");
 }
 
 bool Reporter::Get(DebugReport& report)
@@ -212,17 +212,17 @@ bool Reporter::Get(DebugReport& report)
 		return true;
 	}
 
-	return GetFeatureReport(myHid, report, L"GetDebugReport");
+	return GetFeatureReport(myHid, report, "GetDebugReport");
 }
 
 void Reporter::SendReset()
 {
-	WriteData(myHid, REPORT_RESET, L"SendResetReport", false);
+	WriteData(myHid, REPORT_RESET, "SendResetReport", false);
 }
 
 void Reporter::SendFactoryReset()
 {
-	WriteData(myHid, REPORT_FACTORY_RESET, L"SendFactoryResetReport", false);
+	WriteData(myHid, REPORT_FACTORY_RESET, "SendFactoryResetReport", false);
 }
 
 bool Reporter::SendSaveConfiguration()
@@ -231,7 +231,7 @@ bool Reporter::SendSaveConfiguration()
 		return true;
 	}
 
-	return WriteData(myHid, REPORT_SAVE_CONFIGURATION, L"SendSaveConfigurationReport", true);
+	return WriteData(myHid, REPORT_SAVE_CONFIGURATION, "SendSaveConfigurationReport", true);
 }
 
 bool Reporter::Send(const PadConfigurationReport& report)
@@ -240,7 +240,7 @@ bool Reporter::Send(const PadConfigurationReport& report)
 		return true;
 	}
 
-	return SendFeatureReport(myHid, report, L"SendPadConfigurationReport");
+	return SendFeatureReport(myHid, report, "SendPadConfigurationReport");
 }
 
 bool Reporter::Send(const NameReport& report)
@@ -249,7 +249,7 @@ bool Reporter::Send(const NameReport& report)
 		return true;
 	}
 
-	return SendFeatureReport(myHid, report, L"SendNameReport");
+	return SendFeatureReport(myHid, report, "SendNameReport");
 }
 
 bool Reporter::Send(const LightRuleReport& report)
@@ -258,7 +258,7 @@ bool Reporter::Send(const LightRuleReport& report)
 		return true;
 	}
 
-	return SendFeatureReport(myHid, report, L"SendLightRuleReport");
+	return SendFeatureReport(myHid, report, "SendLightRuleReport");
 }
 
 bool Reporter::Send(const LedMappingReport& report)
@@ -267,12 +267,12 @@ bool Reporter::Send(const LedMappingReport& report)
 		return true;
 	}
 	
-	return SendFeatureReport(myHid, report, L"SendLedMappingReport");
+	return SendFeatureReport(myHid, report, "SendLedMappingReport");
 }
 
 bool Reporter::Send(const SensorReport& report)
 {
-	return SendFeatureReport(myHid, report, L"SendSensorReport");
+	return SendFeatureReport(myHid, report, "SendSensorReport");
 }
 
 bool Reporter::Send(const SetPropertyReport& report)
@@ -281,7 +281,7 @@ bool Reporter::Send(const SetPropertyReport& report)
 		return true;
 	}
 	
-	return SendFeatureReport(myHid, report, L"SendSetPropertyReport");
+	return SendFeatureReport(myHid, report, "SendSetPropertyReport");
 }
 
 bool Reporter::SendAndGet(NameReport& report)

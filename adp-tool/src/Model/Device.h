@@ -3,15 +3,13 @@
 #include "stdint.h"
 #include <string>
 #include <map>
-#include "wx/string.h"
-#include "wx/colour.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include "Model/Firmware.h"
-#include "Model/Reporter.h"
-#include "Model/Updater.h"
+#include <Model/Firmware.h>
+#include <Model/Reporter.h>
+#include <Model/Updater.h>
 
 namespace adp {
 
@@ -39,32 +37,15 @@ typedef int32_t DeviceProfileGroups;
 
 struct RgbColor
 {
-	RgbColor(uint8_t r, uint8_t g, uint8_t b)
-		:red(r),green(g),blue(b)
-	{ ; }
+	RgbColor(uint8_t r, uint8_t g, uint8_t b);
+	RgbColor(const std::string& input);
+	RgbColor();
 
-	RgbColor(std::string input)
-		:red(0), green(0), blue(0)
-	{
-		wxColour c(input);
-		red = c.Red();
-		green = c.Green();
-		blue = c.Blue();
-	}
-
-	RgbColor()
-		:red(0), green(0), blue(0)
-	{
-
-	}
+	std::string ToString() const;
 
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
-
-	const std::string ToString() const {
-		return wxColour(red, green, blue).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-	}
 };
 
 struct SensorState
@@ -134,7 +115,7 @@ public:
 
 	static const SensorState* Sensor(int sensorIndex);
 
-	static wstring ReadDebug();
+	static std::string ReadDebug();
 
 	static const bool HasUnsavedChanges();
 

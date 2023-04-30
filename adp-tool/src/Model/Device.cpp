@@ -1,4 +1,4 @@
-#include "Adp.h"
+#include <Adp.h>
 
 #include <memory>
 #include <algorithm>
@@ -7,13 +7,14 @@
 #include <thread>
 
 #include "hidapi.h"
+#include <fmt/core.h>
 
-#include "Model/Device.h"
-#include "Model/Reporter.h"
-#include "Model/Log.h"
-#include "Model/Utils.h"
-#include "Model/Firmware.h"
-#include "Model/Updater.h"
+#include <Model/Device.h>
+#include <Model/Reporter.h>
+#include <Model/Log.h>
+#include <Model/Utils.h>
+#include <Model/Firmware.h>
+#include <Model/Updater.h>
 
 using namespace std;
 using namespace chrono;
@@ -46,6 +47,30 @@ enum LightRuleFlags
 	LRF_FADE_ON  = 1 << 1,
 	LRF_FADE_OFF = 1 << 2,
 };
+
+
+RgbColor::RgbColor(uint8_t r, uint8_t g, uint8_t b)
+	: red(r), green(g), blue(b)
+{
+}
+
+RgbColor::RgbColor(const std::string& input)
+	: RgbColor()
+{
+	const char* p = input.data();
+	if (*p == '#') ++p;
+	sscanf(p, "%02hhx%02hhx%02hhx", &red, &green, &blue);
+}
+
+RgbColor::RgbColor()
+	: red(0), green(0), blue(0)
+{
+}
+
+std::string RgbColor::ToString() const
+{
+	return fmt::format("#{:02x}{:02x}{:02x}", red, green, blue);
+}
 
 // ====================================================================================================================
 // Helper functions.
@@ -134,52 +159,52 @@ SensorReport SensorState::ToReport(int index)
 
 static void PrintPadConfigurationReport(const PadConfigurationReport& padConfiguration)
 {
-	Log::Write(L"pad configuration [");
-	Log::Writef(L"  releaseThreshold: %.2f", ReadF32LE(padConfiguration.releaseThreshold));
-	Log::Write(L"  sensors: [");
+	Log::Write("pad configuration [");
+	Log::Writef("  releaseThreshold: %.2f", ReadF32LE(padConfiguration.releaseThreshold));
+	Log::Write("  sensors: [");
 	for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
 	{
-		Log::Writef(L"    sensorToButtonMapping: %i", padConfiguration.sensorToButtonMapping[i]);
-		Log::Writef(L"    sensorThresholds: %i", ReadU16LE(padConfiguration.sensorThresholds[i]));
+		Log::Writef("    sensorToButtonMapping: %i", padConfiguration.sensorToButtonMapping[i]);
+		Log::Writef("    sensorThresholds: %i", ReadU16LE(padConfiguration.sensorThresholds[i]));
 	}
-	Log::Write(L"  ]");
-	Log::Write(L"]");
+	Log::Write("  ]");
+	Log::Write("]");
 }
 
 static void PrintLightRuleReport(const LightRuleReport& r)
 {
-	Log::Write(L"light rule [");
-	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
-	Log::Writef(L"  flags: %i", r.flags);
-	Log::Writef(L"  onColor: [R%i G%i B%i]", r.onColor.red, r.onColor.green, r.onColor.blue);
-	Log::Writef(L"  offColor: [R%i G%i B%i]", r.offColor.red, r.offColor.green, r.offColor.blue);
-	Log::Writef(L"  onFadeColor: [R%i G%i B%i]", r.onFadeColor.red, r.onFadeColor.green, r.onFadeColor.blue);
-	Log::Writef(L"  offFadeColor: [R%i G%i B%i]", r.offFadeColor.red, r.offFadeColor.green, r.offFadeColor.blue);
-	Log::Write(L"]");
+	Log::Write("light rule [");
+	Log::Writef("  lightRuleIndex: %i", r.lightRuleIndex);
+	Log::Writef("  flags: %i", r.flags);
+	Log::Writef("  onColor: [R%i G%i B%i]", r.onColor.red, r.onColor.green, r.onColor.blue);
+	Log::Writef("  offColor: [R%i G%i B%i]", r.offColor.red, r.offColor.green, r.offColor.blue);
+	Log::Writef("  onFadeColor: [R%i G%i B%i]", r.onFadeColor.red, r.onFadeColor.green, r.onFadeColor.blue);
+	Log::Writef("  offFadeColor: [R%i G%i B%i]", r.offFadeColor.red, r.offFadeColor.green, r.offFadeColor.blue);
+	Log::Write("]");
 }
 
 static void PrintLedMappingReport(const LedMappingReport& r)
 {
-	Log::Write(L"led mapping [");
-	Log::Writef(L"  ledMappingIndex: %i", r.ledMappingIndex);
-	Log::Writef(L"  flags: %i", r.flags);
-	Log::Writef(L"  lightRuleIndex: %i", r.lightRuleIndex);
-	Log::Writef(L"  sensorIndex: %i", r.sensorIndex);
-	Log::Writef(L"  ledIndexBegin: %i", r.ledIndexBegin);
-	Log::Writef(L"  ledIndexEnd: %i", r.ledIndexEnd);
-	Log::Write(L"]");
+	Log::Write("led mapping [");
+	Log::Writef("  ledMappingIndex: %i", r.ledMappingIndex);
+	Log::Writef("  flags: %i", r.flags);
+	Log::Writef("  lightRuleIndex: %i", r.lightRuleIndex);
+	Log::Writef("  sensorIndex: %i", r.sensorIndex);
+	Log::Writef("  ledIndexBegin: %i", r.ledIndexBegin);
+	Log::Writef("  ledIndexEnd: %i", r.ledIndexEnd);
+	Log::Write("]");
 }
 
 static void PrintSensorReport(const SensorReport& r)
 {
-	Log::Write(L"sensor config[");
-	Log::Writef(L"  index: %i", r.index);
-	Log::Writef(L"  threshold: %i", ReadU16LE(r.threshold));
-	Log::Writef(L"  releaseThreshold: %i", ReadU16LE(r.releaseThreshold));
-	Log::Writef(L"  buttonMapping: %i", r.buttonMapping);
-	Log::Writef(L"  resistorValue: %i", r.resistorValue);
-	Log::Writef(L"  flags: %i", ReadU16LE(r.flags));
-	Log::Write(L"]");
+	Log::Write("sensor config[");
+	Log::Writef("  mappingIndex: %i", r.index);
+	Log::Writef("  threshold: %i", ReadU16LE(r.threshold));
+	Log::Writef("  releaseThreshold: %i", ReadU16LE(r.releaseThreshold));
+	Log::Writef("  buttonMapping: %i", r.buttonMapping);
+	Log::Writef("  resistorValue: %i", r.resistorValue);
+	Log::Writef("  flags: %i", ReadU16LE(r.flags));
+	Log::Write("]");
 }
 
 // ====================================================================================================================
@@ -207,7 +232,7 @@ public:
 		const vector<LightRuleReport>& lightRules,
 		const vector<LedMappingReport>& ledMappings,
 		const vector<SensorReport>& sensors)
-		: myReporter(move(reporter))
+		: myReporter(std::move(reporter))
 		, myPath(path)
 	{
 		UpdateName(name);
@@ -453,11 +478,11 @@ public:
 	{
 
 		NameReport report;
-		int length = strlen(name);
+		auto length = strlen(name);
 
 		if (length > sizeof(report.name))
 		{
-			Log::Writef(L"SetName :: name '%hs' exceeds %i chars and was not set", name, sizeof(report.name));
+			Log::Writef("SetName :: name '%hs' exceeds %i chars and was not set", name, sizeof(report.name));
 			return false;
 		}
 
@@ -610,24 +635,24 @@ public:
 		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
 	}
 
-	wstring ReadDebug()
+	std::string ReadDebug()
 	{
 		if (!myPad.featureDebug) {
-			return L"";
+			return "";
 		}
 
 		DebugReport report;
 		if (!myReporter->Get(report)) {
-			return L"";
+			return "";
 		}
 
 		int messageSize = ReadU16LE(report.messageSize);
 
 		if (messageSize == 0) {
-			return L"";
+			return "";
 		}
 
-		return widen(report.messagePacket, messageSize);
+		return report.messagePacket;
 	}
 
 	DeviceChanges PopChanges()
@@ -695,7 +720,7 @@ public:
 		{
 			if (!ContainsDevice(foundDevices, it->first))
 			{
-				Log::Writef(L"ConnectionManager :: failed device removed (%hs)", it->second.data());
+				Log::Writef("ConnectionManager :: failed device removed (%hs)", it->second.data());
 				it = myFailedDevices.erase(it);
 			}
 			else ++it;
@@ -740,14 +765,14 @@ public:
 		auto hid = hid_open_path(deviceInfo->path);
 		if (!hid)
 		{
-			Log::Writef(L"ConnectionManager :: hid_open failed (%ls) :: %hs", hid_error(nullptr), deviceInfo->path);
+			Log::Writef("ConnectionManager :: hid_open failed (%ls) :: %s", hid_error(nullptr), deviceInfo->path);
 
 			AddIncompatibleDevice(deviceInfo);
 			return false;
 		}
 		if (hid_set_nonblocking(hid, 1) < 0)
 		{
-			Log::Write(L"ConnectionManager :: hid_set_nonblocking failed");
+			Log::Write("ConnectionManager :: hid_set_nonblocking failed");
 			AddIncompatibleDevice(deviceInfo);
 			hid_close(hid);
 			return false;
@@ -881,7 +906,9 @@ public:
 				{
 					sensorReport.index = i;
 					sensorReport.threshold = padConfig.sensorThresholds[i];
-					sensorReport.releaseThreshold = WriteU16LE(ReadU16LE(padConfig.sensorThresholds[i]) * ReadF32LE(padConfig.releaseThreshold));
+					auto th = ReadU16LE(padConfig.sensorThresholds[i]);
+					auto rt = ReadF32LE(padConfig.releaseThreshold);
+					sensorReport.releaseThreshold = WriteU16LE(int(th * rt));
 					sensorReport.buttonMapping = padConfig.sensorToButtonMapping[i];
 					sensorReport.resistorValue = 0;
 					sensorReport.flags = WriteU16LE(0);
@@ -900,20 +927,22 @@ public:
 			ledMappings,
 			sensors);
 
-		Log::Write(L"ConnectionManager :: new device connected [");
-		Log::Writef(L"  Name: %hs", device->State().name.c_str());
-		Log::Writef(L"  Board: %ls", BoardTypeToString(device->State().boardType));
-		Log::Writef(L"  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
-		Log::Writef(L"  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
+		Log::Write("ConnectionManager :: new device connected [");
+		Log::Writef("  Name: %s", device->State().name.c_str());
+		Log::Writef("  Board: %s", BoardTypeToString(device->State().boardType));
+		Log::Writef("  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
+		Log::Writef("  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
 		if(deviceInfo != NULL) {
-			Log::Writef(L"  Product: %ls", deviceInfo->product_string);
-			Log::Writef(L"  Manufacturer: %ls", deviceInfo->manufacturer_string);
-			Log::Writef(L"  Path: %hs", deviceInfo->path);
+			Log::Writef("  Product: %ls", deviceInfo->product_string);
+			#ifndef __EMSCRIPTEN__
+			Log::Writef("  Manufacturer: %ls", deviceInfo->manufacturer_string);
+			Log::Writef("  Path: %s", deviceInfo->path);
+			#endif
 		}
 		else {
-			Log::Writef(L"  Product: Dummy");
+			Log::Writef("  Product: Dummy");
 		}
-		Log::Write(L"]");
+		Log::Write("]");
 
 		myConnectedDevice.reset(device);
 		return true;
@@ -1017,10 +1046,10 @@ const SensorState* Device::Sensor(int sensorIndex)
 	return device ? device->Sensor(sensorIndex) : nullptr;
 }
 
-wstring Device::ReadDebug()
+std::string Device::ReadDebug()
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->ReadDebug() : L"";
+	return device ? device->ReadDebug() : "";
 }
 
 const bool Device::HasUnsavedChanges()
@@ -1178,14 +1207,16 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 	}
 
 	if(groups & DPG_DEVICE) {
-		string name = j["name"];
-		SetDeviceName( ((std::string)j["name"]).c_str() );
+		if(j.contains("name")) {
+			string name = j["name"];
+			SetDeviceName( ((std::string)j["name"]).c_str() );
+		}
 	}
 }
 
 void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 {
-	j["adpToolVersion"] = wxString::Format("v%i.%i", ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+	j["adpToolVersion"] = fmt::format("v{}.{}", ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
 
 	if((groups & DPG_LIGHTS) && Pad()->featureLights && Lights()) {
 		auto lights = Lights();

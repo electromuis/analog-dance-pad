@@ -11,13 +11,13 @@ public:
 
 	static void Shutdown();
 
-	static void Write(const wchar_t* message);
+	static void Write(const char* message);
 
-	static void Writef(const wchar_t* format, ...);
+	static void Writef(const char* format, ...);
 
 	static int NumMessages();
 
-	static const std::wstring& Message(int index);
+	static const std::string& Message(int index);
 };
 
 }; // namespace adp.

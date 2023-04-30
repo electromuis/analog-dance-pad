@@ -3,16 +3,17 @@
 #include "stdint.h"
 #include <string>
 
-#include "avrdude-slic3r.hpp"
-#include "serial/serial.h"
-#include "wx/event.h"
-
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-using namespace std;
-using namespace Slic3r;
-using namespace serial;
+#ifndef __EMSCRIPTEN__
+	#include "avrdude-slic3r.hpp"
+	#include "serial/serial.h"
+
+	using namespace Slic3r;
+	using namespace serial;
+#endif // __EMSCRIPTEN__
+
 
 namespace adp {
 
@@ -44,16 +45,14 @@ enum AvrdudeEvent
 	AE_EXIT,
 };
 
-wxDECLARE_EVENT(EVT_AVRDUDE, wxCommandEvent);
-
+#ifndef __EMSCRIPTEN__
 class FirmwareUploader
 {
 public:
-	FlashResult UpdateFirmware(wstring fileName);
-	void SetEventHandler(wxEvtHandler* handler);
+	FlashResult UpdateFirmware(std::string fileName);
 	void SetIgnoreBoardType(bool ignoreBoardType);
 	void WritingDone(int exitCode);
-	wstring GetErrorMessage();
+	std::string GetErrorMessage();
 	FlashResult GetFlashResult();
 
 	AvrDude::Ptr myAvrdude;
@@ -62,17 +61,17 @@ private:
 	FlashResult WriteFirmware();
 
 	PortInfo comPort;
-	wstring firmwareFile;
-	wxEvtHandler* eventHandler;
-	wstring errorMessage;
+	std::string firmwareFile;
+	std::string errorMessage;
 	FlashResult flashResult = FLASHRESULT_NOTHING;
 	json* configBackup = NULL;
 	bool ignoreBoardType = false;
 };
+#endif //__EMSCRIPTEN__
 
 
 enum BoardType ParseBoardType(const std::string& str);
-const wchar_t* BoardTypeToString(BoardType boardType);
-const wchar_t* BoardTypeToString(BoardType boardType, bool firmwareFile);
+const char* BoardTypeToString(BoardType boardType);
+const char* BoardTypeToString(BoardType boardType, bool firmwareFile);
 
 }; // namespace adp.
