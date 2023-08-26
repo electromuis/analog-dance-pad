@@ -23,7 +23,12 @@ static bool GetFeatureReport(hid_device* hid, T& report, const char* name)
 	buffer[0] = report.reportId;
 
 	auto size = sizeof(T);
+	
+	#ifdef __MINGW32__
+	auto expectedSize = sizeof(T)+1;
+	#else
 	auto expectedSize = sizeof(T);
+	#endif
 
 	int bytesRead = hid_get_feature_report(hid, buffer, sizeof(buffer));
 	if (bytesRead == expectedSize)

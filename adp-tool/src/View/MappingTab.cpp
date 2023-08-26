@@ -69,6 +69,12 @@ void MappingTab::Render()
 
         if (configButton)
         {
+
+            ImGui::SameLine();
+            if (ImGui::Button("Config"))
+            {
+
+            }
             // auto configButton = new wxButton(this, i, "Config");
             // configButton->Bind(wxEVT_BUTTON, &MappingTab::OnSensorConfig, this);
             // sizer->Add(configButton, 1, wxEXPAND);

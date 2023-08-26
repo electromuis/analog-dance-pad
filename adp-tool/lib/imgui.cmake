@@ -1,16 +1,16 @@
 cmake_minimum_required (VERSION 3.6)
 
-if(NOT EMSCRIPTEN)
-    #set(GLFW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW")
+if(NOT EMSCRIPTEN AND WIN32)
+    set(GLFW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW")
 
-    #option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
-    #option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
-    #option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
-    #option(GLFW_INSTALL "Generate installation target" OFF)
-    #option(GLFW_DOCUMENT_INTERNALS "Include internals in documentation" OFF)
+    option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
+    option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
+    option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
+    option(GLFW_INSTALL "Generate installation target" OFF)
+    option(GLFW_DOCUMENT_INTERNALS "Include internals in documentation" OFF)
 
-    #add_subdirectory (${GLFW_DIR})
-    #include_directories(${GLFW_DIR}/deps)
+    add_subdirectory (${GLFW_DIR})
+    include_directories(${GLFW_DIR}/deps)
 endif()
 
 
@@ -37,5 +37,5 @@ if(WIN32)
 elseif(UNIX)
     target_link_libraries(imgui PUBLIC glfw GL)
 elseif(EMSCRIPTEN)
-    target_link_libraries(imgui PUBLIC GL)
+    target_link_libraries(imgui PUBLIC glfw3 GL)
 endif()

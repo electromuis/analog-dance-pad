@@ -1115,7 +1115,9 @@ bool Device::DisableLightRule(int lightRuleIndex)
 void Device::CalibrateSensor(int sensorIndex)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->CalibrateSensor(sensorIndex) : false;
+	if(device) {
+		device->CalibrateSensor(sensorIndex);
+	}
 }
 
 void Device::SendDeviceReset()
