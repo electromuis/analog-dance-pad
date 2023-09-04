@@ -42,6 +42,34 @@ static void RenderSensorBar(int sensorIndex)
     ImGui::EndChild();
 }
 
+static int selectedSensor = -1;
+
+static void ConfigModal()
+{
+    auto pad = Device::Pad();
+    auto sensor = Device::Sensor(selectedSensor);
+    
+    if (ImGui::BeginPopupModal("Sensor config", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        auto sensorText = fmt::format("Sensor {}", selectedSensor);
+        ImGui::TextUnformatted(sensorText.data());
+
+        RenderSensorBar(selectedSensor);
+        ImGui::SameLine();
+        ImGui::TextUnformatted("Reading");
+
+        int resistorValue = 255 - sensor->resistorValue;
+        ImGui::PushItemWidth(200);
+        if(ImGui::SliderInt("Gain", &resistorValue, 1, 254))
+        {
+            Device::SetAdcConfig(selectedSensor, 255 - resistorValue);
+        }
+
+        if (ImGui::Button("Close", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+    }
+}
+
 void MappingTab::Render()
 {
     auto pad = Device::Pad();
@@ -54,6 +82,9 @@ void MappingTab::Render()
     for (int i = 0; i < pad->numSensors; ++i)
     {
         auto sensorText = fmt::format("Sensor {}", i);
+        auto itemId = ImGui::GetID(sensorText.c_str());
+        ImGui::PushID(itemId);
+
         int selected = Device::Sensor(i)->button;
         ImGui::TextUnformatted(sensorText.data());
         ImGui::SameLine();
@@ -69,16 +100,19 @@ void MappingTab::Render()
 
         if (configButton)
         {
-
             ImGui::SameLine();
             if (ImGui::Button("Config"))
             {
-
+                selectedSensor = i;
+                ImGui::OpenPopup("Sensor config");
             }
-            // auto configButton = new wxButton(this, i, "Config");
-            // configButton->Bind(wxEVT_BUTTON, &MappingTab::OnSensorConfig, this);
-            // sizer->Add(configButton, 1, wxEXPAND);
         }
+
+
+        if(selectedSensor == i)
+            ConfigModal();
+
+        ImGui::PopID();
     }
 }
 

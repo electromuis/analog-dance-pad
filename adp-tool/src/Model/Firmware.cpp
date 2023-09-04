@@ -4,6 +4,7 @@
 #include <thread>
 #include <algorithm>
 #include <fstream>
+#include <fmt/core.h>
 
 #include <Model/Firmware.h>
 #include <Model/Device.h>
@@ -102,7 +103,7 @@ FlashResult FirmwareUploader::UpdateFirmware(string fileName)
 
 	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
 		if (!ignoreBoardType) {
-			// errorMessage = wxString::Format("Selected: %ls, connected: %ls", BoardTypeToString(boardType), BoardTypeToString(pad->boardType));
+			errorMessage = fmt::format("Selected: %s, connected: %s", BoardTypeToString(boardType), BoardTypeToString(pad->boardType));
 			flashResult = FLASHRESULT_FAILURE_BOARDTYPE;
 			return flashResult;
 		}
@@ -156,7 +157,67 @@ FlashResult FirmwareUploader::UpdateFirmware(string fileName)
 
 FlashResult FirmwareUploader::WriteFirmware()
 {
-	return FLASHRESULT_NOTHING;
+	AvrDude avrdude;
+
+	auto comPort = this->comPort.port;
+	auto firmwareFile = this->firmwareFile;
+	auto eventHandler = callback;
+
+	avrdude
+		.on_run([eventHandler, comPort, firmwareFile, this](AvrDude::Ptr avrdude) {
+			this->myAvrdude = std::move(avrdude);
+
+			std::vector<std::string> args{ {
+				"-v",
+				"-p", "atmega32u4",
+				"-c", "avr109",
+				"-P", comPort,
+				"-b", "115200",
+				"-D",
+				"-U", fmt::format("flash:w:1:%s:i", firmwareFile)
+			} };
+
+			this->myAvrdude->push_args(std::move(args));
+
+			if (eventHandler) {
+				eventHandler(AE_START, "", -1);
+			}
+		})
+		.on_message([eventHandler](const char* msg, unsigned size) {
+			std::string wxmsg = msg;
+			Log::Writef("avrdude: %s", wxmsg);
+
+			if (eventHandler) {
+				eventHandler(AE_MESSAGE, wxmsg, -1);
+			}
+		})
+		.on_progress([eventHandler](const char* task, unsigned progress) {
+			std::string wxmsg = task;
+
+			if (eventHandler) {
+				eventHandler(AE_PROGRESS, wxmsg, progress);
+			}
+		})
+		.on_complete([eventHandler, this]() {
+			Log::Write("avrdude done");
+
+			int exitCode = this->myAvrdude->exit_code();
+			this->WritingDone(exitCode);
+
+			if (eventHandler) {
+				eventHandler(AE_EXIT, "", exitCode);
+			}
+		});
+
+
+	// Wait a bit since the COM port might still be initializing
+	this_thread::sleep_for(500ms);
+
+	Device::SetSearching(false);
+	avrdude.run();
+
+	flashResult = FLASHRESULT_RUNNING;
+	return flashResult;
 }
 
 void FirmwareUploader::WritingDone(int exitCode)

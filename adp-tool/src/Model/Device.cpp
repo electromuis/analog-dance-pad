@@ -19,6 +19,9 @@
 using namespace std;
 using namespace chrono;
 
+typedef std::function<void(uint8_t reportId, std::vector<uint8_t> data)> HidReadCallback;
+int HID_API_EXPORT HID_API_CALL hid_read_register(HidReadCallback callback);
+
 namespace adp {
 
 struct HidIdentifier
@@ -980,6 +983,12 @@ static bool searching = true;
 void Device::Init()
 {
 	hid_init();
+	/*
+	hid_read_register([](uint8_t reportId, std::vector<uint8_t> data)
+	{
+		adp::Log::Write("Data gott");
+	});
+	*/
 
 	connectionManager = new ConnectionManager();
 
@@ -1012,11 +1021,13 @@ DeviceChanges Device::Update()
 	if (device)
 	{
 		changes |= device->PopChanges();
+		/*
 		if (!device->UpdateSensorValues())
 		{
 			connectionManager->DisconnectFailedDevice();
 			changes |= DCF_DEVICE;
 		}
+		*/
 	}
 
 	return changes;

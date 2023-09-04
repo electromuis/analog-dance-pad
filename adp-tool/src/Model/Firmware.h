@@ -2,6 +2,7 @@
 
 #include "stdint.h"
 #include <string>
+#include <functional>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -45,6 +46,8 @@ enum AvrdudeEvent
 	AE_EXIT,
 };
 
+typedef std::function<void(AvrdudeEvent event, std::string message, int progress)> FirmwareCallback;
+
 #ifndef __EMSCRIPTEN__
 class FirmwareUploader
 {
@@ -54,6 +57,7 @@ public:
 	void WritingDone(int exitCode);
 	std::string GetErrorMessage();
 	FlashResult GetFlashResult();
+	void SetEventHandler(FirmwareCallback callback) {this->callback = callback;};
 
 	AvrDude::Ptr myAvrdude;
 
@@ -66,6 +70,7 @@ private:
 	FlashResult flashResult = FLASHRESULT_NOTHING;
 	json* configBackup = NULL;
 	bool ignoreBoardType = false;
+	FirmwareCallback callback;
 };
 #endif //__EMSCRIPTEN__
 

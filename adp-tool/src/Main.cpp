@@ -81,11 +81,11 @@ void AdpApplication::LoadProfile()
 	nfdchar_t* rawOutPath = nullptr;
 	const nfdchar_t* defaultPath = myLastProfile.empty() ? nullptr : myLastProfile.data();
 	auto result = NFD_OpenDialog("json", nullptr, &rawOutPath);
-	string outPath(rawOutPath ? rawOutPath : "");
-	free(rawOutPath);
-
 	if (result != NFD_OKAY)
 		return;
+		
+	string outPath(rawOutPath ? rawOutPath : "");
+	free(rawOutPath);
 
 	ifstream fileStream;
 	fileStream.open(outPath);
@@ -121,11 +121,11 @@ void AdpApplication::SaveProfile()
 	nfdchar_t* rawOutPath = NULL;
 	const nfdchar_t* defaultPath = myLastProfile.empty() ? nullptr : myLastProfile.data();
 	auto result = NFD_SaveDialog("json", defaultPath, &rawOutPath);
-	string outPath(rawOutPath);
-	free(rawOutPath);
-
 	if (result != NFD_OKAY)
 		return;
+
+	string outPath(rawOutPath);
+	free(rawOutPath);
 
 	ofstream output_stream(outPath);
 	if (!output_stream)
