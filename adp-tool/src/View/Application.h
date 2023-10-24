@@ -20,6 +20,7 @@ namespace Walnut {
 		~Application();
 
 		void Run();
+		void RunOnce();
 		void Close();
 
 		virtual void MenuCallback() = 0;

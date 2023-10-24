@@ -20,6 +20,12 @@
 
 #ifndef __EMSCRIPTEN__
 	#include <nfd.h>
+#else
+	#include <emscripten.h>
+
+	EM_JS(void, device_scan_js, (), {
+		navigator.hid.requestDevice({filters: []});
+	});
 #endif
 
 #include <fmt/core.h>
@@ -159,6 +165,9 @@ void AdpApplication::MenuCallback()
 
 		ImGui::EndMenu();
 	}
+#else
+	if(ImGui::Button("Device select"))
+		device_scan_js();
 #endif
 }
 
@@ -178,11 +187,6 @@ static void RenderTab(const function<void()>& render, const char* name)
 
 void AdpApplication::RenderCallback()
 {
-	/*
-	ImGui::ShowDemoWindow();
-	return;
-	//*/
-
 	auto now = Clock::now();
 	if (now - myLastUpdateTime > 10ms)
 	{
@@ -242,6 +246,11 @@ void AdpApplication::RenderIdleTab()
 	auto ts = ImGui::CalcTextSize(text);
 	ImGui::SetCursorPos(ImVec2(ws.x/2 - ts.x/2, ws.y/2 - ts.y/2));
 	ImGui::Text(text);
+
+	#ifdef __EMSCRIPTEN__
+	if(ImGui::Button("Device select"))
+		device_scan_js();
+	#endif
 }
 
 void AdpApplication::RenderAboutTab()
@@ -273,6 +282,25 @@ void AdpApplication::RenderLogTab()
 		ImGui::TextUnformatted(Log::Message(i).data());
 }
 
+#ifdef __EMSCRIPTEN__
+AdpApplication app;
+void main_loop() { app.RunOnce(); }
+
+int Main(int argc, char** argv)
+{
+	Log::Init();
+	auto versionString = fmt::format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+
+	Device::Init();
+
+	emscripten_set_main_loop(main_loop, 0, 1);
+
+	Device::Shutdown();
+	Log::Shutdown();
+
+	return 0;
+}
+#else
 int Main(int argc, char** argv)
 {
 	Log::Init();
@@ -291,5 +319,6 @@ int Main(int argc, char** argv)
 
 	return 0;
 }
+#endif
 
 }; // namespace adp.

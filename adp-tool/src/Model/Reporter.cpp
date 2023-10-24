@@ -69,9 +69,11 @@ static ReadDataResult ReadData(hid_device* hid, T& report, const char* name)
 	buffer[0] = report.reportId;
 
 	int bytesRead = hid_read(hid, buffer, sizeof(buffer));
-	if (bytesRead == sizeof(SensorValuesReport))
+	auto expectedSize = sizeof(T);
+
+	if (bytesRead == expectedSize)
 	{
-		memcpy(&report, buffer, sizeof(SensorValuesReport));
+		memcpy(&report, buffer, expectedSize);
 		return ReadDataResult::SUCCESS;
 	}
 
@@ -81,7 +83,7 @@ static ReadDataResult ReadData(hid_device* hid, T& report, const char* name)
 	if (bytesRead < 0)
 		Log::Writef("%s :: hid_read failed (%ls)", name, hid_error(hid));
 	else
-		Log::Writef("%s :: unexpected number of bytes read (%i)", name, bytesRead);
+		Log::Writef("%s :: unexpected number of bytes read (%i) expected (%i)", name, bytesRead, expectedSize);
 
 	return ReadDataResult::FAILURE;
 }

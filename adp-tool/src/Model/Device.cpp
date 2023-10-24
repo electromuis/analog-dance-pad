@@ -344,7 +344,7 @@ public:
 		int pressedButtons = 0;
 		int inputsRead = 0;
 
-		for (int readsLeft = 100; readsLeft > 0; --readsLeft)
+		for (int readsLeft = 1000; readsLeft > 0; --readsLeft)
 		{
 			switch (myReporter->Get(report))
 			{
