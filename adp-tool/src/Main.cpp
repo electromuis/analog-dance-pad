@@ -154,6 +154,9 @@ void AdpApplication::MenuCallback()
 #ifndef __EMSCRIPTEN__
 	if (ImGui::BeginMenu("File"))
 	{
+		if (ImGui::MenuItem("Connect remote"))
+			Device::Connect("192.168.2.32", "1234");
+
 		if (ImGui::MenuItem("Load profile"))
 			LoadProfile();
 

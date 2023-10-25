@@ -2,9 +2,9 @@
 #include "Application.h"
 
 #ifdef __WIN32__
-	#include <windows.h>
+	
 #endif
-
+#include <windows.h>
 extern "C" {
 #include <GL/gl.h>
 }

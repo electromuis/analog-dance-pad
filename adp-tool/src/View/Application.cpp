@@ -1,7 +1,7 @@
 #include <View/Application.h>
 
-#define GLFW_INCLUDE_ES3
-#include <GLES3/gl3.h>
+//#define GLFW_INCLUDE_ES3
+//#include <GLES3/gl3.h>
 #include <GLFW/glfw3.h>
 
 #include "backends/imgui_impl_glfw.h"
@@ -58,10 +58,13 @@ bool Application::Init(int width, int height, const char* title)
 		return false;
 	}
 
-	//const char* glsl_version = "#version 130";
-    //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	#ifdef __EMSCRIPTEN__
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	#else
+		const char* glsl_version = "#version 130";
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	#endif
 
 	m_WindowHandle = glfwCreateWindow(width, height, title, NULL, NULL);
 	if(m_WindowHandle == NULL) {
