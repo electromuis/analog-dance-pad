@@ -2,6 +2,8 @@
 
 #include "stdint.h"
 #include "hidapi.h"
+#include <memory>
+#include <string>
 
 // Potentially defined by WinSock2.h
 #ifdef NO_DATA
@@ -165,10 +167,23 @@ struct DebugReport
 
 #pragma pack()
 
+class DeviceServer;
+
+class ReporterBackend
+{
+public:
+	virtual int get_feature_report(unsigned char *data, size_t length) = 0;
+	virtual int send_feature_report(const unsigned char *data, size_t length) = 0;
+	virtual int read(unsigned char *data, size_t length) = 0;
+	virtual int write(unsigned char *data, size_t length) = 0;
+	virtual const wchar_t* error() = 0;
+};
+
 class Reporter
 {
 public:
 	Reporter(hid_device* device);
+	Reporter(std::string host, std::string port);
 	Reporter();
 	~Reporter();
 
@@ -197,8 +212,24 @@ public:
 	bool SendAndGet(PadConfigurationReport& report);
 
 private:
-	hid_device* myHid;
+	// hid_device* myHid;
 	bool emulator = false;
+	std::unique_ptr<ReporterBackend> backend;
+	std::unique_ptr<DeviceServer> deviceServer;
+
+
+	template <typename T>
+	bool GetFeatureReport(T& report, const char* name);
+
+	template <typename T>
+	bool SendFeatureReport(const T& report, const char* name);
+
+	template <typename T>
+	ReadDataResult ReadData(T& report, const char* name);
+
+	bool WriteData(uint8_t reportId, const char* name, bool performErrorCheck);
+
+
 };
 
 }; // namespace adp.

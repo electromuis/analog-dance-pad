@@ -10,6 +10,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURC
 add_subdirectory (lib/fmt)
 include(lib/imgui.cmake)
 include(lib/hidapi.cmake)
+include(lib/asio.cmake)
+# include_directories(
+# 	"${CMAKE_CURRENT_SOURCE_DIR}/lib/hidapi/hidapi"
+# )
 
 if(NOT EMSCRIPTEN)
 	add_subdirectory (lib/avrdude)
@@ -17,7 +21,10 @@ if(NOT EMSCRIPTEN)
 	include(lib/serial.cmake)
 else()
 	set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
 	set(EM_FLAGS "-g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
+	# set(EM_FLAGS "-g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
+
 	add_compile_options(-g)
 endif()
 
@@ -29,6 +36,7 @@ include_directories(
 	"src")
 
 set(GLOBAL_LIBS
+	# asio
 	hidapi
 	fmt)
 

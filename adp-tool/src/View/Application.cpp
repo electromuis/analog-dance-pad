@@ -1,7 +1,11 @@
 #include <View/Application.h>
 
 #define GLFW_INCLUDE_ES3
-// #include <gl3.h>
+
+//#include <gl3.h>
+//#define GLFW_INCLUDE_ES3
+//#include <GLES3/gl3.h>
+
 #include <GLFW/glfw3.h>
 
 #include "backends/imgui_impl_glfw.h"
@@ -161,7 +165,6 @@ void Application::Loop()
 {
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	ImGuiIO& io = ImGui::GetIO();
-
 
 	// Poll and handle events (inputs, window resize, etc.)
 	// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.

@@ -101,6 +101,8 @@ struct LightsState
 class Device
 {
 public:
+	static void Connect(std::string host, std::string port);
+	
 	static void Init();
 
 	static void Shutdown();

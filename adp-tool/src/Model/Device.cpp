@@ -347,7 +347,7 @@ public:
 		int pressedButtons = 0;
 		int inputsRead = 0;
 
-		for (int readsLeft = 100; readsLeft > 0; --readsLeft)
+		for (int readsLeft = 1000; readsLeft > 0; --readsLeft)
 		{
 			switch (myReporter->Get(report))
 			{
@@ -358,12 +358,13 @@ public:
 				++inputsRead;
 				break;
 
+			case ReadDataResult::FAILURE:
 			case ReadDataResult::NO_DATA:
 				readsLeft = 0;
 				break;
 
-			case ReadDataResult::FAILURE:
-				return false;
+			//case ReadDataResult::FAILURE:
+			//	return false;
 			}
 		}
 
@@ -785,7 +786,7 @@ public:
 		// If both succeeded, we'll assume the device is valid.
 
 		auto reporter = make_unique<Reporter>(hid);
-		bool result = ConnectToDeviceStage2(reporter, deviceInfo);
+		bool result = ConnectToDeviceStage2(reporter, deviceInfo->path);
 		if(!result) {
 			AddIncompatibleDevice(deviceInfo);
 			// hid_close already happend becuase Reporter gets destructed
@@ -795,7 +796,7 @@ public:
 		return result;
 	}
 
-	bool ConnectToDeviceStage2(unique_ptr<Reporter>& reporter, hid_device_info* deviceInfo)
+	bool ConnectToDeviceStage2(unique_ptr<Reporter>& reporter, string devicePath)
 	{
 		NameReport name;
 		IdentificationReport padIdentification;
@@ -876,14 +877,6 @@ public:
 			}
 		}
 
-		string devicePath = "";
-		if(deviceInfo != NULL) {
-			devicePath = deviceInfo->path;
-		}
-		else if(emulator) {
-			devicePath = "Dummy";
-		}
-
 		SensorReport sensorReport;
 		if (padVersion.IsNewer({ 1, 2 })) {
 			SetPropertyReport selectReport;
@@ -935,16 +928,23 @@ public:
 		Log::Writef("  Board: %s", BoardTypeToString(device->State().boardType));
 		Log::Writef("  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
 		Log::Writef("  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
+		Log::Writef("  Path: %s", devicePath.c_str());
+		
+		/*
 		if(deviceInfo != NULL) {
 			Log::Writef("  Product: %ls", deviceInfo->product_string);
 			#ifndef __EMSCRIPTEN__
 			Log::Writef("  Manufacturer: %ls", deviceInfo->manufacturer_string);
+
 			Log::Writef("  Path: %s", deviceInfo->path);
 			#endif
+
 		}
 		else {
 			Log::Writef("  Product: Dummy");
 		}
+		*/
+
 		Log::Write("]");
 
 		myConnectedDevice.reset(device);
@@ -978,7 +978,13 @@ private:
 // ====================================================================================================================
 
 static ConnectionManager* connectionManager = nullptr;
-static bool searching = true;
+static bool searching = false;
+
+void Device::Connect(std::string host, std::string port)
+{
+	auto reporter = make_unique<Reporter>(host, port);
+	connectionManager->ConnectToDeviceStage2(reporter, host + ":" + port);
+}
 
 void Device::Init()
 {
@@ -992,7 +998,7 @@ void Device::Init()
 
 	connectionManager = new ConnectionManager();
 
-	searching = true;
+	// searching = true;
 }
 
 void Device::Shutdown()

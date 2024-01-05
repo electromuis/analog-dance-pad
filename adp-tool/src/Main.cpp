@@ -164,14 +164,40 @@ void AdpApplication::MenuCallback()
 
 		if (ImGui::MenuItem("Exit"))
 			Close();
-#else
-		if (ImGui::MenuItem("Connect"))
-			ScanDevices();
 #endif
 
 		ImGui::EndMenu();
 	}
 
+	if (ImGui::BeginMenu("Device"))
+	{
+		#ifdef __EMSCRIPTEN__
+			if (ImGui::MenuItem("Scan"))
+				ScanDevices();
+		#endif
+
+		if (ImGui::MenuItem("Disconnect"))
+			Device::Disconnect();
+
+		static char addrBuffer[64] = { 0 };
+		ImGui::InputText("Device address", Device::NameBuffer(), 64);
+		ImGui::SameLine();
+		if (ImGui::Button("Connect")) {
+			string addressString = addrBuffer;
+			string host = addressString.substr(0, addressString.find(":"));
+			string port = addressString.substr(addressString.find(":") + 1);
+			if(port.empty())
+				port = "8080";
+
+			Device::Connect(host, port);
+		}
+
+		bool scanEnabled = true;
+		if (ImGui::MenuItem("Enable scan", nullptr, &scanEnabled))
+			Device::SetSearching(scanEnabled);
+
+		ImGui::EndMenu();
+	}
 }
 
 static void RenderTab(const function<void()>& render, const char* name)
@@ -254,6 +280,11 @@ void AdpApplication::RenderIdleTab()
 	auto ts = ImGui::CalcTextSize(text);
 	ImGui::SetCursorPos(ImVec2(ws.x/2 - ts.x/2, ws.y/2 - ts.y/2));
 	ImGui::Text(text);
+
+	#ifdef __EMSCRIPTEN__
+	if(ImGui::Button("Device select"))
+		device_scan_js();
+	#endif
 }
 
 void AdpApplication::RenderAboutTab()
@@ -289,6 +320,7 @@ void AdpApplication::RenderLogTab()
 
 #ifdef __EMSCRIPTEN__
 AdpApplication app;
+<<<<<<< HEAD
 
 void loop()
 {
@@ -296,6 +328,25 @@ void loop()
 }
 #endif
 
+=======
+void main_loop() { app.RunOnce(); }
+
+int Main(int argc, char** argv)
+{
+	Log::Init();
+	auto versionString = fmt::format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+
+	Device::Init();
+
+	emscripten_set_main_loop(main_loop, 0, 1);
+
+	Device::Shutdown();
+	Log::Shutdown();
+
+	return 0;
+}
+#else
+>>>>>>> origin/wasm
 int Main(int argc, char** argv)
 {
 	Log::Init();
@@ -321,5 +372,6 @@ int Main(int argc, char** argv)
 
 	return 0;
 }
+#endif
 
 }; // namespace adp.
