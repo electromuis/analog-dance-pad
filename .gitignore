@@ -7,3 +7,5 @@ adp-tool/src/Adp.h
 
 firmware/build/.vs
 firmware/.vs
+firmware/.pio
+firmware/.vscode
