@@ -1,13 +1,22 @@
 #include "Modules/Modules.hpp"
 #include "Reports/Reports.hpp"
-#include "hal/hal_Webserver.hpp"
 
 void setup() {
   ModulesSetup();
-  HAL_Webserver_Init();
 }
 
 void loop() {
   ModulesUpdate();
-  HAL_Webserver_Update();
 }
+
+#ifndef ARDUINO_ARCH_ESP32
+
+int main(void)
+{
+  setup();
+  while (true)
+    loop();
+  return 0;
+}
+
+#endif

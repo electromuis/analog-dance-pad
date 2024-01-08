@@ -183,7 +183,7 @@ class Reporter
 {
 public:
 	Reporter(hid_device* device);
-	Reporter(std::string host, std::string port);
+	Reporter(std::string url);
 	Reporter();
 	~Reporter();
 

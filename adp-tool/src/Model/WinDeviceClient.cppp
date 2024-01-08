@@ -1,16 +1,22 @@
 #include <Model/DeviceClient.h>
 #include <Model/Reporter.h>
 
-#include <emscripten/emscripten.h>
-#include <emscripten/websocket.h>
-#include <emscripten/val.h>
-#include <emscripten/promise.h>
-
-#include <memory>
 #include <cstdlib>
+#include <deque>
 #include <iostream>
+#include <thread>
+#include <functional>
+#include <future>
+#include <deque>
+
+#define ASIO_STANDALONE
+
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
 
 namespace adp {
+typedef websocketpp::client<websocketpp::config::asio_client> ws_client;
+typedef std::promise<std::string> ws_message;
 
 enum WS_CMD {
     CMD_FAILED = 0x00,
@@ -54,18 +60,17 @@ struct ReportPacket {
             return false;
 
         data = std::string((char*)ptr, leng);
-
-        return true;
     }
 
-    bool Send(EMSCRIPTEN_WEBSOCKET_T& socket_)
+    bool Send(ws_client& socket_, websocketpp::connection_hdl& con_hdl)
     {
         std::string payload;
         payload.append((const char*)&header, sizeof(ReportHeader));
         payload.append(data);
 
-        EMSCRIPTEN_RESULT result = emscripten_websocket_send_binary(socket_, (void*)payload.c_str(), payload.length());
-        return result == EMSCRIPTEN_RESULT_SUCCESS;
+        websocketpp::lib::error_code ec;
+        socket_.send(con_hdl, payload, websocketpp::frame::opcode::binary, ec);
+        return !ec;
     }
     
     ReportHeader header;
@@ -78,75 +83,72 @@ public:
 	BackendWs(std::string url)
         :ReporterBackend()
 	{
-        connectPromise = emscripten_promise_create();
+        socket_.init_asio();
 
-        EmscriptenWebSocketCreateAttributes ws_attrs = {
-            (const char*)url.c_str(),
-            NULL,
-            EM_TRUE
-        };
+        websocketpp::lib::error_code ec;
+        ws_client::connection_ptr con = socket_.get_connection(url, ec);
+        if (ec)
+        {
+            connectedPromise.set_value(false);
+            std::cout << "could not create connection because: " << ec.message() << std::endl;
+            return;
+        }
 
-        socket_ = emscripten_websocket_new(&ws_attrs);
+        socket_.set_access_channels(websocketpp::log::alevel::none);
+        con->set_open_handler(std::bind(&BackendWs::on_connect, this, std::placeholders::_1));
+        con->set_close_handler(std::bind(&BackendWs::on_disconnect, this, std::placeholders::_1));
+        con->set_message_handler(std::bind(&BackendWs::on_message, this, std::placeholders::_1, std::placeholders::_2));
 
-        emscripten_websocket_set_onopen_callback(socket_, this, [](int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
-            return ((BackendWs*)userData)->on_connect(eventType, websocketEvent);
-        });
-
-        emscripten_websocket_set_onclose_callback(socket_, this, [](int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-            return ((BackendWs*)userData)->on_disconnect(eventType, websocketEvent);
-        });
-
-        emscripten_websocket_set_onmessage_callback(socket_, this, [](int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
-            return ((BackendWs*)userData)->on_message(eventType, websocketEvent);
-        });
-
-        emscripten_promise_await(connectPromise);
-        emscripten_promise_destroy(connectPromise);
+        socket_.connect(con);
+        
+        thread = std::thread(std::bind(&BackendWs::Thread, this));
+        connectedPromise.get_future().wait();
 	}
 
-    EM_BOOL on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent)
+    void Thread()
     {
-        if(websocketEvent->isText)
-            return EM_TRUE;
-
-        if(!responsePromise)
-            return EM_TRUE;
-
-        lastResponse = std::string((const char*)websocketEvent->data, websocketEvent->numBytes);
-        emscripten_promise_resolve(*responsePromise, EM_PROMISE_FULFILL, (void*)&lastResponse);
-
-        return EM_TRUE;
+        socket_.run();
     }
 
-    EM_BOOL on_connect(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent)
+	~BackendWs()
+	{
+        thread.join();
+	}
+
+    void on_message(websocketpp::connection_hdl hdl, ws_client::message_ptr message)
+    {
+        if (responseQueue.empty())
+            return;
+
+        if (message->get_opcode() != websocketpp::frame::opcode::binary)
+            return;
+
+        responseQueue.back().set_value(message->get_payload());
+        responseQueue.pop_back();
+    }
+
+    void on_connect(websocketpp::connection_hdl con)
     {
         connected = true;
-        emscripten_promise_resolve(connectPromise, EM_PROMISE_FULFILL, (void*)true);
-
-        return EM_TRUE;
+        connectedPromise.set_value(true);
+        con_hdl = con;
     }
 
-    EM_BOOL on_disconnect(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent)
+    void on_disconnect(websocketpp::connection_hdl con)
     {
         connected = false;
-
-        return EM_TRUE;
+        connectedPromise.set_value(false);
+        con_hdl.reset();
     }
 
     ReportPacket send_and_get(ReportPacket packet)
     {
-        responsePromise = std::make_unique<em_promise_t>(emscripten_promise_create());
+        auto responsePacketData = this->responseQueue.emplace_front().get_future();
 
-        if (!packet.Send(socket_))
-           return ReportPacket();
+        if (!packet.Send(socket_, con_hdl))
+            return ReportPacket();
 
-        em_settled_result_t promiseResult = emscripten_promise_await(*responsePromise);
-        std::string response = *(std::string*)promiseResult.value;
-
-        em_promise_t* promisePtr = responsePromise.release();
-        emscripten_promise_destroy(*promisePtr);
-        delete promisePtr;
-
+        std::string response = responsePacketData.get();
         if(response.length() == 0)
             return ReportPacket();
 
@@ -225,11 +227,13 @@ public:
 	}
 
 protected:
-    EMSCRIPTEN_WEBSOCKET_T socket_;
-    em_promise_t connectPromise;
+    std::thread thread;
+    std::promise<bool> connectedPromise;
     bool connected = false;
-    std::unique_ptr<em_promise_t> responsePromise;
-    std::string lastResponse = "";
+    std::deque<ws_message> responseQueue;
+    ws_client socket_;
+    websocketpp::connection_hdl con_hdl;
+    ws_client::connection_ptr con;
 };
 
 ReporterBackend* ReporterBackendWsCreate(std::string url)

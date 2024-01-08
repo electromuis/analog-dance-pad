@@ -156,13 +156,14 @@ protected:
 // ====================================================================================================================
 
 Reporter::Reporter(hid_device* device)
-	: backend(new BackendHid(device)), deviceServer(DeviceServerCreate(device))
+	// : backend(new BackendHid(device)), deviceServer(DeviceServerCreate(device))
+	: backend(new BackendHid(device))
 {
 	
 }
 
-Reporter::Reporter(std::string host, std::string port)
-	:backend(ReporterBackendTcpCreate(host, port))
+Reporter::Reporter(std::string url)
+	:backend(ReporterBackendWsCreate(url))
 {
 
 }

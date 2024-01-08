@@ -2,10 +2,7 @@
 #include "Reports/Reports.hpp"
 
 #include <avr/pgmspace.h>
-
-extern "C" {
 #include <LUFA/Drivers/USB/USB.h>
-};
 
 #include <string.h>
 
@@ -25,15 +22,8 @@ enum InterfaceDescriptors_t
     INTERFACE_ID_GenericHID = 0, /**< GenericHID interface descriptor ID */
 };
 
-uint8_t* DescriptorPointer = nullptr;
-uint16_t DescriptorSize = 0;
-
 void HAL_USB_Setup()
 {
-    DescriptorSize = CalcDescriptorSize();
-    DescriptorPointer = new uint8_t[DescriptorSize]();
-    WriteDescriptor((uint8_t*)DescriptorPointer);
-
     USB_Init();
 }
 
@@ -60,7 +50,7 @@ USB_ClassInfo_HID_Device_t Generic_HID_Interface =
         .IdleCount = 0,
         .IdleMSRemaining = 0
     }
-}
+};
 
 void HAL_USB_Update() 
 {
@@ -268,8 +258,8 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
         //     Size    = sizeof(USB_HID_Descriptor_HID_t);
         //     break;
         case HID_DTYPE_Report:
-            Address = DescriptorPointer;
-            Size    = CalcDescriptorSize();
+            Address = USB_GetDescriptor();
+            Size    = USB_DescriptorSize();
             break;
     }
 
@@ -300,7 +290,7 @@ bool CALLBACK_HID_Device_CreateHIDReport(
         *ReportID = INPUT_REPORT_ID;
     }
 
-    auto result = USB_CreateReport(*ReportID, ReportData, *ReportSize);
+    bool result = USB_CreateReport(*ReportID, ReportData, ReportSize);
     
     if(!result) {
         *ReportSize = 0;
@@ -324,6 +314,5 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
                                           const void* ReportData,
                                           const uint16_t ReportSize)
 {
-    // ProcessReport(ReportID, ReportData, ReportSize);
-    USB_ProcessReport(ReportID, ReportData, ReportSize);
+    USB_ProcessReport(ReportID, (const uint8_t*)ReportData, ReportSize);
 }

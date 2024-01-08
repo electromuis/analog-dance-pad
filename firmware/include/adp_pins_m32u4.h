@@ -1,0 +1,59 @@
+#define PIN_MUX_1   15
+#define PIN_MUX_2   16
+#define PIN_MUX_3   17
+#define PIN_MUX_4   18
+
+#define PIN_SPI_MOSI    11
+#define PIN_SPI_MISO    13
+#define PIN_SPI_SCK     12
+#define PIN_SPI_POT_CS  14
+
+#define PIN_ANALOG_IN 5
+
+#define PIN_LED 2
+
+
+
+static const unsigned char sensorToAnalogPin[SENSOR_COUNT] = {
+#if defined(BOARD_TYPE_FSRIO_1)	
+    0b000111, //ADC7 A0
+	0b000110, //ADC6 A1
+	0b000101, //ADC5 A2
+	0b000100, //ADC4 A3
+	0b100000, //ADC8 A6
+	0b100010, //ADC10 A7
+	0b100011, //ADC11 A8
+	0b100100, //ADC12 A9
+	
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111
+#elif defined(BOARD_TYPE_FSRMINIPAD)	
+	0b111111,
+    0b111111,
+	0b000100, //ADC4 A3
+	0b000101, //ADC5 A2
+	0b000110, //ADC6 A1
+	0b000111, //ADC7 A0
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111
+#else
+	0b000000, //ADC0 A5
+    0b000001, //ADC1 A4
+	0b000100, //ADC4 A3
+	0b000101, //ADC5 A2
+	0b000110, //ADC6 A1
+	0b000111, //ADC7 A0
+	0b100000, //ADC8 A6
+	0b100001, //ADC9
+	0b100010, //ADC10 A7
+	0b100011, //ADC11 A8
+	0b100100, //ADC12 A9
+	0b100101  //ADC13 A10
+#endif
+};

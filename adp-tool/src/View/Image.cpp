@@ -1,10 +1,10 @@
 #include "Image.h"
 #include "Application.h"
 
-#ifdef __WIN32__
-	
+#ifdef WIN32
+	#include <windows.h>
 #endif
-#include <windows.h>
+
 extern "C" {
 #include <GL/gl.h>
 }
@@ -12,7 +12,6 @@ extern "C" {
 #include "imgui.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
 
 namespace Walnut {
 

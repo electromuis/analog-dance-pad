@@ -9,3 +9,5 @@
 #define PIN_SPI_POT_CS  14
 
 #define PIN_ANALOG_IN 5
+
+#define PIN_LED 2

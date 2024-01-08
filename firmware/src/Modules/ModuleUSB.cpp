@@ -1,31 +1,50 @@
+#include "adp_config.hpp"
 #include "ModuleUSB.hpp"
 #include "hal/hal_USB.hpp"
 #include "Reports/Reports.hpp"
-#include <cstring>
-#include <Arduino.h>
+#include "Modules/ModulePad.hpp"
+#include <string.h>
+
+#ifdef FEATURE_RTOS_ENABLED
+#include "FreeRTOS.h"
+#include "task.h"
+// TaskHandle_t usbTask;
+#endif
 
 ModuleUSB ModuleUSBInstance = ModuleUSB();
 uint8_t USBDescriptor[512];
 uint16_t USBDescriptorSize = 0;
 
+void inputLoop(void *pvParameter)
+{
+    while (true) {
+        ModulePadInstance.UpdateStatus();
+        HAL_USB_Update();
+    }
+}
+
 void ModuleUSB::Setup()
 {
-    // Serial.begin(9600);
-
-    // while(!Serial) { ; }
-
-    // delay(1000);
-
-    // Serial.println("Start");
-    // for (size_t i = 0; i < USB_DescriptorSize(); i++)
-    // {
-    //     Serial.print(USBDescriptor[i], HEX);
-    //     Serial.print(" ");
-    // }
-    // Serial.println("End");
-    
-
     HAL_USB_Setup();
+
+    #ifdef FEATURE_RTOS_ENABLED
+    xTaskCreatePinnedToCore(
+        inputLoop,
+        "inputLoop",
+        1024 * 2,
+        ( void * ) 1,
+        5,
+        nullptr,
+        1
+    );
+    #endif
+}
+
+void ModuleUSB::Update()
+{
+    #ifndef FEATURE_RTOS_ENABLED
+    HAL_USB_Update();
+    #endif
 }
 
 void ModuleUSB::Reconnect()
@@ -48,6 +67,13 @@ uint16_t USB_WriteDescriptor(uint8_t* buffer)
     memcpy(buffer, USBDescriptor, USBDescriptorSize);
     return USBDescriptorSize;
 }
+
+uint8_t* USB_GetDescriptor()
+{
+    USB_DescriptorSize();
+    return USBDescriptor;
+}
+
 
 uint16_t USB_DescriptorSize()
 {

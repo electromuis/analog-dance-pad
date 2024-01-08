@@ -1,5 +1,6 @@
 node_modules
 *.user
+.vscode
 
 adp-tool/build*
 adp-tool/src/Adp.h

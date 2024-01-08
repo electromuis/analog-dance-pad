@@ -1,5 +1,5 @@
-[submodule "firmware/lufa"]
-	path = firmware/lufa
+[submodule "firmware/lib/lufa"]
+	path = firmware/lib/lufa
 	url = https://github.com/abcminiuser/lufa
 [submodule "adp-tool/lib/hidapi"]
 	path = adp-tool/lib/hidapi
@@ -22,3 +22,9 @@
 [submodule "adp-tool/lib/fmt"]
 	path = adp-tool/lib/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "adp-tool/lib/asio"]
+	path = adp-tool/lib/asio
+	url = https://github.com/chriskohlhoff/asio
+[submodule "adp-tool/lib/websocketpp"]
+	path = adp-tool/lib/websocketpp
+	url = https://github.com/zaphoyd/websocketpp

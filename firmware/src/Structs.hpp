@@ -21,23 +21,24 @@ typedef struct {
 
 // USB
 
-#define INPUT_REPORT_ID                  0x1
-#define PAD_CONFIGURATION_REPORT_ID      0x2
-#define RESET_REPORT_ID                  0x3
-#define SAVE_CONFIGURATION_REPORT_ID     0x4
-#define NAME_REPORT_ID                   0x5
-#define UNUSED_ANALOG_JOYSTICK_REPORT_ID 0x6
-#define LIGHT_RULE_REPORT_ID             0x7
-#define FACTORY_RESET_REPORT_ID          0x8
-#define IDENTIFICATION_REPORT_ID         0x9
-#define LED_MAPPING_REPORT_ID            0xA
-#define SET_PROPERTY_REPORT_ID           0xB
-#define SENSOR_REPORT_ID      			 0xC
-#define DEBUG_REPORT_ID      	     	 0xD
-#define IDENTIFICATION_V2_REPORT_ID      0xE
-#define LIGHTS_REPORT_ID                 0xF
-
-
+enum REPORT_ID
+{
+    INPUT_REPORT_ID                  = 0x1,
+    PAD_CONFIGURATION_REPORT_ID      = 0x2,
+    RESET_REPORT_ID                  = 0x3,
+    SAVE_CONFIGURATION_REPORT_ID     = 0x4,
+    NAME_REPORT_ID                   = 0x5,
+    UNUSED_ANALOG_JOYSTICK_REPORT_ID = 0x6,
+    LIGHT_RULE_REPORT_ID             = 0x7,
+    FACTORY_RESET_REPORT_ID          = 0x8,
+    IDENTIFICATION_REPORT_ID         = 0x9,
+    LED_MAPPING_REPORT_ID            = 0xA,
+    SET_PROPERTY_REPORT_ID           = 0xB,
+    SENSOR_REPORT_ID      			 = 0xC,
+    DEBUG_REPORT_ID      	     	 = 0xD,
+    IDENTIFICATION_V2_REPORT_ID      = 0xE,
+    LIGHTS_REPORT_ID                 = 0xF,
+};
 
 // PAD
 

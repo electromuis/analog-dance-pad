@@ -347,7 +347,7 @@ public:
 		int pressedButtons = 0;
 		int inputsRead = 0;
 
-		for (int readsLeft = 1000; readsLeft > 0; --readsLeft)
+		for (int readsLeft = 1; readsLeft > 0; --readsLeft)
 		{
 			switch (myReporter->Get(report))
 			{
@@ -980,10 +980,10 @@ private:
 static ConnectionManager* connectionManager = nullptr;
 static bool searching = false;
 
-void Device::Connect(std::string host, std::string port)
+void Device::Connect(std::string url)
 {
-	auto reporter = make_unique<Reporter>(host, port);
-	connectionManager->ConnectToDeviceStage2(reporter, host + ":" + port);
+	auto reporter = make_unique<Reporter>(url);
+	connectionManager->ConnectToDeviceStage2(reporter, url);
 }
 
 void Device::Init()
@@ -1027,13 +1027,13 @@ DeviceChanges Device::Update()
 	if (device)
 	{
 		changes |= device->PopChanges();
-		/*
+		
 		if (!device->UpdateSensorValues())
 		{
 			connectionManager->DisconnectFailedDevice();
 			changes |= DCF_DEVICE;
 		}
-		*/
+		
 	}
 
 	return changes;

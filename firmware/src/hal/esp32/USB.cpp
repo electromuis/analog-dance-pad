@@ -70,7 +70,7 @@ void HAL_USB_Update()
 void USBPad::sendInputReport()
 {
     InputHIDReport report;
-    this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report));
+    this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report), 200U);
 }
 
 uint16_t USBPad::_onGetFeature(uint8_t report_id, uint8_t* buffer, uint16_t len)

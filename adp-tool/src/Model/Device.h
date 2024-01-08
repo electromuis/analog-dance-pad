@@ -101,7 +101,7 @@ struct LightsState
 class Device
 {
 public:
-	static void Connect(std::string host, std::string port);
+	static void Connect(std::string url);
 	
 	static void Init();
 

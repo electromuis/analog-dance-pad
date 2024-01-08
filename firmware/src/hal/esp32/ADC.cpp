@@ -1,6 +1,6 @@
 #include "../hal_ADC.hpp"
 #include <Arduino.h>
-#include "adp_pins.h"
+#include "adp_config.hpp"
 #include "Modules/ModuleConfig.hpp"
 #include "SPI.h"
 
@@ -45,6 +45,6 @@ void setDigipot(uint8_t sensorIndex)
 uint16_t HAL_ADC_ReadSensor(uint8_t sensorIndex)
 {
     setMuxer(sensorIndex);
-    setDigipot(sensorIndex);
+    // setDigipot(sensorIndex);
     return analogRead(PIN_ANALOG_IN);
 }

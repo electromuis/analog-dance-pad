@@ -176,20 +176,14 @@ void AdpApplication::MenuCallback()
 				ScanDevices();
 		#endif
 
-		if (ImGui::MenuItem("Disconnect"))
-			Device::Disconnect();
+		// if (ImGui::MenuItem("Disconnect"))
+		// 	Device::Disconnect();
 
 		static char addrBuffer[64] = { 0 };
-		ImGui::InputText("Device address", Device::NameBuffer(), 64);
+		ImGui::InputText("Device address", addrBuffer, 64);
 		ImGui::SameLine();
 		if (ImGui::Button("Connect")) {
-			string addressString = addrBuffer;
-			string host = addressString.substr(0, addressString.find(":"));
-			string port = addressString.substr(addressString.find(":") + 1);
-			if(port.empty())
-				port = "8080";
-
-			Device::Connect(host, port);
+			Device::Connect(std::string(addrBuffer));
 		}
 
 		bool scanEnabled = true;
@@ -283,7 +277,7 @@ void AdpApplication::RenderIdleTab()
 
 	#ifdef __EMSCRIPTEN__
 	if(ImGui::Button("Device select"))
-		device_scan_js();
+		ScanDevices();
 	#endif
 }
 
@@ -318,18 +312,12 @@ void AdpApplication::RenderLogTab()
 		ImGui::TextUnformatted(Log::Message(i).data());
 }
 
-#ifdef __EMSCRIPTEN__
 AdpApplication app;
-<<<<<<< HEAD
 
 void loop()
 {
 	app.Loop();
 }
-#endif
-
-=======
-void main_loop() { app.RunOnce(); }
 
 int Main(int argc, char** argv)
 {
@@ -338,40 +326,16 @@ int Main(int argc, char** argv)
 
 	Device::Init();
 
-	emscripten_set_main_loop(main_loop, 0, 1);
+	#ifdef __EMSCRIPTEN__
+  		emscripten_set_main_loop(loop, 0, 1);
+	#else
+		app.Run();
+	#endif
 
 	Device::Shutdown();
 	Log::Shutdown();
 
 	return 0;
 }
-#else
->>>>>>> origin/wasm
-int Main(int argc, char** argv)
-{
-	Log::Init();
-
-	auto versionString = fmt::format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
-	//auto now = fmt::format("{}", chrono::system_clock::now());
-	//Log::Writef("Application started: %s - %s", versionString.data(), now.data());
-
-	Device::Init();
-
-	
-
-#ifdef __EMSCRIPTEN__
-  	emscripten_set_main_loop(loop, 0, 1);
-#else
-	AdpApplication app;
-	app.Run();
-#endif
-	
-
-	Device::Shutdown();
-	Log::Shutdown();
-
-	return 0;
-}
-#endif
 
 }; // namespace adp.

@@ -12,8 +12,6 @@ const char globalBoardType[] = BOARD_TYPE;
 
 InputHIDReport::InputHIDReport()
 {
-    ModulePadInstance.UpdateStatus();
-
     // write buttons to the report
     for (int i = 0; i < BUTTON_COUNT; i++) {
         // trol https://stackoverflow.com/a/47990
@@ -25,7 +23,7 @@ InputHIDReport::InputHIDReport()
         sensorValues[i] = ModulePadInstance.sensorValues[i];
     }
 
-    ModuleLightsInstance.DataCycle();
+    //ModuleLightsInstance.DataCycle();
 }
 
 NameFeatureHIDReport::NameFeatureHIDReport()
