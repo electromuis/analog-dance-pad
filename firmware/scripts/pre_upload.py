@@ -16,6 +16,8 @@ except ImportError:
         )
     )
 
+    import hid
+
 def pre_program_action(source, target, env):
     RESET_REPORT_ID = 0x3
     USB_VID = 0x1209

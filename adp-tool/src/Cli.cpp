@@ -1,7 +1,11 @@
 #include "Adp.h"
 #include "Model/Log.h"
 #include "Model/Device.h"
+#include "Model/DeviceServer.h"
 
+#include <thread>
+#include <chrono>
+#include <memory>
 #include <fstream>
 #include <exception>
 #include "fmt/core.h"
@@ -128,6 +132,21 @@ void adp_profile_load(argparse::ArgumentParser& args)
     }
 }
 
+#ifdef DEVICE_SERVER_ENABLED
+void adp_server_run(argparse::ArgumentParser& args)
+{
+    if(!adp_connect()) {
+        return;
+    }
+
+    Device::ServerStart();
+    while(true) {
+        Device::Update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+#endif
+
 int main(int argc, char** argv)
 {
     Log::Init();
@@ -164,6 +183,12 @@ int main(int argc, char** argv)
         .default_value(std::string{"ALL"});
     program.add_subparser(profile_load_command);
 
+#ifdef DEVICE_SERVER_ENABLED
+    argparse::ArgumentParser server_run_command("server:run");
+    server_run_command.add_description("Run the adp device server");
+    program.add_subparser(server_run_command);
+#endif
+
      try {
         program.parse_args(argc, argv);
 
@@ -173,6 +198,10 @@ int main(int argc, char** argv)
             adp_profile_save(profile_save_command);
         } else if(program.is_subcommand_used("profile:load")) {
             adp_profile_load(profile_load_command);
+#ifdef DEVICE_SERVER_ENABLED
+        } else if(program.is_subcommand_used("server:run")) {
+            adp_server_run(server_run_command);
+#endif
         } else {
             throw std::runtime_error("Subcommand required");
         }

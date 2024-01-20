@@ -671,6 +671,13 @@ public:
         myChanges |= type;
 	}
 
+#ifdef DEVICE_SERVER_ENABLED
+	void ServerStart()
+	{
+		myReporter->ServerStart();
+	}
+#endif
+
 private:
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
@@ -980,11 +987,13 @@ private:
 static ConnectionManager* connectionManager = nullptr;
 static bool searching = false;
 
+#ifdef DEVICE_CLIENT_ENABLED
 void Device::Connect(std::string url)
 {
 	auto reporter = make_unique<Reporter>(url);
 	connectionManager->ConnectToDeviceStage2(reporter, url);
 }
+#endif
 
 void Device::Init()
 {
@@ -1000,6 +1009,14 @@ void Device::Init()
 
 	// searching = true;
 }
+
+#ifdef DEVICE_SERVER_ENABLED
+void Device::ServerStart()
+{
+	auto device = connectionManager->ConnectedDevice();
+	if (device) device->ServerStart();
+}
+#endif
 
 void Device::Shutdown()
 {

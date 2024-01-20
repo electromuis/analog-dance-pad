@@ -162,11 +162,13 @@ Reporter::Reporter(hid_device* device)
 	
 }
 
+#ifdef DEVICE_CLIENT_ENABLED
 Reporter::Reporter(std::string url)
 	:backend(ReporterBackendWsCreate(url))
 {
 
 }
+#endif
 
 Reporter::Reporter()
 {
@@ -177,6 +179,18 @@ Reporter::~Reporter()
 {
 	
 }
+
+#ifdef DEVICE_SERVER_ENABLED
+bool Reporter::ServerStart()
+{
+	if (deviceServer)
+		return false;
+
+	deviceServer.reset(DeviceServerCreate(*backend));
+
+	return true;
+}
+#endif
 
 ReadDataResult Reporter::Get(SensorValuesReport& report)
 {

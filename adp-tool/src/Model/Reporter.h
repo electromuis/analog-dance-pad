@@ -183,9 +183,15 @@ class Reporter
 {
 public:
 	Reporter(hid_device* device);
+	#ifdef DEVICE_CLIENT_ENABLED
 	Reporter(std::string url);
+	#endif
 	Reporter();
 	~Reporter();
+
+#ifdef DEVICE_SERVER_ENABLED
+	bool ServerStart();
+#endif
 
 	ReadDataResult Get(SensorValuesReport& report);
 	bool Get(PadConfigurationReport& report);

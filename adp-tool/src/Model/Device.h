@@ -101,7 +101,9 @@ struct LightsState
 class Device
 {
 public:
+	#ifdef DEVICE_CLIENT_ENABLED
 	static void Connect(std::string url);
+	#endif
 	
 	static void Init();
 
@@ -150,6 +152,10 @@ public:
 	static void LoadProfile(json& j, DeviceProfileGroups groups);
 
 	static void SaveProfile(json& j, DeviceProfileGroups groups);
+
+#ifdef DEVICE_SERVER_ENABLED
+	static void ServerStart();
+#endif
 
 	static void SetSearching(bool s);
 };
