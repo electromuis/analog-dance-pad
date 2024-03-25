@@ -14,7 +14,7 @@
 
 
 
-static const unsigned char sensorToAnalogPin[SENSOR_COUNT] = {
+static const unsigned char sensorToAnalogPin[SENSOR_COUNT_V1] = {
 #if defined(BOARD_TYPE_FSRIO_1)	
     0b000111, //ADC7 A0
 	0b000110, //ADC6 A1

@@ -4,22 +4,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 project(adp-tool VERSION 2.0)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
-# Load dependencies start
-# include(lib/git.cmake)
+add_subdirectory(lib)
 
-add_subdirectory (lib/fmt)
-include(lib/imgui.cmake)
-include(lib/hidapi.cmake)
-include(lib/asio.cmake)
-# include_directories(
-# 	"${CMAKE_CURRENT_SOURCE_DIR}/lib/hidapi/hidapi"
-# )
+find_package(fmt REQUIRED)
+find_package(imgui REQUIRED)
+find_package(libzippp REQUIRED)
+find_package(unofficial-nativefiledialog REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(Stb REQUIRED)
+find_package(argparse REQUIRED)
 
-if(NOT EMSCRIPTEN)
-	add_subdirectory (lib/avrdude)
-	include(lib/nfd.cmake)
-	include(lib/serial.cmake)
-else()
+if(EMSCRIPTEN)
 	set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
 	set(EM_FLAGS " -lwebsocket.js -O3 -s ALLOW_MEMORY_GROWTH -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
@@ -36,18 +31,21 @@ add_definitions (-D_WEBSOCKETPP_CPP11_MEMORY_)
 add_definitions (-D_WEBSOCKETPP_CPP11_TYPE_TRAITS_)
 add_definitions (-D_WEBSOCKETPP_CPP11_THREAD_)
 
+# find_path(SYSTEM_INCLUDE_DIR zlib.h)
+
 include_directories(
-	"lib/stb_image"
 	"lib/avrdude"
 	"lib/argparse"
-	"lib/json/single_include"
-	"lib/websocketpp"
-	"src")
+	"src"
+	# ${SYSTEM_INCLUDE_DIR}
+)
 
 set(GLOBAL_LIBS
-	# asio
 	hidapi
-	fmt)
+	fmt::fmt
+	libzippp::libzippp
+	nlohmann_json::nlohmann_json
+	esp_serial)
 
 if(NOT EMSCRIPTEN)
 	list(APPEND GLOBAL_LIBS avrdude serial)
@@ -98,11 +96,13 @@ set(GUI_SOURCES
 
 set(GUI_LIBS
 	${GLOBAL_LIBS}
-	imgui)
+	opengl32
+	imgui::imgui
+	unofficial::nativefiledialog::nfd)
 
-if(NOT EMSCRIPTEN)
-	list(APPEND GUI_LIBS nfd)
-endif()
+# if(NOT EMSCRIPTEN)
+# 	list(APPEND GUI_LIBS)
+# endif()
 
 # if(WIN32) list(APPEND sources "src/Assets/Resource.rc") endif()
 
@@ -135,7 +135,7 @@ target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
 set_target_properties("adp-cli" PROPERTIES
 	CXX_STANDARD 20
 	CXX_EXTENSIONS OFF)
-target_link_libraries("adp-cli" ${GLOBAL_LIBS})
+target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse)
 if(EMSCRIPTEN)
 	set_target_properties("adp-cli" PROPERTIES LINK_FLAGS ${EM_FLAGS})
 else()

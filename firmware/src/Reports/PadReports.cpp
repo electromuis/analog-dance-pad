@@ -70,19 +70,22 @@ void SetPropertyHIDReport::Process()
     switch (propertyId)
     {
     case SPID_SELECTED_LIGHT_RULE_INDEX:
-        ModuleLightsInstance.selectedLightRuleIndex = (uint8_t)propertyValue;
+        if(propertyValue < MAX_LIGHT_RULES)
+            ModuleLightsInstance.selectedLightRuleIndex = (uint8_t)propertyValue;
         break;
 
     case SPID_SELECTED_LED_MAPPING_INDEX:
-        ModuleLightsInstance.selectedLedMappingIndex = (uint8_t)propertyValue;
+        if(propertyValue < MAX_LED_MAPPINGS)
+            ModuleLightsInstance.selectedLedMappingIndex = (uint8_t)propertyValue;
         break;
 
     case SPID_SELECTED_SENSOR_INDEX:
-        ModulePadInstance.selectedSensorIndex = (uint8_t)propertyValue;
+        if(propertyValue < SENSOR_COUNT)
+            ModulePadInstance.selectedSensorIndex = (uint8_t)propertyValue;
         break;
     // case SPID_SENSOR_CAL_PRELOAD:
     //     PAD_CONF.selectedSensorIndex = (uint8_t)propertyValue;
-    //     if (PAD_CONF.selectedSensorIndex < SENSOR_COUNT)
+    //     if (PAD_CONF.selectedSensorIndex < SENSOR_COUNT_V1)
     //     {
     //         configuration.padConfiguration.sensors[PAD_CONF.selectedSensorIndex].preload = 0;
             

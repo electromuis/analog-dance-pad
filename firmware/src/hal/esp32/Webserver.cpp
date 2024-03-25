@@ -1,4 +1,4 @@
-#ifdef FEATURE_LIGHTS_ENABLED
+#ifdef FEATURE_WEB_SERVER
 
 
 #include <Arduino.h>

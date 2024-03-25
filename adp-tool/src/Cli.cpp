@@ -2,6 +2,7 @@
 #include "Model/Log.h"
 #include "Model/Device.h"
 #include "Model/DeviceServer.h"
+#include "Model/Firmware.h"
 
 #include <thread>
 #include <chrono>
@@ -9,7 +10,7 @@
 #include <fstream>
 #include <exception>
 #include "fmt/core.h"
-#include "argparse.hpp"
+#include "argparse/argparse.hpp"
 
 using namespace std;
 using namespace adp;
@@ -132,6 +133,34 @@ void adp_profile_load(argparse::ArgumentParser& args)
     }
 }
 
+void adp_firmware_flash(argparse::ArgumentParser& args)
+{
+    FirmwareUploader uploader;
+    uploader.SetIgnoreBoardType(true);
+
+    uploader.SetPort(args.get<std::string>("-port"));
+    std::string type = args.get<std::string>("-type");
+    std::string fileName = args.get<std::string>("-file");
+
+    FlashResult result;
+
+    if(type == "AVR") {
+        result = uploader.WriteFirmwareAvr(fileName);
+    }
+    else if(type == "ESP") {
+        result = uploader.WriteFirmwareEsp(fileName);
+    }
+    else {
+        throw std::runtime_error("Invalid device type");
+    }
+
+}
+
+void adp_firmware_update(argparse::ArgumentParser& args)
+{
+
+}
+
 #ifdef DEVICE_SERVER_ENABLED
 void adp_server_run(argparse::ArgumentParser& args)
 {
@@ -183,6 +212,22 @@ int main(int argc, char** argv)
         .default_value(std::string{"ALL"});
     program.add_subparser(profile_load_command);
 
+    argparse::ArgumentParser firmware_flash_command("firmware:flash");
+    firmware_flash_command.add_description("Flash firmware to a device");
+    firmware_flash_command.add_argument("-file")
+        .help(".hex/.bin file location");
+    firmware_flash_command.add_argument("-type")
+        .help("device type (AVR, ESP)");
+    firmware_flash_command.add_argument("-port")
+        .help("serial port to use");
+    program.add_subparser(firmware_flash_command);
+
+    argparse::ArgumentParser firmware_update_command("firmware:update");
+    firmware_update_command.add_description("Update the firmware of the connected device");
+    firmware_update_command.add_argument("-file")
+        .help(".hex/.bin file location");
+    program.add_subparser(firmware_update_command);
+
 #ifdef DEVICE_SERVER_ENABLED
     argparse::ArgumentParser server_run_command("server:run");
     server_run_command.add_description("Run the adp device server");
@@ -202,6 +247,10 @@ int main(int argc, char** argv)
         } else if(program.is_subcommand_used("server:run")) {
             adp_server_run(server_run_command);
 #endif
+        } else if(program.is_subcommand_used("firmware:flash")) {
+            adp_firmware_flash(firmware_flash_command);
+        } else if(program.is_subcommand_used("firmware:update")) {
+            adp_firmware_update(firmware_update_command);
         } else {
             throw std::runtime_error("Subcommand required");
         }

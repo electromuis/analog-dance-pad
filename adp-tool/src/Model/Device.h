@@ -149,6 +149,14 @@ public:
 
 	static void SaveChanges();
 
+	static int DeviceNumber();
+
+	static std::string GetDeviceName(int index);
+
+	static bool DeviceSelect(int index);
+
+	static int DeviceSelected();
+
 	static void LoadProfile(json& j, DeviceProfileGroups groups);
 
 	static void SaveProfile(json& j, DeviceProfileGroups groups);

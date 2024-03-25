@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <chrono>
+#include <ctime>
 
 #include <Model/Device.h>
 #include <Model/Log.h>
@@ -192,6 +193,21 @@ void AdpApplication::MenuCallback()
 		if (ImGui::MenuItem("Enable scan", nullptr, &scanEnabled))
 			Device::SetSearching(scanEnabled);
 
+		if(Device::DeviceNumber() > 0)
+		{
+			ImGui::Separator();
+			for (int i = 0; i < Device::DeviceNumber(); ++i)
+			{
+				auto name = Device::GetDeviceName(i);
+				if (ImGui::RadioButton(name.data(), Device::DeviceSelected() == i))
+					Device::DeviceSelect(i);
+			}
+		}
+		else
+		{
+			ImGui::MenuItem("No devices found", nullptr, nullptr, false);
+		}
+
 		ImGui::EndMenu();
 	}
 }
@@ -324,7 +340,12 @@ void loop()
 int Main(int argc, char** argv)
 {
 	Log::Init();
+
 	auto versionString = fmt::format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+	auto now = std::time(0);
+	std::string datetime = std::ctime(&now);
+	Log::Writef("Application started: %s", versionString.data());
+	Log::Writef("Starting at: %s", datetime.data());
 
 	Device::Init();
 

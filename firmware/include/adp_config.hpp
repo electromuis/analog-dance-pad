@@ -1,7 +1,7 @@
 #pragma once
 
-#define FIRMWARE_VERSION_MAJOR 1
-#define FIRMWARE_VERSION_MINOR 5
+#define FIRMWARE_VERSION_MAJOR 2
+#define FIRMWARE_VERSION_MINOR 0
 
 #define FEATURE_DEBUG 1 << 0
 #define FEATURE_DIGIPOT 1 << 1
@@ -9,8 +9,8 @@
 #define FEATURE_WEBSERVER 1 << 3
 #define FEATURE_RTOS 1 << 4
 
-#ifdef ARDUINO_ARCH_ESP32
-    #include "adp_config_esp32.hpp"
-#else
-    #include "adp_config_m32u4.hpp"
-#endif
+
+#define SENSOR_COUNT_V1 12
+
+#include "adp_pins.h"
+#include "adp_config_child.h"

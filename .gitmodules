@@ -28,3 +28,15 @@
 [submodule "adp-tool/lib/websocketpp"]
 	path = adp-tool/lib/websocketpp
 	url = https://github.com/zaphoyd/websocketpp
+[submodule "adp-tool/lib/esp-serial-flasher"]
+	path = adp-tool/lib/esp-serial-flasher
+	url = https://github.com/espressif/esp-serial-flasher
+[submodule "adp-tool/lib/libzip"]
+	path = adp-tool/lib/libzip
+	url = https://github.com/nih-at/libzip
+[submodule "adp-tool/lib/libzippp"]
+	path = adp-tool/lib/libzippp
+	url = https://github.com/ctabin/libzippp
+[submodule "adp-tool/lib/zlib"]
+	path = adp-tool/lib/zlib
+	url = https://github.com/madler/zlib

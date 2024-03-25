@@ -2,7 +2,7 @@
 #include <EEPROM.h>
 #include "Structs.hpp"
 
-const ssize_t EEPROM_SIZE = sizeof(Configuration) + 128;
+const ssize_t EEPROM_SIZE = sizeof(Configuration) + 32;
 
 void HAL_EEPROM_Init()
 {

@@ -83,6 +83,17 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "esp_loader.h": "c",
+        "queue": "c",
+        "ranges": "c",
+        "regex": "c",
+        "*.ipp": "c",
+        "protocol.h": "c",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "coroutine": "cpp",
+        "future": "cpp",
+        "source_location": "cpp"
     }
 }

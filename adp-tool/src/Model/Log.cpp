@@ -14,10 +14,16 @@ using namespace std;
 namespace adp {
 
 static vector<string>* messages = nullptr;
+static bool enabled = true;
 
 void Log::Init()
 {
 	messages = new vector<string>();
+}
+
+void Log::SetEnabled(bool enabled)
+{
+	enabled = enabled;
 }
 
 void Log::Shutdown()
@@ -28,12 +34,18 @@ void Log::Shutdown()
 
 void Log::Write(const char* message)
 {
+	if (!enabled)
+		return;
+
 	messages->emplace_back(message);
 	cout << message << endl;
 }
 
 void Log::Writef(const char* format, ...)
 {
+	if (!enabled)
+		return;
+
 	char buffer[256];
 	va_list args;
 	va_start(args, format);

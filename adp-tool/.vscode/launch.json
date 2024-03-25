@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(msvc) Launch",
+            "name": "(msvc) Test profile load",
             "type": "cppvsdbg",
             "request": "launch",
             // Resolved by CMake Tools:
@@ -16,6 +16,27 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal"
-        }
+        },
+
+        {
+            "name": "(msvc) Test firmware flash",
+            "type": "cppvsdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "firmware:flash",
+                "-type",
+                "ESP",
+                "-port",
+                "COM11",
+                "-file",
+                "C:\\dev\\analog-dance-pad\\firmware\\.pio\\build\\esp32-s3"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
     ]
 }

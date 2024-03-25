@@ -51,7 +51,7 @@ static void ConfigModal()
     
     if (ImGui::BeginPopupModal("Sensor config", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
-        auto sensorText = fmt::format("Sensor {}", selectedSensor);
+        auto sensorText = fmt::format("Sensor {}", selectedSensor+1);
         ImGui::TextUnformatted(sensorText.data());
 
         RenderSensorBar(selectedSensor);
@@ -81,7 +81,7 @@ void MappingTab::Render()
 
     for (int i = 0; i < pad->numSensors; ++i)
     {
-        auto sensorText = fmt::format("Sensor {}", i);
+        auto sensorText = fmt::format("Sensor {}", i+1);
         auto itemId = ImGui::GetID(sensorText.c_str());
         ImGui::PushID(itemId);
 

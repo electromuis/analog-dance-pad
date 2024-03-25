@@ -6,9 +6,9 @@
 // Backwards compatibility
 
 typedef struct {
-    uint16_t sensorThresholds[SENSOR_COUNT];
+    uint16_t sensorThresholds[SENSOR_COUNT_V1];
     float releaseMultiplier;
-    int8_t sensorToButtonMapping[SENSOR_COUNT];
+    int8_t sensorToButtonMapping[SENSOR_COUNT_V1];
 } __attribute__((packed)) PadConfigurationV1;
 
 typedef struct {

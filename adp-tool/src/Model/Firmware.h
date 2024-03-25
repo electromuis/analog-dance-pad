@@ -24,12 +24,15 @@ enum BoardType {
 	BOARD_FSRMINIPAD_V2,
 	BOARD_TEENSY2,
 	BOARD_LEONARDO,
-	BOARD_FSRIO_V1
+	BOARD_FSRIO_V1,
+	BOARD_FSRIO_V2,
+	BOARD_FSRIO_V3,
 };
 
 enum FlashResult
 {
 	FLASHRESULT_NOTHING,
+	FLASHRESULT_CONNECTED,
 	FLASHRESULT_SUCCESS,
 	FLASHRESULT_FAILURE,
 	FLASHRESULT_FAILURE_BOARDTYPE,
@@ -53,6 +56,8 @@ class FirmwareUploader
 {
 public:
 	FlashResult UpdateFirmware(std::string fileName);
+	FlashResult ConnectDevice();
+	bool SetPort(std::string portName);
 	void SetIgnoreBoardType(bool ignoreBoardType);
 	void WritingDone(int exitCode);
 	std::string GetErrorMessage();
@@ -61,8 +66,10 @@ public:
 
 	AvrDude::Ptr myAvrdude;
 
+	FlashResult WriteFirmwareAvr(std::string fileName);
+	FlashResult WriteFirmwareEsp(std::string fileName);
+
 private:
-	FlashResult WriteFirmware();
 
 	PortInfo comPort;
 	std::string firmwareFile;

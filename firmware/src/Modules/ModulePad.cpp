@@ -43,6 +43,8 @@ void ModulePad::UpdateStatus()
                     break;
                 }
             }
+
+            sensorStates[j] = newButtonPressedState;
         }
 
         buttonsPressed[i] = newButtonPressedState;

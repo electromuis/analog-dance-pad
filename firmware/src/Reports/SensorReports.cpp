@@ -10,7 +10,7 @@ PadConfigurationFeatureHIDReport::PadConfigurationFeatureHIDReport()
         configuration.padConfiguration.sensors[0].threshold /
         configuration.padConfiguration.sensors[0].releaseThreshold;
 		
-    for (int s = 0; s < SENSOR_COUNT; s++) {
+    for (int s = 0; s < SENSOR_COUNT_V1; s++) {
         reportConfiguration.sensorThresholds[s] = configuration.padConfiguration.sensors[s].threshold;
         reportConfiguration.sensorToButtonMapping[s] = configuration.padConfiguration.sensors[s].buttonMapping;
     }
@@ -18,7 +18,7 @@ PadConfigurationFeatureHIDReport::PadConfigurationFeatureHIDReport()
 
 void PadConfigurationFeatureHIDReport::Process()
 {
-    for (int s = 0; s < SENSOR_COUNT; s++) {
+    for (int s = 0; s < SENSOR_COUNT_V1; s++) {
         configuration.padConfiguration.sensors[s].threshold = reportConfiguration.sensorThresholds[s];
         configuration.padConfiguration.sensors[s].releaseThreshold = reportConfiguration.sensorThresholds[s] * reportConfiguration.releaseMultiplier;
         configuration.padConfiguration.sensors[s].buttonMapping = reportConfiguration.sensorToButtonMapping[s];

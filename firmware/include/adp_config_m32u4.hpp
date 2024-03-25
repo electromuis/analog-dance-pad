@@ -20,7 +20,7 @@
 
 // this value doesn't mean we're reading all these sensors.
 // teensy 2.0 has 12 analog sensors, so that's what we use.
-#define SENSOR_COUNT 12
+#define SENSOR_COUNT_V1 12
 
 #define MAX_LIGHT_RULES 16
 #define MAX_LED_MAPPINGS 16

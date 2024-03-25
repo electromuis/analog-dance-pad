@@ -1,0 +1,23 @@
+{
+  "dependencies": [
+    "asio",
+    "fmt",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "glfw-binding",
+        "opengl3-binding"
+      ]
+    },
+    "libzippp",
+    "nativefiledialog",
+    "nlohmann-json",
+    "stb",
+    {
+      "name": "websocketpp",
+      "default-features": false
+    },
+    "argparse"
+  ]
+}

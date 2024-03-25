@@ -18,8 +18,8 @@ ModuleWebserver ModuleWebserverInstance;
 #endif
 
 Module* modules[] = {
-    &ModuleUSBInstance,
     &ModuleConfigInstance,
+    &ModuleUSBInstance,
     &ModulePadInstance,
     &ModuleLightsInstance
 #ifdef FEATURE_WEBSERVER_ENABLED

@@ -1,3 +1,4 @@
+#include "adp_config.hpp"
 #include "ModuleConfig.hpp"
 // #include "DefaultConfig.hpp"
 #include "hal/hal_EEPROM.hpp"
@@ -11,7 +12,7 @@ extern const Configuration DEFAULT_CONFIGURATION;
 
 Configuration configuration;
 
-static const uint8_t magicBytes[5] = {9, 63, 9, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
+static const uint8_t magicBytes[5] = {9, 62, SENSOR_COUNT, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
 #define MAGIC_BYTES_ADDRESS ((uint16_t) 0x00)
 #define CONFIGURATION_ADDRESS ((uint16_t) (MAGIC_BYTES_ADDRESS + (uint16_t)sizeof (magicBytes)))
 
@@ -23,7 +24,7 @@ void ModuleConfig::Setup()
 
 void ModuleConfig::LoadDefaults()
 {
-    configuration = DEFAULT_CONFIGURATION;
+    memcpy(&configuration, &DEFAULT_CONFIGURATION, sizeof (Configuration));
     Save();
 }
 
