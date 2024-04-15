@@ -1,0 +1,67 @@
+#define PIN_MUX_1   DDD1
+#define PIN_MUX_2   DDD0
+#define PIN_MUX_3   DDC6
+#define PIN_MUX_4   DDE6
+#define PIN_POT_CS  DDB6
+
+#define REG_MUX_1   PORTD
+#define REG_MUX_2   PORTD
+#define REG_MUX_3   PORTC
+#define REG_MUX_4   PORTE
+#define REG_POT_CS  PORTB
+
+#define PIN_SPI_MOSI    11
+#define PIN_SPI_MISO    13
+#define PIN_SPI_SCK     12
+#define PIN_SPI_POT_CS  14
+
+#define PIN_ANALOG_IN 5
+
+#define PIN_LED_POWER 2
+#define REG_LED_POWER 2
+#define PORT_LED_POWER 2
+
+#define PIN_LED_DATA 3
+#define REG_LED_DATA 3
+#define PORT_LED_DATA 3
+
+#define ADC_REG_ADC0 0b000000
+#define ADC_REG_ADC1 0b000001
+#define ADC_REG_ADC4 0b000100
+#define ADC_REG_ADC5 0b000101
+#define ADC_REG_ADC6 0b000110
+#define ADC_REG_ADC7 0b000111
+#define ADC_REG_ADC8 0b100000
+#define ADC_REG_ADC9 0b100001
+#define ADC_REG_ADC10 0b100010
+#define ADC_REG_ADC11 0b100011
+#define ADC_REG_ADC12 0b100100
+#define ADC_REG_ADC13 0b100101
+
+#define ADC_REG_A5 ADC_REG_ADC0
+#define ADC_REG_A4 ADC_REG_ADC1
+#define ADC_REG_A3 ADC_REG_ADC4
+#define ADC_REG_A2 ADC_REG_ADC5
+#define ADC_REG_A1 ADC_REG_ADC6
+#define ADC_REG_A0 ADC_REG_ADC7
+#define ADC_REG_A6 ADC_REG_ADC8
+#define ADC_REG_A7 ADC_REG_ADC10
+#define ADC_REG_A8 ADC_REG_ADC11
+#define ADC_REG_A9 ADC_REG_ADC12
+#define ADC_REG_A10 ADC_REG_ADC13
+
+static const unsigned char sensorToAnalogPin[SENSOR_COUNT_V1] = {
+    ADC_REG_A0,
+    ADC_REG_A1,
+    ADC_REG_A2,
+    ADC_REG_A3,
+    ADC_REG_A4,
+    ADC_REG_A5,
+    ADC_REG_A6,
+    ADC_REG_A7,
+	
+	0b111111,
+	0b111111,
+	0b111111,
+	0b111111
+};

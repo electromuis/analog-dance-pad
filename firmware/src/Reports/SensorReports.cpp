@@ -29,9 +29,9 @@ SensorHIDReport::SensorHIDReport()
 {
     index = ModulePadInstance.selectedSensorIndex;
     if (index < SENSOR_COUNT)
-        memcpy(&sensor, &configuration.padConfiguration.sensors[index], sizeof(SensorConfig));
+        memcpy(&sensor, &configuration.padConfiguration.sensors[index], sizeof(SensorConfigV13));
     else
-        memset(&sensor, 0, sizeof(SensorConfig));
+        memset(&sensor, 0, sizeof(SensorConfigV13));
 }
 
 void SensorHIDReport::Process()

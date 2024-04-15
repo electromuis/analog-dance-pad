@@ -6,9 +6,7 @@
 #include <fstream>
 #include <fmt/core.h>
 
-#include "serial_port.h"
-#include "esp_loader.h"
-#include "esp_loader_io.h"
+#include "libzippp.h"
 
 #include <Model/Firmware.h>
 #include <Model/Device.h>
@@ -20,57 +18,262 @@ using namespace chrono;
 
 namespace adp {
 
-BoardType ParseBoardType(const std::string& str)
+size_t split_str(const std::string &txt, std::vector<std::string> &strs, char ch)
 {
-	if (str == "fsrio1") { return BOARD_FSRIO_V1; }
+    size_t pos = txt.find( ch );
+    size_t initialPos = 0;
+    strs.clear();
+
+    // Decompose statement
+    while( pos != std::string::npos ) {
+        strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+        initialPos = pos + 1;
+
+        pos = txt.find( ch, initialPos );
+    }
+
+    // Add the last one
+    strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+    return strs.size();
+}
+
+// BoardTypeStruct
+
+BoardTypeStruct::BoardTypeStruct(std::string boardType)
+{
+	std::vector<std::string> pts;
+	split_str(boardType, pts, '_');
+	if(pts.size() == 1)
+	{
+		archType = ARCH_AVR;
+		boardType = ParseBoardType(pts[0]);
+	}
+	else if(pts.size() == 2)
+	{
+		archType = ParseArchType(pts[0]);
+		boardType = ParseBoardType(pts[1]);
+	}
+}
+
+ArchType BoardTypeStruct::ParseArchType(const std::string& str)
+{
+	if (str == "avr" || str == "m32u4")
+		return ARCH_AVR;
+	
+	if (str == "esp" || str == "esp32s3")
+		return ARCH_ESP;
+	
+	if (str == "avrard") { return ARCH_AVR_ARD; }
+	
+	return ARCH_UNKNOWN;
+}
+
+BoardType BoardTypeStruct::ParseBoardType(const std::string& str)
+{
+	if (str == "fsrio1" || str == "fsriov1")
+		return BOARD_FSRIO_V1;
+	if (str == "fsrio2" || str == "fsriov2")
+		return BOARD_FSRIO_V2;
+	if (str == "fsrio3" || str == "fsriov3")
+		return BOARD_FSRIO_V3;
+
 	if (str == "fsrminipad") { return BOARD_FSRMINIPAD; }
 	if (str == "teensy2") { return BOARD_TEENSY2; }
 	if (str == "leonardo") { return BOARD_LEONARDO; }
-	if (str == "fsriov2") { return BOARD_LEONARDO; }
-	if (str == "FSRio V3") { return BOARD_FSRIO_V3; }
-	if (str == "leonardo") { return BOARD_LEONARDO; }
-	else { return BOARD_UNKNOWN; }
+	
+	return BOARD_UNKNOWN;
 }
 
-const char* BoardTypeToString(BoardType boardType, bool firmwareFile)
+bool BoardTypeStruct::CompatibleWith(BoardTypeStruct other, bool strict) const
 {
-	if (boardType == BOARD_FSRIO_V1) {
-		return firmwareFile ? "FSRioV1" : "FSRio V1";
-	}
+	ArchType compArchType = other.archType;
+	if(compArchType == ARCH_AVR_ARD)
+		compArchType = ARCH_AVR;
 
-	if (boardType == BOARD_FSRMINIPAD) {
-		return firmwareFile ? "FSRMiniPad" : "FSR Mini pad";
-	}
+	if (archType != compArchType)
+		return false;
 
-	if (boardType == BOARD_FSRMINIPAD_V2) {
-		return firmwareFile ? "FSRMiniPadV2" : "FSR Mini pad V2";
-	}
+	if (strict && boardType != other.boardType)
+		return false;
 
-	if (boardType == BOARD_TEENSY2) {
-		return firmwareFile ? "Teensy2" : "Teensy 2";
-	}
-
-	if (boardType == BOARD_LEONARDO) {
-		return firmwareFile ? "Generic" : "Arduino leonardo/pro micro";
-	}
-
-	if(boardType == BOARD_FSRIO_V3) {
-		return firmwareFile ? "FSRioV3" : "FSRio V3";
-	}
-
-	return "Unknown";
+	return true;
 }
 
-const char* BoardTypeToString(BoardType boardType)
+std::string BoardTypeStruct::ToString() const
 {
-	return BoardTypeToString(boardType, false);
+	std::string ret = "";
+
+	switch (archType)
+	{
+		case ARCH_AVR:
+		case ARCH_AVR_ARD:
+			ret += "avr_";
+			break;
+		case ARCH_ESP:
+			ret += "esp_";
+			break;
+	}
+
+	switch (boardType)
+	{
+		case BOARD_FSRIO_V1:
+			ret += "fsrio1";
+			break;
+		case BOARD_FSRIO_V2:
+			ret += "fsriov2";
+			break;
+		case BOARD_FSRIO_V3:
+			ret += "fsriov3";
+			break;
+		case BOARD_FSRMINIPAD:
+			ret += "fsrminipad";
+			break;
+		default:
+			ret += "unknown";
+	}
+
+	return ret;
+}
+
+// FirmwarePackage
+
+class FirmwarePackageImpl : public FirmwarePackage
+{
+public:
+	FirmwarePackageImpl(std::string fileName)
+	:zipFile(fileName), fileName(fileName)
+	{
+		if(!zipFile.open(libzippp::ZipArchive::ReadOnly))
+			throw std::runtime_error("Could not open firmware file.");
+
+		auto btEntry = zipFile.getEntry("boardtype.txt");
+		if(btEntry.isNull())
+			throw std::runtime_error("Could not read boardtype.txt");
+		
+		btEntry.readAsText();
+		std::stringstream btBuffer;
+		btEntry.readContent(btBuffer);
+		std::string boardTypeStr = btBuffer.str();
+		boardType = BoardTypeStruct(boardTypeStr);
+		if(boardType.archType == ARCH_UNKNOWN || boardType.boardType == BOARD_UNKNOWN)
+			throw std::runtime_error("Invalid board type.");
+	}
+
+	bool ReadFile(std::string fileName, std::vector<uint8_t>& buffer) override
+	{
+		auto zippedFile = zipFile.getEntry(fileName);
+		if(zippedFile.isNull())
+			return false;
+		zippedFile.readAsBinary();
+		std::stringstream fileBuffer;
+		zippedFile.readContent(fileBuffer);
+		fileBuffer.seekg(0, std::ios::end);
+		buffer.resize(fileBuffer.tellp());
+		memcpy(buffer.data(), fileBuffer.str().c_str(), buffer.size());
+		return true;
+	}
+
+	BoardTypeStruct GetBoardType() override
+	{
+		return boardType;
+	}
+
+	std::string GetFileName() override
+	{
+		return fileName;
+	}
+
+protected:
+	BoardTypeStruct boardType;
+	std::string fileName;
+	libzippp::ZipArchive zipFile;
+};
+
+FirmwarePackagePtr FirmwarePackageRead(std::string fileName)
+{
+	return std::make_shared<FirmwarePackageImpl>(fileName);
+}
+
+// FirmwareUploader
+
+bool FlashEsp32(PortInfo& port, FirmwarePackagePtr firmware, FirmwareCallback callback);
+bool FlashAvr(PortInfo& port, FirmwarePackagePtr firmware, FirmwareCallback callback, bool raw = false);
+
+FlashResult FirmwareUploader::WriteFirmware(FirmwarePackagePtr package)
+{
+	if(flashResult != FLASHRESULT_CONNECTED)
+	{
+		errorMessage = "Not connected to a device";
+		return FLASHRESULT_FAILURE;
+	}
+
+	if(!package->GetBoardType().CompatibleWith(connectedBoardType, !this->ignoreBoardType))
+	{
+		errorMessage = "Firmware is not compatible with the connected device";
+		Log::Writef("Package type: %s - Connected type: %s", package->GetBoardType().ToString().c_str(), connectedBoardType.ToString().c_str());
+		return FLASHRESULT_FAILURE;
+	}
+
+	Device::SetSearching(false);
+	flashResult = FLASHRESULT_RUNNING;
+
+	FirmwareCallback callback = [this](FlashResult event, std::string message, int progress)
+	{
+		if(event == FLASHRESULT_SUCCESS)
+		{
+			flashResult = FLASHRESULT_SUCCESS;
+		}
+		// else if(event == FLASHRESULT_FAILURE)
+		// {
+		// 	flashResult = FLASHRESULT_FAILURE;
+		// 	errorMessage = message;
+		// }
+		else if(event == FLASHRESULT_PROGRESS)
+		{
+			this->progress = progress;
+		}
+	};
+
+	bool result = false;
+
+	if(connectedBoardType.archType == ARCH_ESP)
+	{
+		result = FlashEsp32(comPort, package, callback);
+	}
+	else if(connectedBoardType.archType == ARCH_AVR)
+	{
+		result = FlashAvr(comPort, package, callback);
+	}
+	else if(connectedBoardType.archType == ARCH_AVR_ARD)
+	{
+		result = FlashAvr(comPort, package, callback, true);
+	}
+	else
+	{
+		errorMessage = "Unsupported architecture";
+		return FLASHRESULT_FAILURE;
+	}
+
+	if(!result)
+	{
+		errorMessage = "Could not flash firmware";
+		return FLASHRESULT_FAILURE;
+	}
+
+	return FLASHRESULT_SUCCESS;
 }
 
 
-FlashResult FirmwareUploader::UpdateFirmware(string fileName)
+FlashResult FirmwareUploader::WriteFirmwareThreaded(FirmwarePackagePtr package)
 {
-	this->firmwareFile = fileName;
-	return FLASHRESULT_NOTHING;
+	thread = std::thread([this, package]()
+	{
+		flashResult = WriteFirmware(package);
+		WritingDone(0);
+	});
+
+	return FLASHRESULT_RUNNING;
 }
 
 FlashResult FirmwareUploader::ConnectDevice()
@@ -86,52 +289,14 @@ FlashResult FirmwareUploader::ConnectDevice()
 		return flashResult;
 	}
 
-	BoardType boardType = BOARD_UNKNOWN;
-
-	// ifstream fileStream;
-	// string fileNameThin(fileName.begin(), fileName.end());
-	// fileStream.open(fileNameThin);
-
-	// if (!fileStream.is_open()) {
-	// 	errorMessage = "Could not read firmware file";
-	// 	flashResult = FLASHRESULT_FAILURE;
-	// 	return flashResult;
-	// }
-
-	// string line;
-	// while (getline(fileStream, line)) {
-	// 	if (line.size() > 0 && line.substr(0, 1) == ";") {
-	// 		line = line.substr(1);
-	// 		if (line.substr(line.length() - 1, line.length()) == "\r") {
-	// 			line = line.substr(0, line.length() -1);
-	// 		}
-
-	// 		BoardType foundType = ParseBoardType(line);
-	// 		if (foundType != BOARD_UNKNOWN) {
-	// 			boardType = foundType;
-	// 			break;
-	// 		}
-	// 	}
-	// }
-	// fileStream.close();
-
-	if (boardType == BoardType::BOARD_UNKNOWN || pad->boardType != boardType) {
-		if (!ignoreBoardType) {
-			errorMessage = fmt::format("Selected: %s, connected: %s", BoardTypeToString(boardType), BoardTypeToString(pad->boardType));
-			flashResult = FLASHRESULT_FAILURE_BOARDTYPE;
-			return flashResult;
-		}
-	}
+	connectedBoardType = pad->boardType;
 
 	vector<PortInfo> oldPorts = list_ports();
 	bool foundNewPort = false;
 	auto startTime = system_clock::now();
 
-	if (configBackup) {
-		delete configBackup;
-	}
-	configBackup = new json;
-	Device::SaveProfile(*configBackup, DeviceProfileGroupFlags::DGP_ALL);
+	configBackup = json();
+	Device::SaveProfile(configBackup, DeviceProfileGroupFlags::DGP_ALL);
 	Log::Write("Saved device config");
 	Device::SendDeviceReset();
 
@@ -166,218 +331,22 @@ FlashResult FirmwareUploader::ConnectDevice()
 		}
 	}
 
-	return FLASHRESULT_CONNECTED;
-	// return WriteFirmwareAvr();
+	this_thread::sleep_for(500ms);
+
+	flashResult = FLASHRESULT_CONNECTED;
+	return flashResult;
 }
 
 bool FirmwareUploader::SetPort(std::string portName)
 {
 	this->comPort.port = portName;
+	flashResult = FLASHRESULT_CONNECTED;
 	return true;
-}
-
-FlashResult FirmwareUploader::WriteFirmwareAvr(string fileName)
-{
-	this->firmwareFile = fileName;
-	AvrDude avrdude;
-
-	auto comPort = this->comPort.port;
-	auto firmwareFile = this->firmwareFile;
-	auto eventHandler = callback;
-
-	avrdude
-		.on_run([eventHandler, comPort, firmwareFile, this](AvrDude::Ptr avrdude) {
-			this->myAvrdude = std::move(avrdude);
-
-			std::vector<std::string> args{ {
-				"-v",
-				"-p", "atmega32u4",
-				"-c", "avr109",
-				"-P", comPort,
-				"-b", "115200",
-				"-D",
-				"-U", fmt::format("flash:w:1:%s:i", firmwareFile)
-			} };
-
-			this->myAvrdude->push_args(std::move(args));
-
-			if (eventHandler) {
-				eventHandler(AE_START, "", -1);
-			}
-		})
-		.on_message([eventHandler](const char* msg, unsigned size) {
-			std::string wxmsg = msg;
-			Log::Writef("avrdude: %s", wxmsg);
-
-			if (eventHandler) {
-				eventHandler(AE_MESSAGE, wxmsg, -1);
-			}
-		})
-		.on_progress([eventHandler](const char* task, unsigned progress) {
-			std::string wxmsg = task;
-
-			if (eventHandler) {
-				eventHandler(AE_PROGRESS, wxmsg, progress);
-			}
-		})
-		.on_complete([eventHandler, this]() {
-			Log::Write("avrdude done");
-
-			int exitCode = this->myAvrdude->exit_code();
-			this->WritingDone(exitCode);
-
-			if (eventHandler) {
-				eventHandler(AE_EXIT, "", exitCode);
-			}
-		});
-
-
-	// Wait a bit since the COM port might still be initializing
-	this_thread::sleep_for(500ms);
-
-	Device::SetSearching(false);
-	avrdude.run();
-
-	flashResult = FLASHRESULT_RUNNING;
-	return flashResult;
-}
-
-esp_loader_error_t connect_to_target(uint32_t higher_transmission_rate)
-{
-    esp_loader_connect_args_t connect_config = {
-		.sync_timeout = 200, 
-		.trials = 20,
-	};
-
-    esp_loader_error_t err = esp_loader_connect(&connect_config);
-    if (err != ESP_LOADER_SUCCESS) {
-        Log::Writef("Cannot connect to target. Error: %u\n", err);
-        return err;
-    }
-
-    Log::Write("Connected to target\n");
-
-	err = esp_loader_change_transmission_rate(higher_transmission_rate);
-	if (err != ESP_LOADER_SUCCESS) {
-		Log::Write("Unable to change transmission rate on target.");
-		return err;
-	} else {
-		err = loader_port_change_transmission_rate(higher_transmission_rate);
-		if (err != ESP_LOADER_SUCCESS) {
-			Log::Write("Unable to change transmission rate.");
-			return err;
-		}
-		Log::Write("Transmission rate changed changed\n");
-	}
-    
-
-    return ESP_LOADER_SUCCESS;
-}
-
-esp_loader_error_t flash_binary(const uint8_t *bin, size_t size, size_t address)
-{
-    esp_loader_error_t err;
-    static uint8_t payload[1024];
-    const uint8_t *bin_addr = bin;
-
-    Log::Write("Erasing flash (this may take a while)...\n");
-    err = esp_loader_flash_start(address, size, sizeof(payload));
-    if (err != ESP_LOADER_SUCCESS) {
-        Log::Writef("Erasing flash failed with error %d.\n", err);
-        return err;
-    }
-    Log::Write("Start programming\n");
-
-    size_t binary_size = size;
-    size_t written = 0;
-
-    while (size > 0) {
-        size_t to_read = std::min(size, sizeof(payload));
-        memcpy(payload, bin_addr, to_read);
-
-        err = esp_loader_flash_write(payload, to_read);
-        if (err != ESP_LOADER_SUCCESS) {
-            Log::Writef("\nPacket could not be written! Error %d.\n", err);
-            return err;
-        }
-
-        size -= to_read;
-        bin_addr += to_read;
-        written += to_read;
-
-        int progress = (int)(((float)written / binary_size) * 100);
-        Log::Writef("\rProgress: %d %%", progress);
-        fflush(stdout);
-    };
-
-    Log::Write("\nFinished programming\n");
-
-    err = esp_loader_flash_verify();
-    if (err != ESP_LOADER_SUCCESS) {
-        printf("MD5 does not match. err: %d\n", err);
-        return err;
-    }
-    Log::Write("Flash verified\n");
-
-    return ESP_LOADER_SUCCESS;
-}
-
-struct EspFlashCommand {
-	std::string fileName;
-	uint32_t address;
-};
-
-FlashResult FirmwareUploader::WriteFirmwareEsp(string fileName)
-{
-	this->firmwareFile = fileName;
-	loader_serial_config_t config;
-    config.portName = (char*)this->comPort.port.c_str();
-    config.baudrate = 19200;
-    config.timeout = 600;
-
-	if (loader_port_serial_init(&config) != ESP_LOADER_SUCCESS) {
-		Log::Write("Serial initialization failed.");
-		return FlashResult::FLASHRESULT_FAILURE;
-	}
-
-	if (connect_to_target(460800) != ESP_LOADER_SUCCESS) {
-		Log::Write("Connect to target failed.");
-		return FlashResult::FLASHRESULT_FAILURE;
-	}
-
-	std::vector<EspFlashCommand> flashCommands = {
-		{this->firmwareFile + "\\bootloader.bin", 0x0},
-		{this->firmwareFile + "\\partitions.bin", 0x8000},
-		{this->firmwareFile + "\\boot_app0.bin", 0xe000},
-		{this->firmwareFile + "\\firmware.bin", 0x10000},
-	};
-
-	for (EspFlashCommand command : flashCommands) {
-		std::ifstream file(command.fileName, std::ios::binary);
-		if (!file.is_open()) {
-			if(command.fileName == "\\firmware.bin")
-			{
-				Log::Writef("Could not read firmware file: %s", command.fileName.c_str());
-				return FlashResult::FLASHRESULT_FAILURE;
-			}
-			else
-				continue;
-		}
-		std::vector<uint8_t> fileBuffer(std::istreambuf_iterator<char>(file), {});
-		uint8_t *fileData = fileBuffer.data();
-
-		Log::Writef("Writing EPS flash: %s", command.fileName.c_str());
-		if(flash_binary(fileData, fileBuffer.size(), command.address) != ESP_LOADER_SUCCESS) {
-			Log::Write("flash binary failed.");
-			return FlashResult::FLASHRESULT_FAILURE;
-		}
-	}
-
-	return FlashResult::FLASHRESULT_SUCCESS;
 }
 
 void FirmwareUploader::WritingDone(int exitCode)
 {
+	
 }
 
 void FirmwareUploader::SetIgnoreBoardType(bool ignoreBoardType)

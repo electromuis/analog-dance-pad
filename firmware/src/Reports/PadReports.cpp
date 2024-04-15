@@ -6,6 +6,7 @@
 #include "Modules/ModuleUSB.hpp"
 #include "hal/hal_Bootloader.hpp"
 
+#include <stdio.h>
 #include <string.h>
 
 const char globalBoardType[] = BOARD_TYPE;
@@ -46,8 +47,7 @@ IdentificationFeatureReport::IdentificationFeatureReport()
     this->ledCount = LED_COUNT;
     this->maxSensorValue = MAX_SENSOR_VALUE;
 
-    memset(this->boardType, 0, sizeof(this->boardType));
-    strcpy(this->boardType, globalBoardType);
+    snprintf(this->boardType, 32, "%s_%s", BOARD_ARCH, globalBoardType);
 }
 
 IdentificationV2FeatureReport::IdentificationV2FeatureReport(): features(0)

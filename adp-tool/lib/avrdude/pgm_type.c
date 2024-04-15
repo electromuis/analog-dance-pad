@@ -47,7 +47,7 @@
 #include "stk500.h"
 #include "stk500generic.h"
 #include "stk500v2.h"
-// #include "usbasp.h"
+#include "usbasp.h"
 // #include "usbtiny.h"
 #include "wiring.h"
 
@@ -91,7 +91,7 @@ const PROGRAMMER_TYPE programmers_types[] = {
         {"stk600", stk600_initpgm, stk600_desc},
         {"stk600hvsp", stk600hvsp_initpgm, stk600hvsp_desc},
         {"stk600pp", stk600pp_initpgm, stk600pp_desc},
-        // {"usbasp", usbasp_initpgm, usbasp_desc},
+        {"usbasp", usbasp_initpgm, usbasp_desc},
         // {"usbtiny", usbtiny_initpgm, usbtiny_desc},
         {"wiring", wiring_initpgm, wiring_desc},
 };

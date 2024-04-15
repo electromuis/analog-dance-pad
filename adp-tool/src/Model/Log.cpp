@@ -46,14 +46,14 @@ void Log::Writef(const char* format, ...)
 	if (!enabled)
 		return;
 
-	char buffer[256];
+	char buffer[10000];
 	va_list args;
 	va_start(args, format);
 
 	#if defined(_MSC_VER)
-	size_t len = vsprintf_s(buffer, 256, format, args);
+	size_t len = vsprintf_s(buffer, 10000, format, args);
 	#else
-	size_t len = vsnprintf(buffer, 256, format, args);
+	size_t len = vsnprintf(buffer, 10000, format, args);
 	#endif
 
 	messages->emplace_back((const char*)buffer, len);

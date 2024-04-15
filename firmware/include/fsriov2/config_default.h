@@ -1,7 +1,9 @@
+#define DEFAULT_NAME "FSRIOv2"
 
 const Configuration DEFAULT_CONFIGURATION = {
     .padConfiguration = {
 		.sensors = {
+
             [0] = DEFAULT_SENSOR_CONFIG(0),
             [1] = DEFAULT_SENSOR_CONFIG(1),
             [2] = DEFAULT_SENSOR_CONFIG(2),
@@ -10,14 +12,7 @@ const Configuration DEFAULT_CONFIGURATION = {
             [5] = DEFAULT_SENSOR_CONFIG(5),
             [6] = DEFAULT_SENSOR_CONFIG(6),
             [7] = DEFAULT_SENSOR_CONFIG(7),
-            [8] = DEFAULT_SENSOR_CONFIG(8),
-            [9] = DEFAULT_SENSOR_CONFIG(9),
-            [10] = DEFAULT_SENSOR_CONFIG(10),
-            [11] = DEFAULT_SENSOR_CONFIG(11),
-            [12] = DEFAULT_SENSOR_CONFIG(12),
-            [13] = DEFAULT_SENSOR_CONFIG(13),
-            [14] = DEFAULT_SENSOR_CONFIG(14),
-            [15] = DEFAULT_SENSOR_CONFIG(15)
+            [8 ... SENSOR_COUNT - 1] = DEFAULT_SENSOR_CONFIG(0xFF)
 		}
     },
     .nameAndSize = {

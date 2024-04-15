@@ -1,9 +1,6 @@
 #include "hal/hal_Lights.hpp"
 #include <LUFA/Drivers/Board/LEDs.h>
 
-#define LED_BOOT LEDS_LED2
-#define LED_DATA LEDS_LED1
-
 #define LED_STRIP_PORT PORTC
 #define LED_STRIP_DDR  DDRC
 #define LED_STRIP_PIN  6
@@ -78,7 +75,13 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
 
 void HAL_Lights_Setup()
 {
+  /*
+  PORT_LED_POWER &= ~(1<<PIN_LED_POWER);
+  REG_LED_POWER |= (1<<PIN_LED_POWER);
 
+  PORT_LED_DATA &= ~(1<<PIN_LED_DATA);
+  REG_LED_DATA |= (1<<PIN_LED_DATA);
+  */
 }
 
 void HAL_Lights_SetLed(uint8_t index, rgb_color color)
@@ -91,4 +94,26 @@ void HAL_Lights_SetLed(uint8_t index, rgb_color color)
 void HAL_Lights_Update()
 {
     led_strip_write(LED_COLORS, LED_COUNT);
+}
+
+void HAL_Lights_SetHWLed(HWLeds led, bool state)
+{
+  
+    /*
+    if(led == HWLed_DATA)
+    {
+      if(state)
+        REG_LED_DATA |= (1<<PIN_LED_DATA);
+      else
+        REG_LED_DATA &= ~(1<<PIN_LED_DATA);
+    }
+
+    if(led == HWLed_POWER)
+    {
+      if(state)
+        REG_LED_POWER |= (1<<PIN_LED_POWER);
+      else
+        REG_LED_POWER &= ~(1<<PIN_LED_POWER);
+    }
+    */
 }

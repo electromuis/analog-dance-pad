@@ -2,13 +2,12 @@
 #include "ModuleUSB.hpp"
 #include "hal/hal_USB.hpp"
 #include "Reports/Reports.hpp"
-#include "Modules/ModulePad.hpp"
+#include "ModulePad.hpp"
 #include <string.h>
 
 #ifdef FEATURE_RTOS_ENABLED
 #include "FreeRTOS.h"
 #include "task.h"
-// TaskHandle_t usbTask;
 #endif
 
 ModuleUSB ModuleUSBInstance = ModuleUSB();

@@ -67,7 +67,7 @@ struct PadState
 	int numButtons = 0;
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
-	BoardType boardType = BOARD_UNKNOWN;
+	BoardTypeStruct boardType;
 	bool featureDebug;
 	bool featureDigipot;
 	bool featureLights;

@@ -2,7 +2,6 @@ message(STATUS "Finding git")
 
 include("FindGit")
 
-
 if(GIT_FOUND)
 	if(EXISTS "${PROJECT_SOURCE_DIR}/../.git")
 			

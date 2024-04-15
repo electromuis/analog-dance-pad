@@ -34,4 +34,4 @@ def pre_program_action(source, target, env):
     usb_device.write([RESET_REPORT_ID])
     time.sleep(2)
 
-env.AddPreAction("$PROGPATH", pre_program_action)
+# env.AddPreAction("$PROGPATH", pre_program_action)

@@ -135,30 +135,61 @@ void adp_profile_load(argparse::ArgumentParser& args)
 
 void adp_firmware_flash(argparse::ArgumentParser& args)
 {
-    FirmwareUploader uploader;
-    uploader.SetIgnoreBoardType(true);
-
-    uploader.SetPort(args.get<std::string>("-port"));
     std::string type = args.get<std::string>("-type");
     std::string fileName = args.get<std::string>("-file");
+    ArchType archType = BoardTypeStruct::ParseArchType(type);
 
-    FlashResult result;
+    FirmwareUploader uploader;
+    uploader.SetIgnoreBoardType(true);
+    uploader.SetPort(args.get<std::string>("-port"));
+    uploader.SetArchtType(archType);
 
-    if(type == "AVR") {
-        result = uploader.WriteFirmwareAvr(fileName);
-    }
-    else if(type == "ESP") {
-        result = uploader.WriteFirmwareEsp(fileName);
-    }
-    else {
-        throw std::runtime_error("Invalid device type");
+    FirmwarePackagePtr firmware = FirmwarePackageRead(fileName);
+    auto result = uploader.WriteFirmware(firmware);
+    if(result != FLASHRESULT_SUCCESS) {
+        std::cerr << "Could not flash firmware: " << uploader.GetErrorMessage() << std::endl;
+        return;
+    } else {
+        std::cout << "Firmware flashed successfully" << std::endl;
     }
 
 }
 
 void adp_firmware_update(argparse::ArgumentParser& args)
 {
+    std::string file = args.get<std::string>("-file");
+    FirmwarePackagePtr package;
 
+    package = FirmwarePackageRead(file);
+
+    Device::Init();
+    Device::Update();
+
+    auto pad = Device::Pad();
+	if (pad == NULL) {
+        throw std::runtime_error("No compatible board connected");
+	}
+
+    BoardTypeStruct connectedBoardType = pad->boardType;
+
+    if(!package->GetBoardType().CompatibleWith(connectedBoardType)) {
+        cerr << package->GetBoardType().ToString() << " vs connected " << connectedBoardType.ToString() << endl;
+        throw std::runtime_error("Firmware is not compatible with connected device");
+    }
+
+    FirmwareUploader uploader;
+    if(uploader.ConnectDevice() != FLASHRESULT_CONNECTED) {
+        throw std::runtime_error("Could not connect to device");
+    }
+
+    if(uploader.WriteFirmware(package) != FLASHRESULT_SUCCESS) {
+        std::cerr << "Could not flash firmware: " << uploader.GetErrorMessage() << std::endl;
+        return;
+    }
+
+    Device::Shutdown();
+
+    std::cout << "Firmware flashed successfully" << std::endl;
 }
 
 #ifdef DEVICE_SERVER_ENABLED
@@ -217,7 +248,7 @@ int main(int argc, char** argv)
     firmware_flash_command.add_argument("-file")
         .help(".hex/.bin file location");
     firmware_flash_command.add_argument("-type")
-        .help("device type (AVR, ESP)");
+        .help("device type (avr, esp)");
     firmware_flash_command.add_argument("-port")
         .help("serial port to use");
     program.add_subparser(firmware_flash_command);

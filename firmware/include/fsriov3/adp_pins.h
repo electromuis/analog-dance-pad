@@ -10,4 +10,6 @@
 
 #define PIN_ANALOG_IN 10
 
-#define PIN_LED 2
+#define PIN_LED_POWER 48
+#define PIN_LED_DATA 38
+#define PIN_LED 34

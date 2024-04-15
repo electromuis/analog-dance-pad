@@ -136,7 +136,7 @@ const USB_Descriptor_Device_t PROGMEM DeviceDescriptor =
  *  and endpoints. The descriptor is read out by the USB host during the enumeration process when selecting
  *  a configuration so that the host may correctly communicate with the USB device.
  */
-const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
+USB_Descriptor_Configuration_t ConfigurationDescriptor =
 {
     .Config =
         {
@@ -169,16 +169,16 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
             .InterfaceStrIndex      = NO_DESCRIPTOR
         },
 
-    // .HID_GenericHID =
-    //     {
-    //         .Header                 = {.Size = sizeof(USB_HID_Descriptor_HID_t), .Type = HID_DTYPE_HID},
+    .HID_GenericHID =
+        {
+            .Header                 = {.Size = sizeof(USB_HID_Descriptor_HID_t), .Type = HID_DTYPE_HID},
 
-    //         .HIDSpec                = VERSION_BCD(1,1,1),
-    //         .CountryCode            = 0x00,
-    //         .TotalReportDescriptors = 1,
-    //         .HIDReportType          = HID_DTYPE_Report,
-    //         .HIDReportLength        = sizeof(GenericReport)
-    //     },
+            .HIDSpec                = VERSION_BCD(1,1,1),
+            .CountryCode            = 0x00,
+            .TotalReportDescriptors = 1,
+            .HIDReportType          = HID_DTYPE_Report,
+            .HIDReportLength        = 0
+        },
 
     .HID_ReportINEndpoint =
         {
@@ -217,7 +217,8 @@ const USB_Descriptor_String_t PROGMEM ProductString = USB_STRING_DESCRIPTOR_ARRA
  */
 uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
                                     const uint16_t wIndex,
-                                    const void** const DescriptorAddress)
+                                    const void** const DescriptorAddress,
+                                    uint8_t* const DescriptorMemorySpace)
 {
     const uint8_t  DescriptorType   = (wValue >> 8);
     const uint8_t  DescriptorNumber = (wValue & 0xFF);
@@ -225,17 +226,22 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
     const void* Address = NULL;
     uint16_t    Size    = NO_DESCRIPTOR;
 
+    ConfigurationDescriptor.HID_GenericHID.HIDReportLength = USB_DescriptorSize();
+
     switch (DescriptorType)
     {
         case DTYPE_Device:
             Address = &DeviceDescriptor;
             Size    = sizeof(USB_Descriptor_Device_t);
+            *DescriptorMemorySpace = MEMSPACE_FLASH;
             break;
         case DTYPE_Configuration:
             Address = &ConfigurationDescriptor;
             Size    = sizeof(USB_Descriptor_Configuration_t);
+            *DescriptorMemorySpace = MEMSPACE_RAM;
             break;
         case DTYPE_String:
+            *DescriptorMemorySpace = MEMSPACE_FLASH;
             switch (DescriptorNumber)
             {
                 case STRING_ID_Language:
@@ -253,11 +259,13 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
             }
 
             break;
-        // case HID_DTYPE_HID:
-        //     Address = &ConfigurationDescriptor.HID_GenericHID;
-        //     Size    = sizeof(USB_HID_Descriptor_HID_t);
-        //     break;
+        case HID_DTYPE_HID:
+            *DescriptorMemorySpace = MEMSPACE_RAM;
+            Address = &ConfigurationDescriptor.HID_GenericHID;
+            Size    = sizeof(USB_HID_Descriptor_HID_t);
+            break;
         case HID_DTYPE_Report:
+            *DescriptorMemorySpace = MEMSPACE_RAM;
             Address = USB_GetDescriptor();
             Size    = USB_DescriptorSize();
             break;

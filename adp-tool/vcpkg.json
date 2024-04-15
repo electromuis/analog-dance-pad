@@ -18,6 +18,7 @@
       "name": "websocketpp",
       "default-features": false
     },
-    "argparse"
+    "argparse",
+    "libusb"
   ]
 }

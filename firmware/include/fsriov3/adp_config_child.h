@@ -1,0 +1,13 @@
+#pragma once
+
+#define BOARD_TYPE "fsriov3"
+
+// #define FEATURE_WEBSERVER_ENABLED 1
+#define FEATURE_RTOS_ENABLED 1
+#define FEATURE_LIGHTS_ENABLED
+#define FEATURE_DIGIPOT_ENABLED
+
+#define SENSOR_COUNT 16
+
+#define LED_PANELS 8
+#define PANEL_LEDS 8

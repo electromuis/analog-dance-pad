@@ -27,11 +27,28 @@
             "args": [
                 "firmware:flash",
                 "-type",
-                "ESP",
+                "avr",
                 "-port",
-                "COM11",
+                "COM13",
                 "-file",
-                "C:\\dev\\analog-dance-pad\\firmware\\.pio\\build\\esp32-s3"
+                "C:\\dev\\analog-dance-pad\\firmware\\.pio\\build\\fsriov2\\firmware.adpf"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "(msvc) Test firmware update",
+            "type": "cppvsdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "firmware:update",
+                "-file",
+                "C:\\dev\\analog-dance-pad\\firmware\\.pio\\build\\fsriov3\\firmware.adpf"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

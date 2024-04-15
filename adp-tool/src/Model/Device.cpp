@@ -250,7 +250,7 @@ public:
 		if (buffer)
 		{
 			memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
-			myPad.boardType = ParseBoardType(buffer);
+			myPad.boardType = BoardTypeStruct(buffer);
 			free(buffer);
 		}
 
@@ -1079,9 +1079,11 @@ public:
 			ledMappings,
 			sensors);
 
+		std::string boardType = device->State().boardType.ToString();
+
 		Log::Write("ConnectionManager :: new device connected [");
 		Log::Writef("  Name: %s", device->State().name.c_str());
-		Log::Writef("  Board: %s", BoardTypeToString(device->State().boardType));
+		Log::Writef("  Board: %s: %s", padIdentificationV2.boardType, boardType.c_str());
 		Log::Writef("  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
 		Log::Writef("  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
 		Log::Writef("  Path: %s", devicePath.c_str());

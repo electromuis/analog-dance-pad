@@ -306,7 +306,7 @@ void AdpApplication::RenderAboutTab()
 	{
 		"ADP Tool " ADP_VERSION_STR,
 		"(c) Bram van de Wetering 2022",
-		"(c) DDR-EXP",
+		"(c) DDR-EXP 2024",
 	};
 	ImGui::SetCursorPosY(round(ws.y / 2 - 80));
 	ImGui::SetCursorPosX(round(ws.x / 2 - 32));

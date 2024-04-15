@@ -4,6 +4,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 project(adp-tool VERSION 2.0)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
+# Load dependencies start
+if(WIN32)
+	SET(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "Triplet" FORCE)
+endif()
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+
 add_subdirectory(lib)
 
 find_package(fmt REQUIRED)
@@ -13,6 +20,7 @@ find_package(unofficial-nativefiledialog REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Stb REQUIRED)
 find_package(argparse REQUIRED)
+# Load dependencies end
 
 if(EMSCRIPTEN)
 	set(CMAKE_EXECUTABLE_SUFFIX ".html")
@@ -63,6 +71,7 @@ endif()
 set(SHARED_SOURCES
 	"src/Model/Device.cpp"
 	"src/Model/Firmware.cpp"
+	"src/Model/FirmwareBack.cpp"
 	"src/Model/Log.cpp"
 	"src/Model/Reporter.cpp"
 	"src/Model/Utils.cpp"

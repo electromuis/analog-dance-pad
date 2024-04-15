@@ -1,7 +1,7 @@
 set(ESPSERIAL_PATH ${CMAKE_CURRENT_LIST_DIR}/esp-serial-flasher/)
 
 add_library(esp_serial
-    ${ESPSERIAL_PATH}port/serial_port.cpp
+    ${ESPSERIAL_PATH}port/wjwwood_serial_port.cpp
     ${ESPSERIAL_PATH}src/esp_loader.c
     ${ESPSERIAL_PATH}src/esp_targets.c
     ${ESPSERIAL_PATH}src/md5_hash.c

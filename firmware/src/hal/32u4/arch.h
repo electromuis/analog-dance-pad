@@ -1,0 +1,1 @@
+#define BOARD_ARCH "m32u4"
