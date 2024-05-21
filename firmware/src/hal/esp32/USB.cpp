@@ -1,10 +1,12 @@
+#include "adp_config.hpp"
+#ifndef USB_MODE_XINPUT
+
 #include <Arduino.h>
 
 #include <USB.h>
 #include <USBHID.h>
 
 #include "hal/hal_USB.hpp"
-#include "adp_config.hpp"
 #include "Reports/Reports.hpp"
 #include "Reports/PadReports.hpp"
 
@@ -53,20 +55,6 @@ uint16_t USBPad::_onGetDescriptor(uint8_t* buffer)
 
 USBPad usbPad;
 
-void HAL_USB_Setup(){
-    USB.VID(0x1209);
-    USB.PID(0xB196);
-    USB.productName("FSR Mini pad");
-    USB.manufacturerName("DDR-EXP");
-
-    usbPad.begin();
-}
-
-void HAL_USB_Update()
-{
-    usbPad.sendInputReport();
-}
-
 void USBPad::sendInputReport()
 {
     InputHIDReport report;
@@ -91,3 +79,21 @@ void USBPad::_onOutput(uint8_t report_id, const uint8_t* buffer, uint16_t len)
 {
     USB_ProcessReport(report_id, buffer, len);
 }
+
+// Exports
+
+void HAL_USB_Setup(){
+    USB.VID(0x1209);
+    USB.PID(0xB196);
+    USB.productName("FSR Mini pad");
+    USB.manufacturerName("DDR-EXP");
+
+    usbPad.begin();
+}
+
+void HAL_USB_Update()
+{
+    usbPad.sendInputReport();
+}
+
+#endif

@@ -1,5 +1,5 @@
-#ifdef FEATURE_LIGHTS_ENABLED
-
+#include "adp_config.hpp"
+#ifdef FEATURE_WEBSERVER_ENABLED
 
 #include <Arduino.h>
 
@@ -15,9 +15,8 @@
 StaticTask_t xTaskBuffer;
 StackType_t xStack[ STACK_SIZE ];
 
-const char* mySsid     = "XXX";
-const char* myPassword = "XXX";
-// AsyncWebServer* server;
+const char* mySsid     = "VRWifi";
+const char* myPassword = "12345678";
 AsyncWebServer myServer(80);
 AsyncWebSocket myWs("/ws");
 
