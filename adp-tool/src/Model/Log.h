@@ -18,6 +18,8 @@ public:
 	static int NumMessages();
 
 	static const std::string& Message(int index);
+
+	static void SetEnabled(bool enabled);
 };
 
 }; // namespace adp.

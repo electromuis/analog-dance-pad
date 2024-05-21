@@ -1,10 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-set(SERIAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/serial")
-
-include_directories(
-	${SERIAL_PATH}/include
-)
+set(SERIAL_PATH "${CMAKE_CURRENT_LIST_DIR}/serial")
 
 set(SERIAL_SOURCE
     ${SERIAL_PATH}/src/serial.cc
@@ -27,3 +23,7 @@ else()
 endif()
 
 add_library(serial ${SERIAL_SOURCE})
+
+target_include_directories(serial PUBLIC
+	${SERIAL_PATH}/include
+)

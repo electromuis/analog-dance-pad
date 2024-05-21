@@ -2,6 +2,7 @@
 #include "Modules/ModuleConfig.hpp"
 #include <stdint.h>
 #include <avr/io.h>
+#include "adp_config.hpp"
 
 void ADC_LoadPot(uint8_t sensor) {
 	SensorConfig s = ModuleConfigInstance.GetSensorConfig(sensor);
@@ -11,41 +12,41 @@ void ADC_LoadPot(uint8_t sensor) {
 	// Set the correct muxer output
 	
 	if(sensor & 1) {
-		PORTD |= 1 << DDD1;
+		REG_MUX_1 |= 1 << PIN_MUX_1;
 	}
 	else {
-		PORTD &= ~(1 << DDD1);
+		REG_MUX_1 &= ~(1 << PIN_MUX_1);
 	}
 	
 	if(sensor & (1 << 1)) {
-		PORTD |= 1 << DDD0;
+		REG_MUX_2 |= 1 << PIN_MUX_2;
 	}
 	else {
-		PORTD &= ~(1 << DDD0);
+		REG_MUX_2 &= ~(1 << PIN_MUX_2);
 	}
 	
 	if(sensor & (1 << 2)) {
-		PORTC |= 1 << DDC6;
+		REG_MUX_3 |= 1 << PIN_MUX_3;
 	}
 	else {
-		PORTC &= ~(1 << DDC6);
+		REG_MUX_3 &= ~(1 << PIN_MUX_3);
 	}
 	
 	if(sensor & (1 << 3)) {
-		PORTE |= 1 << DDE6;
+		REG_MUX_4 |= 1 << PIN_MUX_4;
 	}
 	else {
-		PORTE &= ~(1 << DDE6);
+		REG_MUX_4 &= ~(1 << PIN_MUX_4);
 	}
 	
 	// Set the digipot via SPI
 	
-	#if defined(BOARD_TYPE_FSRIO_1)
+	#if defined(LED_PIN_FIX)
 		// Light pin is on the SPI register. Need to enable/disable SPI each time.
 		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
 	#endif
 	
-	PORTB &= ~(1 << DDB6);
+	REG_POT_CS &= ~(1 << PIN_POT_CS);
 	
 	SPDR = 0b00010001;
     while(! (SPSR & (1 << SPIF)) ) ;
@@ -53,9 +54,9 @@ void ADC_LoadPot(uint8_t sensor) {
 	SPDR = s.resistorValue;	
     while(! (SPSR & (1 << SPIF)) ) ;
 	
-	PORTB |= 1 << DDB6;
+	REG_POT_CS |= 1 << PIN_POT_CS;
 	
-	#if defined(BOARD_TYPE_FSRIO_1)
+	#if defined(LED_PIN_FIX)
 		// Light pin is on the SPI register. Need to enable/disable SPI each time.
 		SPCR = 0;
 	#endif

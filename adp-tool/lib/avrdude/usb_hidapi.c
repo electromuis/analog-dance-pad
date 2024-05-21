@@ -23,7 +23,7 @@
  */
 
 #include "ac_cfg.h"
-#if defined(HAVE_LIBHIDAPI)
+// #if defined(HAVE_LIBHIDAPI)
 
 
 #include <ctype.h>
@@ -32,7 +32,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/time.h>
+// #include <sys/time.h>
 #include <wchar.h>
 
 #include <hidapi/hidapi.h>
@@ -354,4 +354,4 @@ struct serial_device usbhid_serdev =
   .flags = SERDEV_FL_NONE,
 };
 
-#endif  /* HAVE_LIBHIDAPI */
+//#endif  /* HAVE_LIBHIDAPI */

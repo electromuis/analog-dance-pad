@@ -1,5 +1,6 @@
 #include "ModulePad.hpp"
 #include "ModuleConfig.hpp"
+#include "ModuleLights.hpp"
 #include "hal/hal_ADC.hpp"
 #include "hal/hal_USB.hpp"
 
@@ -12,11 +13,14 @@ void ModulePad::Setup()
 
 void ModulePad::Update()
 {
-    HAL_USB_Update();
+    // HAL_USB_Update();
+    //UpdateStatus();
 }
 
 void ModulePad::UpdateStatus()
 {
+    ModuleLightsInstance.DataCycle();
+
     for (int i = 0; i < SENSOR_COUNT; i++) {
         sensorValues[i] = HAL_ADC_ReadSensor(i);
     }
@@ -43,6 +47,8 @@ void ModulePad::UpdateStatus()
                     break;
                 }
             }
+
+            sensorStates[j] = newButtonPressedState;
         }
 
         buttonsPressed[i] = newButtonPressedState;

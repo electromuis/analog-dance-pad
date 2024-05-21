@@ -31,7 +31,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
-#include <sys/time.h>
+// #include <sys/time.h>
 #include <unistd.h>
 
 #include "avrdude.h"
@@ -39,6 +39,10 @@
 
 #include "usbasp.h"
 #include "usbdevs.h"
+
+#define HAVE_LIBUSB
+#define HAVE_LIBUSB_1_0
+#define HAVE_LIBUSB_1_0_LIBUSB_H
 
 #if defined(HAVE_LIBUSB) || defined(HAVE_LIBUSB_1_0)
 
@@ -459,7 +463,7 @@ static int usbasp_open(PROGRAMMER * pgm, char * port)
     pid = USBASP_SHARED_PID;
   }
   vid = pgm->usbvid? pgm->usbvid: USBASP_SHARED_VID;
-  if (usbOpenDevice(&PDATA(pgm)->usbhandle, vid, pgm->usbvendor, pid, pgm->usbproduct) != 0) {
+  if (usbOpenDevice(&PDATA(pgm)->usbhandle, vid, NULL, pid, NULL) != 0) {
     /* try alternatives */
     if(strcasecmp(ldata(lfirst(pgm->id)), "usbasp") == 0) {
     /* for id usbasp autodetect some variants */

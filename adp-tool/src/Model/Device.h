@@ -67,7 +67,7 @@ struct PadState
 	int numButtons = 0;
 	int numSensors = 0;
 	double releaseThreshold = 1.0;
-	BoardType boardType = BOARD_UNKNOWN;
+	BoardTypeStruct boardType;
 	bool featureDebug;
 	bool featureDigipot;
 	bool featureLights;
@@ -101,7 +101,9 @@ struct LightsState
 class Device
 {
 public:
+	#ifdef DEVICE_CLIENT_ENABLED
 	static void Connect(std::string url);
+	#endif
 	
 	static void Init();
 
@@ -147,9 +149,21 @@ public:
 
 	static void SaveChanges();
 
+	static int DeviceNumber();
+
+	static std::string GetDeviceName(int index);
+
+	static bool DeviceSelect(int index);
+
+	static int DeviceSelected();
+
 	static void LoadProfile(json& j, DeviceProfileGroups groups);
 
 	static void SaveProfile(json& j, DeviceProfileGroups groups);
+
+#ifdef DEVICE_SERVER_ENABLED
+	static void ServerStart();
+#endif
 
 	static void SetSearching(bool s);
 };

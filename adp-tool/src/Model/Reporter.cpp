@@ -70,13 +70,12 @@ bool Reporter::SendFeatureReport(const T& report, const char* name)
 }
 
 template <typename T>
-ReadDataResult Reporter::ReadData(T& report, const char* name)
+ReadDataResult Reporter::ReadData(T& report, const char* name, int expectedSize)
 {
 	uint8_t buffer[MAX_REPORT_SIZE];
 	buffer[0] = report.reportId;
 
 	int bytesRead = backend->read(buffer, sizeof(buffer));
-	auto expectedSize = sizeof(T);
 
 	if (bytesRead == expectedSize)
 	{
@@ -162,11 +161,13 @@ Reporter::Reporter(hid_device* device)
 	
 }
 
+#ifdef DEVICE_CLIENT_ENABLED
 Reporter::Reporter(std::string url)
 	:backend(ReporterBackendWsCreate(url))
 {
 
 }
+#endif
 
 Reporter::Reporter()
 {
@@ -178,13 +179,27 @@ Reporter::~Reporter()
 	
 }
 
-ReadDataResult Reporter::Get(SensorValuesReport& report)
+#ifdef DEVICE_SERVER_ENABLED
+bool Reporter::ServerStart()
+{
+	if (deviceServer)
+		return false;
+
+	deviceServer.reset(DeviceServerCreate(*backend));
+
+	return true;
+}
+#endif
+
+ReadDataResult Reporter::Get(SensorValuesReport& report, int numSensors)
 {
 	if(emulator) {
 		return ReadDataResult::NO_DATA;
 	}
+
+	int expectedSize = sizeof(uint8_t) + sizeof(uint16_le) + (sizeof(uint16_le) * numSensors);
 	
-	return ReadData(report, "GetSensorValuesReport");
+	return ReadData(report, "GetSensorValuesReport", expectedSize);
 }
 
 bool Reporter::Get(PadConfigurationReport& report)

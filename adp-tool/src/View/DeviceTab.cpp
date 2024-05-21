@@ -37,34 +37,33 @@ static constexpr const char* UpdateFirmwareMsg =
 class UpdateTask {
 public:
     UpdateTask(std::string firmwareFile)
-        :firmwareFile(firmwareFile)
     {
-
+        firmware = FirmwarePackageRead(firmwareFile);
     }
 
-    void FirmwareCallback(AvrdudeEvent event, std::string message, int p)
-    {
-        switch(event) {
-            case AE_START:
-                status = "Starting";
-                break;
+    // void FirmwareCallback(AvrdudeEvent event, std::string message, int p)
+    // {
+    //     switch(event) {
+    //         case AE_START:
+    //             status = "Starting";
+    //             break;
 
-            case AE_PROGRESS:
-                if(message != lastTask)
-                {
-                    lastTask = message;
-                    tasksCompleted ++;
-                }
+    //         case AE_PROGRESS:
+    //             if(message != lastTask)
+    //             {
+    //                 lastTask = message;
+    //                 tasksCompleted ++;
+    //             }
 
-                progress = tasksCompleted * 100 + p;
-                break;
-        }
-    }
+    //             progress = tasksCompleted * 100 + p;
+    //             break;
+    //     }
+    // }
 
     FlashResult Start()
     {
-        uploader.SetEventHandler(std::bind(&UpdateTask::FirmwareCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        return uploader.UpdateFirmware(firmwareFile);
+        //uploader.SetEventHandler(std::bind(&UpdateTask::FirmwareCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        return uploader.WriteFirmwareThreaded(firmware);
     }
 
     void Done()
@@ -78,8 +77,9 @@ public:
         {
             ImGui::TextUnformatted("Updating firmware ...");
 
-            ImGui::LabelText("Status", status.c_str());
-            float progressFloat = (float)progress / 300;
+            // ImGui::LabelText("Status", status.c_str());
+            // float progressFloat = (float)progress / 300;
+            float progressFloat = uploader.GetProgress();
             ImGui::ProgressBar(progressFloat);
 
             ImGui::EndPopup();
@@ -94,15 +94,15 @@ public:
         }
     }
 
-    std::string GetFirmwareFile() { return firmwareFile; }
+    std::string GetFirmwareFile() { return firmware->GetFileName(); }
 
 protected:
-    std::string firmwareFile;
+    FirmwarePackagePtr firmware;
     FirmwareUploader uploader;
-    std::string status;
-    std::string lastTask;
-    int tasksCompleted = 0;
-    int progress = 0;
+    // std::string status;
+    // std::string lastTask;
+    // int tasksCompleted = 0;
+    // int progress = 0;
 };
 
 std::unique_ptr<UpdateTask> updateTask;

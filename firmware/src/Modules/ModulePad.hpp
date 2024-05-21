@@ -11,6 +11,7 @@ public:
     void UpdateStatus();
 
     uint16_t sensorValues[SENSOR_COUNT];
+    bool sensorStates[SENSOR_COUNT];
     bool buttonsPressed[BUTTON_COUNT];
 
     uint8_t selectedSensorIndex = 0;

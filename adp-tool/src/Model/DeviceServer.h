@@ -1,18 +1,18 @@
 #pragma once
 
-#include "hidapi.h"
+#include "Reporter.h"
 
 namespace adp {
 
 class DeviceServer {
 public:
-    DeviceServer(hid_device* device):device(device){}
+    DeviceServer(ReporterBackend& device):device(device){}
     virtual ~DeviceServer(){};
 
 protected:
-    hid_device* device;
+    ReporterBackend& device;
 };
 
-DeviceServer* DeviceServerCreate(hid_device* device);
+DeviceServer* DeviceServerCreate(ReporterBackend& device);
 
 };

@@ -1,4 +1,3 @@
-#include "adp_config.hpp"
 #ifdef FEATURE_WEBSERVER_ENABLED
 
 #include <Arduino.h>

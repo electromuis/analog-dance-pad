@@ -1,0 +1,1 @@
+#define BOARD_ARCH "esp32s3"

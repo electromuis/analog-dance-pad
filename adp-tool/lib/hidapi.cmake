@@ -1,10 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-set(HIDAPI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/hidapi")
-
-include_directories(
-	${HIDAPI_PATH}/hidapi
-)
+set(HIDAPI_PATH "${CMAKE_CURRENT_LIST_DIR}/hidapi")
 
 if(EMSCRIPTEN)
     list(APPEND HIDAPI_SRC ${HIDAPI_PATH}/wasm/hid.cpp)
@@ -17,3 +13,4 @@ elseif(WIN32)
 endif()
 
 add_library(hidapi ${HIDAPI_SRC})
+target_include_directories(hidapi PUBLIC ${HIDAPI_PATH}/hidapi)

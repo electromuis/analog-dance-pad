@@ -6,18 +6,10 @@
 // Backwards compatibility
 
 typedef struct {
-    uint16_t sensorThresholds[SENSOR_COUNT];
+    uint16_t sensorThresholds[SENSOR_COUNT_V1];
     float releaseMultiplier;
-    int8_t sensorToButtonMapping[SENSOR_COUNT];
+    int8_t sensorToButtonMapping[SENSOR_COUNT_V1];
 } __attribute__((packed)) PadConfigurationV1;
-
-typedef struct {
-	uint16_t threshold;
-	uint16_t releaseThreshold;
-	int8_t buttonMapping;
-	uint8_t resistorValue;
-	uint16_t flags;
-} __attribute__((packed)) SensorConfigV13;
 
 // USB
 
@@ -48,6 +40,14 @@ typedef struct {
 	int8_t buttonMapping;
 	uint8_t resistorValue;
 	uint16_t flags;
+} __attribute__((packed)) SensorConfigV13;
+
+typedef struct {
+	uint16_t threshold;
+	uint16_t releaseThreshold;
+	int8_t buttonMapping;
+	uint8_t resistorValue;
+	uint16_t flags;
 	uint16_t preload;
 } __attribute__((packed)) SensorConfig;
 
@@ -55,8 +55,6 @@ typedef struct {
     SensorConfig sensors[SENSOR_COUNT];
 	uint8_t selectedSensorIndex;
 } __attribute__((packed)) PadConfiguration;
-
-#define MAX_NAME_SIZE 50
 
 typedef struct {
     uint8_t size;

@@ -5,6 +5,7 @@ from SCons.Script import (
 )
 
 env = DefaultEnvironment()
+import time
 
 try:
     import hid
@@ -15,6 +16,8 @@ except ImportError:
             "Installing hidapi",
         )
     )
+
+    import hid
 
 def pre_program_action(source, target, env):
     RESET_REPORT_ID = 0x3
@@ -29,5 +32,6 @@ def pre_program_action(source, target, env):
     print("Serial No: %s" % usb_device.get_serial_number_string())
 
     usb_device.write([RESET_REPORT_ID])
+    time.sleep(2)
 
-env.AddPreAction("$PROGPATH", pre_program_action)
+# env.AddPreAction("$PROGPATH", pre_program_action)

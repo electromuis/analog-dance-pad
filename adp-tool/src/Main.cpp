@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <chrono>
+#include <ctime>
 
 #include <Model/Device.h>
 #include <Model/Log.h>
@@ -179,16 +180,33 @@ void AdpApplication::MenuCallback()
 		// if (ImGui::MenuItem("Disconnect"))
 		// 	Device::Disconnect();
 
+#ifdef DEVICE_CLIENT_ENABLED
 		static char addrBuffer[64] = { 0 };
 		ImGui::InputText("Device address", addrBuffer, 64);
 		ImGui::SameLine();
 		if (ImGui::Button("Connect")) {
 			Device::Connect(std::string(addrBuffer));
 		}
+#endif
 
 		bool scanEnabled = true;
 		if (ImGui::MenuItem("Enable scan", nullptr, &scanEnabled))
 			Device::SetSearching(scanEnabled);
+
+		if(Device::DeviceNumber() > 0)
+		{
+			ImGui::Separator();
+			for (int i = 0; i < Device::DeviceNumber(); ++i)
+			{
+				auto name = Device::GetDeviceName(i);
+				if (ImGui::RadioButton(name.data(), Device::DeviceSelected() == i))
+					Device::DeviceSelect(i);
+			}
+		}
+		else
+		{
+			ImGui::MenuItem("No devices found", nullptr, nullptr, false);
+		}
 
 		ImGui::EndMenu();
 	}
@@ -288,7 +306,7 @@ void AdpApplication::RenderAboutTab()
 	{
 		"ADP Tool " ADP_VERSION_STR,
 		"(c) Bram van de Wetering 2022",
-		"(c) DDR-EXP",
+		"(c) DDR-EXP 2024",
 	};
 	ImGui::SetCursorPosY(round(ws.y / 2 - 80));
 	ImGui::SetCursorPosX(round(ws.x / 2 - 32));
@@ -322,7 +340,12 @@ void loop()
 int Main(int argc, char** argv)
 {
 	Log::Init();
+
 	auto versionString = fmt::format("{} {}.{}", TOOL_NAME, ADP_VERSION_MAJOR, ADP_VERSION_MINOR);
+	auto now = std::time(0);
+	std::string datetime = std::ctime(&now);
+	Log::Writef("Application started: %s", versionString.data());
+	Log::Writef("Starting at: %s", datetime.data());
 
 	Device::Init();
 

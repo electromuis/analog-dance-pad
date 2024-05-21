@@ -55,8 +55,8 @@ set(AVRDUDE_SOURCES
     stk500v2.c
     term.c
     update.c
-    # usbasp.c
-    # usb_hidapi.c
+    usbasp.c
+    usb_hidapi.c
     # usb_libusb.c
     # usbtiny.c
     wiring.c
@@ -87,6 +87,14 @@ bin2h(
 )
 
 add_library(avrdude STATIC ${AVRDUDE_SOURCES})
+target_include_directories(avrdude PRIVATE
+ "./../hidapi"
+ C:/dev/analog-dance-pad/adp-tool/build/vcpkg_installed/x64-windows-static-md/include
+)
+
+# find_package(PkgConfig REQUIRED)
+# pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+target_link_libraries(avrdude C:/dev/analog-dance-pad/adp-tool/build/vcpkg_installed/x64-windows-static-md/lib/libusb-1.0.lib)
 
 #add_executable(avrdude-slic3r main-standalone.cpp)
 #target_link_libraries(avrdude-slic3r avrdude)

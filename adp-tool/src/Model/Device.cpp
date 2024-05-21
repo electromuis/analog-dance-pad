@@ -165,7 +165,7 @@ static void PrintPadConfigurationReport(const PadConfigurationReport& padConfigu
 	Log::Write("pad configuration [");
 	Log::Writef("  releaseThreshold: %.2f", ReadF32LE(padConfiguration.releaseThreshold));
 	Log::Write("  sensors: [");
-	for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+	for (int i = 0; i < SENSOR_COUNT_V1; ++i)
 	{
 		Log::Writef("    sensorToButtonMapping: %i", padConfiguration.sensorToButtonMapping[i]);
 		Log::Writef("    sensorThresholds: %i", ReadU16LE(padConfiguration.sensorThresholds[i]));
@@ -238,6 +238,8 @@ public:
 		: myReporter(std::move(reporter))
 		, myPath(path)
 	{
+		mySensors = vector<SensorState>(identification.sensorCount);
+
 		UpdateName(name);
 		myPad.maxNameLength = MAX_NAME_LENGTH;
 
@@ -248,7 +250,7 @@ public:
 		if (buffer)
 		{
 			memcpy(buffer, identification.boardType, BOARD_TYPE_LENGTH);
-			myPad.boardType = ParseBoardType(buffer);
+			myPad.boardType = BoardTypeStruct(buffer);
 			free(buffer);
 		}
 
@@ -342,14 +344,14 @@ public:
 	bool UpdateSensorValues()
 	{
 		SensorValuesReport report;
+		std::vector<int> aggregateValues = std::vector<int>(myPad.numSensors, 0);
 
-		int aggregateValues[MAX_SENSOR_COUNT] = {};
 		int pressedButtons = 0;
 		int inputsRead = 0;
 
-		for (int readsLeft = 1; readsLeft > 0; --readsLeft)
+		for (int readsLeft = 100; readsLeft > 0; --readsLeft)
 		{
-			switch (myReporter->Get(report))
+			switch (myReporter->Get(report, myPad.numSensors))
 			{
 			case ReadDataResult::SUCCESS:
 				pressedButtons |= ReadU16LE(report.buttonBits);
@@ -358,13 +360,12 @@ public:
 				++inputsRead;
 				break;
 
-			case ReadDataResult::FAILURE:
 			case ReadDataResult::NO_DATA:
 				readsLeft = 0;
 				break;
 
-			//case ReadDataResult::FAILURE:
-			//	return false;
+			case ReadDataResult::FAILURE:
+				return false;
 			}
 		}
 
@@ -636,7 +637,11 @@ public:
 
 	const SensorState* Sensor(int index)
 	{
-		return (index >= 0 && index < myPad.numSensors) ? (mySensors + index) : nullptr;
+		if(index < 0 || index >= myPad.numSensors) {
+			return nullptr;
+		}
+
+		return &mySensors[index];
 	}
 
 	std::string ReadDebug()
@@ -671,12 +676,19 @@ public:
         myChanges |= type;
 	}
 
+#ifdef DEVICE_SERVER_ENABLED
+	void ServerStart()
+	{
+		myReporter->ServerStart();
+	}
+#endif
+
 private:
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
 	PadState myPad;
 	LightsState myLights;
-	SensorState mySensors[MAX_SENSOR_COUNT];
+	vector<SensorState> mySensors;
 	DeviceChanges myChanges = 0;
 	bool myHasUnsavedChanges = false;
 	time_point<system_clock> myLastPendingChange;
@@ -696,6 +708,89 @@ static bool ContainsDevice(hid_device_info* devices, DevicePath path)
 	return false;
 }
 
+enum ConnectionState
+{
+	CS_UNKNOWN,
+	CS_PROBED,
+	CS_CONNECTED,
+	CS_FAILED
+};
+class DeviceConnection
+{
+public:
+	DeviceConnection(std::string path):
+		path(path)
+	{
+
+	}
+
+	~DeviceConnection()
+	{
+		if (handle)
+			hid_close(handle);
+	}
+
+	bool Probe()
+	{
+		handle = hid_open_path(path.c_str());
+		if (!handle)
+		{
+			Log::Writef("DeviceConnection :: hid_open failed (%ls) :: %s", hid_error(nullptr), path);
+			return false;
+		}
+
+		if (hid_set_nonblocking(handle, 1) < 0)
+		{
+			Log::Write("ConnectionManager :: hid_set_nonblocking failed");
+			return false;
+		}
+
+		reporter = make_unique<Reporter>(handle);
+		if(!reporter->Get(nameReport))
+			return false;
+
+		if(!reporter->Get(identificationReport))
+			return false;
+
+		state = CS_PROBED;
+		return true;
+	}
+
+	string GetName()
+	{
+		return string((const char*)nameReport.name, nameReport.size);
+	}
+
+	string GetPath()
+	{
+		return path;
+	}
+
+	unique_ptr<Reporter>& GetReporter()
+	{
+		return reporter;
+	}
+
+	ConnectionState GetState()
+	{
+		return state;
+	}
+
+	void SetFailed()
+	{
+		state = CS_FAILED;
+		reporter.reset();
+	}
+
+protected:
+	ConnectionState state = CS_UNKNOWN;
+	std::string path;
+	hid_device* handle = nullptr;
+	unique_ptr<Reporter> reporter;
+	NameReport nameReport;
+	IdentificationV2Report identificationReport;
+};
+
 class ConnectionManager
 {
 public:
@@ -707,7 +802,68 @@ public:
 
 	PadDevice* ConnectedDevice() const { return myConnectedDevice.get(); }
 
+	void UpdateDeviceMap(std::vector<string>& devicePaths)
+	{
+		for (auto id : HID_IDS)
+		{
+			auto foundDevices = hid_enumerate(id.vendorId, id.productId);
+			for (auto dev = foundDevices; dev; dev = dev->next)
+			{
+				devicePaths.push_back(dev->path);
+				// if(!newDevice->Probe())
+				// 	continue;
+				// out.push_back(newDevice);
+			}
+		}
+	}
+
 	bool DiscoverDevice()
+	{
+		std::vector<string> devicePaths;
+		UpdateDeviceMap(devicePaths);
+
+		// Remove any devices that are no longer connected
+		for (auto it = devices.begin(); it != devices.end();)
+		{
+			if (std::find(devicePaths.begin(), devicePaths.end(), it->first) == devicePaths.end())
+			{
+				if(myConnectedDevice && myConnectedDevice->Path() == it->first)
+					myConnectedDevice.reset();
+
+				Log::Writef("ConnectionManager :: device removed (%hs)", it->second.GetName());
+				it = devices.erase(it);
+			}
+			else ++it;
+		}
+
+		for(auto& path : devicePaths)
+		{
+			if(devices.contains(path))
+				continue;
+
+			auto it = devices.emplace(path, path);
+			if(!it.first->second.Probe())
+			{
+				devices.erase(it.first);
+				continue;
+			}
+		}
+
+		if(!myConnectedDevice)
+		{
+			int c=0;
+			for(auto& it : devices)
+			{
+				if(it.second.GetState() != CS_FAILED)
+					return DeviceSelect(c);
+				c++;
+			}
+		}
+
+		return false;
+	}
+
+	bool DiscoverDeviceOld()
 	{
 		if(emulator) {
 			auto reporter = make_unique<Reporter>();
@@ -816,7 +972,7 @@ public:
 			padIdentification.firmwareMajor = WriteU16LE(0);
 			padIdentification.firmwareMinor = WriteU16LE(0);
 			padIdentification.buttonCount = MAX_BUTTON_COUNT;
-			padIdentification.sensorCount = MAX_SENSOR_COUNT;
+			padIdentification.sensorCount = SENSOR_COUNT_V1;
 			padIdentification.ledCount = 0;
 			padIdentification.maxSensorValue = WriteU16LE(MAX_SENSOR_VALUE);
 			memset(padIdentification.boardType, 0, BOARD_TYPE_LENGTH);
@@ -898,7 +1054,7 @@ public:
 			// Backwards compat
 			PadConfigurationReport padConfig;
 			if (reporter->Get(padConfig)) {
-				for (int i = 0; i < MAX_SENSOR_COUNT; ++i)
+				for (int i = 0; i < SENSOR_COUNT_V1; ++i)
 				{
 					sensorReport.index = i;
 					sensorReport.threshold = padConfig.sensorThresholds[i];
@@ -923,9 +1079,11 @@ public:
 			ledMappings,
 			sensors);
 
+		std::string boardType = device->State().boardType.ToString();
+
 		Log::Write("ConnectionManager :: new device connected [");
 		Log::Writef("  Name: %s", device->State().name.c_str());
-		Log::Writef("  Board: %s", BoardTypeToString(device->State().boardType));
+		Log::Writef("  Board: %s: %s", padIdentificationV2.boardType, boardType.c_str());
 		Log::Writef("  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
 		Log::Writef("  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
 		Log::Writef("  Path: %s", devicePath.c_str());
@@ -956,7 +1114,9 @@ public:
 		auto device = myConnectedDevice.get();
 		if (device)
 		{
-			myFailedDevices[device->Path()] = device->State().name;
+			if(devices.contains(device->Path()))
+				devices.at(device->Path()).SetFailed();
+
 			myConnectedDevice.reset();
 		}
 	}
@@ -967,7 +1127,55 @@ public:
 			myFailedDevices[device->path] = narrow(device->product_string, wcslen(device->product_string));
 	}
 
+	int DeviceNumber()
+	{
+		return (int)devices.size();
+	}
+
+	string GetDeviceName(int index)
+	{
+		if (index < 0 || index >= devices.size())
+			return "";
+
+		auto it = devices.begin();
+		std::advance(it, index);
+		return it->second.GetName();
+	}
+
+	bool DeviceSelect(int index)
+	{
+		if (index < 0 || index >= devices.size())
+			return false;
+
+		if(index == DeviceSelected())
+			return true;
+
+		auto it = devices.begin();
+		std::advance(it, index);
+
+		return ConnectToDeviceStage2(it->second.GetReporter(), it->second.GetPath());
+	}
+
+	int DeviceSelected()
+	{
+		if(!myConnectedDevice)
+			return -1;
+
+		int c = 0;
+		
+		for(auto& it : devices)
+		{
+			if(myConnectedDevice->Path() == it.first)
+				return c;
+			c++;
+		}
+
+		return -1;
+	}
+
 private:
+	map<DevicePath, DeviceConnection> devices;
+	
 	unique_ptr<PadDevice> myConnectedDevice;
 	map<DevicePath, DeviceName> myFailedDevices;
 	bool emulator = false;
@@ -978,13 +1186,15 @@ private:
 // ====================================================================================================================
 
 static ConnectionManager* connectionManager = nullptr;
-static bool searching = false;
+static bool searching = true;
 
+#ifdef DEVICE_CLIENT_ENABLED
 void Device::Connect(std::string url)
 {
 	auto reporter = make_unique<Reporter>(url);
 	connectionManager->ConnectToDeviceStage2(reporter, url);
 }
+#endif
 
 void Device::Init()
 {
@@ -1000,6 +1210,14 @@ void Device::Init()
 
 	// searching = true;
 }
+
+#ifdef DEVICE_SERVER_ENABLED
+void Device::ServerStart()
+{
+	auto device = connectionManager->ConnectedDevice();
+	if (device) device->ServerStart();
+}
+#endif
 
 void Device::Shutdown()
 {
@@ -1160,6 +1378,30 @@ void Device::SetSearching(bool s)
 	searching = s;
 }
 
+int Device::DeviceNumber()
+{
+	if(!connectionManager) return 0;
+	return connectionManager->DeviceNumber();
+}
+
+string Device::GetDeviceName(int index)
+{
+	if(!connectionManager) return "";
+	return connectionManager->GetDeviceName(index);
+}
+
+bool Device::DeviceSelect(int index)
+{
+	if(!connectionManager) return false;
+	return connectionManager->DeviceSelect(index);
+}
+
+int Device::DeviceSelected()
+{
+	if(!connectionManager) return -1;
+	return connectionManager->DeviceSelected();
+}
+
 void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 {
 	if((groups & DPG_LIGHTS) > 0 && Pad()->featureLights) {
@@ -1175,6 +1417,14 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 				};
 
 				SendLedMapping(key, lm);
+			}
+
+			int lastRule = (int)j["ledMappings"].size();
+			if(lastRule < MAX_LED_MAPPINGS)
+			{
+				for(int i = lastRule; i < MAX_LIGHT_RULES; i++) {
+					DisableLedMapping(i);
+				}
 			}
 		}
 
@@ -1192,6 +1442,14 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 				};
 
 				SendLightRule(key, lr);
+			}
+
+			int lastRule = (int)j["lightRules"].size();
+			if(lastRule < MAX_LIGHT_RULES)
+			{
+				for(int i = lastRule; i < MAX_LIGHT_RULES; i++) {
+					DisableLightRule(i);
+				}
 			}
 		}
 
@@ -1248,6 +1506,7 @@ void Device::SaveProfile(json& j, DeviceProfileGroups groups)
 			j["ledMappings"][index]["ledIndexEnd"] = lm.ledIndexEnd;
 		}
 
+      
 		j["lightRules"] = json::array();
 		for(const auto& [index, lr] : lights->lightRules) {
 			j["lightRules"][index]["fadeOn"] = lr.fadeOn;

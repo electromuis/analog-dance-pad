@@ -1,0 +1,126 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - staging
+  pull_request:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  build-adp-tool-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y build-essential cmake libudev-dev libglfw3-dev libgtk-3-dev
+      
+      - name: Build project
+        run: |
+          cmake -S adp-tool -B adp-tool/BuildNix
+          cmake --build adp-tool/BuildNix
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build Linux
+          path: |
+            adp-tool/BuildNix/adp-tool
+            adp-tool/BuildNix/adp-cli
+
+  build-adp-tool-wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y build-essential cmake
+
+      - name: Install emsdk
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          ./emsdk install latest
+          ./emsdk activate latest
+          
+      - name: Build project
+        run: |
+          source emsdk/emsdk_env.sh
+          emcmake cmake -S adp-tool -B adp-tool/BuildWasm
+          cd adp-tool/BuildWasm
+          emmake make -j4
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build Wasm
+          path: |
+            adp-tool/BuildWasm/*.js
+            adp-tool/BuildWasm/*.html
+            adp-tool/BuildWasm/*.wasm
+  
+  build-adp-tool-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Install dependencies
+        run: choco install -y visualstudio2022buildtools visualstudio2022-workload-nativedesktop cmake
+      
+      - name: Build project
+        run: |
+          cmake -S adp-tool -B adp-tool/BuildWin
+          cmake --build adp-tool/BuildWin --config Release
+          
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build Windows
+          path: |
+            adp-tool/BuildWin/Release/adp-tool.exe
+            adp-tool/BuildWin/Release/adp-cli.exe
+  
+            
+
+
+
+  build-adp-firmware:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Install dependencies
+        run: pip install platformio
+      
+      - name: Build project
+        run: |
+          cd firmware
+          pio run
+          mkdir build_artifacts
+          cp .pio/build/32u4/firmware.hex build_artifacts/32u4.hex
+          cp .pio/build/esp32-s3/firmware.bin build_artifacts/esp32.bin
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build Firmware
+          path: firmware/build_artifacts

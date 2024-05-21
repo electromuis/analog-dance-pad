@@ -14,7 +14,8 @@ namespace adp {
 
 #pragma pack(1)
 
-constexpr int MAX_SENSOR_COUNT  = 12;
+constexpr int SENSOR_COUNT_MAX  = 32;
+constexpr int SENSOR_COUNT_V1   = 12;
 constexpr int MAX_BUTTON_COUNT  = 16;
 constexpr int MAX_NAME_LENGTH   = 50;
 constexpr int MAX_SENSOR_VALUE  = 850;
@@ -40,6 +41,7 @@ enum ReportId
 	REPORT_SENSOR			  = 0xC,
 	REPORT_DEBUG			  = 0xD,
 	REPORT_IDENTIFICATION_V2  = 0xE,
+	REPORT_SENSOR_V2  		  = 0x10,
 };
 
 enum class ReadDataResult
@@ -59,15 +61,15 @@ struct SensorValuesReport
 {
 	uint8_t reportId = REPORT_SENSOR_VALUES;
 	uint16_le buttonBits;
-	uint16_le sensorValues[MAX_SENSOR_COUNT];
+	uint16_le sensorValues[SENSOR_COUNT_MAX];
 };
 
 struct PadConfigurationReport
 {
 	uint8_t reportId = REPORT_PAD_CONFIGURATION;
-	uint16_le sensorThresholds[MAX_SENSOR_COUNT];
+	uint16_le sensorThresholds[SENSOR_COUNT_V1];
 	float32_le releaseThreshold;
-	int8_t sensorToButtonMapping[MAX_SENSOR_COUNT];
+	int8_t sensorToButtonMapping[SENSOR_COUNT_V1];
 };
 
 struct NameReport
@@ -183,11 +185,17 @@ class Reporter
 {
 public:
 	Reporter(hid_device* device);
+	#ifdef DEVICE_CLIENT_ENABLED
 	Reporter(std::string url);
+	#endif
 	Reporter();
 	~Reporter();
 
-	ReadDataResult Get(SensorValuesReport& report);
+#ifdef DEVICE_SERVER_ENABLED
+	bool ServerStart();
+#endif
+
+	ReadDataResult Get(SensorValuesReport& report, int numSensors);
 	bool Get(PadConfigurationReport& report);
 	bool Get(NameReport& report);
 	bool Get(IdentificationReport& report);
@@ -225,7 +233,7 @@ private:
 	bool SendFeatureReport(const T& report, const char* name);
 
 	template <typename T>
-	ReadDataResult ReadData(T& report, const char* name);
+	ReadDataResult ReadData(T& report, const char* name, int expectedSize);
 
 	bool WriteData(uint8_t reportId, const char* name, bool performErrorCheck);
 

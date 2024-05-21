@@ -3,28 +3,10 @@
 	url = https://github.com/abcminiuser/lufa
 [submodule "adp-tool/lib/hidapi"]
 	path = adp-tool/lib/hidapi
-	url = https://github.com/libusb/hidapi
+	url = https://github.com/electromuis/hidapi
 [submodule "adp-tool/lib/serial"]
 	path = adp-tool/lib/serial
 	url = https://github.com/wjwwood/serial
-[submodule "adp-tool/lib/json"]
-	path = adp-tool/lib/json
-	url = https://github.com/nlohmann/json
-[submodule "adp-tool/lib/imgui"]
-	path = adp-tool/lib/imgui
-	url = https://github.com/ocornut/imgui
-[submodule "adp-tool/lib/GLFW"]
-	path = adp-tool/lib/GLFW
-	url = https://github.com/glfw/glfw
-[submodule "adp-tool/lib/nfd"]
-	path = adp-tool/lib/nfd
-	url = https://github.com/mlabbe/nativefiledialog
-[submodule "adp-tool/lib/fmt"]
-	path = adp-tool/lib/fmt
-	url = https://github.com/fmtlib/fmt
-[submodule "adp-tool/lib/asio"]
-	path = adp-tool/lib/asio
-	url = https://github.com/chriskohlhoff/asio
-[submodule "adp-tool/lib/websocketpp"]
-	path = adp-tool/lib/websocketpp
-	url = https://github.com/zaphoyd/websocketpp
+[submodule "adp-tool/lib/esp-serial-flasher"]
+	path = adp-tool/lib/esp-serial-flasher
+	url = https://github.com/electromuis/esp-serial-flasher
