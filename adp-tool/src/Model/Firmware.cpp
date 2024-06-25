@@ -6,7 +6,9 @@
 #include <fstream>
 #include <fmt/core.h>
 
+#ifndef __EMSCRIPTEN__
 #include "libzippp.h"
+#endif
 
 #include <Model/Firmware.h>
 #include <Model/Device.h>
@@ -135,6 +137,8 @@ std::string BoardTypeStruct::ToString() const
 
 	return ret;
 }
+
+#ifndef __EMSCRIPTEN__
 
 // FirmwarePackage
 
@@ -363,5 +367,7 @@ FlashResult FirmwareUploader::GetFlashResult()
 {
 	return flashResult;
 }
+
+#endif
 
 }; // namespace adp.

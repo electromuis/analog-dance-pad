@@ -8,6 +8,25 @@ SPIClass spiPot = SPIClass(HSPI);
 static const int spiClk = 80000000; // 80 MHz
 static bool spiReady = false;
 
+uint8_t sensorLookup[SENSOR_COUNT] = {
+    7,
+    6,
+    5,
+    4,
+    3,
+    2,
+    1,
+    0,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+};
+
 void HAL_ADC_Init()
 {
     spiPot.begin(PIN_SPI_SCK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_SPI_POT_CS);
@@ -26,6 +45,8 @@ void HAL_ADC_Init()
 
 void setMuxer(uint8_t sensorIndex)
 {
+    sensorIndex = sensorLookup[sensorIndex];
+
     digitalWrite(PIN_MUX_1, (bool)(sensorIndex & 0b0001));
     digitalWrite(PIN_MUX_2, (bool)(sensorIndex & 0b0010));
     digitalWrite(PIN_MUX_3, (bool)(sensorIndex & 0b0100));

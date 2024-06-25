@@ -13,18 +13,23 @@ public:
     void Setup() {
         HAL_Webserver_Init();
     }
+
+    void Update() {
+        HAL_Webserver_Update();
+    }
 };
 ModuleWebserver ModuleWebserverInstance;
 #endif
 
 Module* modules[] = {
     &ModuleConfigInstance,
+    &ModuleLightsInstance,
     &ModuleUSBInstance,
     &ModulePadInstance,
-    &ModuleLightsInstance
 #ifdef FEATURE_WEBSERVER_ENABLED
-    ,&ModuleWebserverInstance
+    &ModuleWebserverInstance
 #endif
+    
 };
 
 void ModulesSetup()

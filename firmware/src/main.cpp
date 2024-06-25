@@ -2,6 +2,8 @@
 #include "Reports/Reports.hpp"
 
 void setup() {
+  RegisterReports();
+  
   ModulesSetup();
 }
 

@@ -74,6 +74,8 @@ struct BoardTypeStruct
 	std::string ToString() const;
 };
 
+#ifndef __EMSCRIPTEN__
+
 class FirmwarePackage
 {
 public:
@@ -88,7 +90,6 @@ FirmwarePackagePtr FirmwarePackageRead(std::string fileName);
 
 typedef std::function<void(FlashResult event, std::string message, int progress)> FirmwareCallback;
 
-#ifndef __EMSCRIPTEN__
 class FirmwareUploader
 {
 public:

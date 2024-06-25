@@ -11,26 +11,30 @@ endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
+if(EMSCRIPTEN)
+	set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
+	set(EM_FLAGS " -lwebsocket.js -O3 -lhtml5.js -lhtml5 -sAUTO_NATIVE_LIBRARIES -pthread -sSHARED_MEMORY=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=2 -s ALLOW_MEMORY_GROWTH -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
+	 #set(EM_FLAGS "-lwebsocket.js -g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
+	# set(EM_FLAGS "-g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
+
+	add_compile_options(-g -pthread)
+else()
+	find_package(unofficial-nativefiledialog REQUIRED)
+	find_package(libzippp REQUIRED)
+endif()
+
+
 add_subdirectory(lib)
 
 find_package(fmt REQUIRED)
 find_package(imgui REQUIRED)
-find_package(libzippp REQUIRED)
-find_package(unofficial-nativefiledialog REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Stb REQUIRED)
 find_package(argparse REQUIRED)
 # Load dependencies end
 
-if(EMSCRIPTEN)
-	set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
-	set(EM_FLAGS " -lwebsocket.js -O3 -s ALLOW_MEMORY_GROWTH -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
-	 #set(EM_FLAGS "-lwebsocket.js -g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
-	# set(EM_FLAGS "-g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
-
-	add_compile_options(-g)
-endif()
 
 add_definitions (-D_WEBSOCKETPP_CPP11_FUNCTIONAL_)
 add_definitions (-D_WEBSOCKETPP_CPP11_SYSTEM_ERROR_)
@@ -51,12 +55,12 @@ include_directories(
 set(GLOBAL_LIBS
 	hidapi
 	fmt::fmt
-	libzippp::libzippp
 	nlohmann_json::nlohmann_json
-	esp_serial)
+	# esp_serial
+)
 
 if(NOT EMSCRIPTEN)
-	list(APPEND GLOBAL_LIBS avrdude serial)
+	list(APPEND GLOBAL_LIBS avrdude serial libzippp::libzippp)
 endif()
 
 if(EMSCRIPTEN)
@@ -71,7 +75,6 @@ endif()
 set(SHARED_SOURCES
 	"src/Model/Device.cpp"
 	"src/Model/Firmware.cpp"
-	"src/Model/FirmwareBack.cpp"
 	"src/Model/Log.cpp"
 	"src/Model/Reporter.cpp"
 	"src/Model/Utils.cpp"
@@ -80,6 +83,7 @@ set(SHARED_SOURCES
 if(EMSCRIPTEN)
 	list(APPEND SHARED_SOURCES "src/Model/DeviceClientEm.cpp")
 else()
+	list(APPEND SHARED_SOURCES "src/Model/FirmwareBack.cpp")
 	list(APPEND SHARED_SOURCES "src/Model/DeviceServerWs.cpp")
 	list(APPEND SHARED_SOURCES "src/Model/DeviceClientWspp.cpp")
 endif()
@@ -105,13 +109,12 @@ set(GUI_SOURCES
 
 set(GUI_LIBS
 	${GLOBAL_LIBS}
-	opengl32
 	imgui::imgui
-	unofficial::nativefiledialog::nfd)
+)
 
-# if(NOT EMSCRIPTEN)
-# 	list(APPEND GUI_LIBS)
-# endif()
+if(NOT EMSCRIPTEN)
+	list(APPEND GUI_LIBS unofficial::nativefiledialog::nfd opengl32)
+endif()
 
 # if(WIN32) list(APPEND sources "src/Assets/Resource.rc") endif()
 
@@ -132,25 +135,27 @@ else()
 endif()
 # GUI application end
 
-# CLI application start
-file(GLOB_RECURSE CLI_SOURCES
-	${SHARED_SOURCES}
-	"src/Cli.cpp")
+if(NOT EMSCRIPTEN)
+	# CLI application start
+	file(GLOB_RECURSE CLI_SOURCES
+		${SHARED_SOURCES}
+		"src/Cli.cpp")
 
-#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
+	#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
 
-add_executable ("adp-cli" ${CLI_SOURCES})
-target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
-set_target_properties("adp-cli" PROPERTIES
-	CXX_STANDARD 20
-	CXX_EXTENSIONS OFF)
-target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse)
-if(EMSCRIPTEN)
-	set_target_properties("adp-cli" PROPERTIES LINK_FLAGS ${EM_FLAGS})
-else()
-	target_compile_definitions(${PROJECT_NAME} PRIVATE DEVICE_SERVER_ENABLED)
+	add_executable ("adp-cli" ${CLI_SOURCES})
+	target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
+	set_target_properties("adp-cli" PROPERTIES
+		CXX_STANDARD 20
+		CXX_EXTENSIONS OFF)
+	target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse)
+	if(EMSCRIPTEN)
+		set_target_properties("adp-cli" PROPERTIES LINK_FLAGS ${EM_FLAGS})
+	else()
+		target_compile_definitions(${PROJECT_NAME} PRIVATE DEVICE_SERVER_ENABLED)
+	endif()
+	# CLI application end
 endif()
-# CLI application end
 
 
 

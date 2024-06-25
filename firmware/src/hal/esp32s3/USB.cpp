@@ -1,5 +1,5 @@
 #include "adp_config.hpp"
-#ifndef USB_MODE_XINPUT
+#ifdef USB_MODE_HID
 
 #include <Arduino.h>
 

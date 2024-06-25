@@ -30,6 +30,7 @@
 #define DEFAULT_SENSOR_CONFIG(button) 	\
 	{									\
 	.threshold = 400,					\
+	.releaseThreshold = 400,			\
 	.buttonMapping = button,			\
 	.resistorValue = 150,				\
 	.flags = 0,							\

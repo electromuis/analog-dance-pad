@@ -33,10 +33,11 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
     auto ws = ImGui::GetWindowSize();
     auto wdl = ImGui::GetWindowDrawList();
 
-    auto releaseThreshold = Device::Pad()->releaseThreshold;
+    
     auto sensor = Device::Sensor(sensorIndex);
     auto pressed = sensor ? sensor->pressed : false;
 
+    auto releaseThreshold = sensor ? sensor->releaseThreshold : 0.0;
     auto threshold = sensor ? sensor->threshold : 0.0;
     if (myAdjustingSensorIndex == sensorIndex)
         threshold = myAdjustingSensorThreshold;
@@ -59,7 +60,7 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
     // Line representing where the release threshold would be for the current sensor.
     if (releaseThreshold < 1.0)
     {
-        float releaseY = colY + float(1 - releaseThreshold * threshold) * colH;
+        float releaseY = colY + float(1 - releaseThreshold) * colH;
         wdl->AddRectFilled(
             { wp.x + colX, wp.y + thresholdY },
             { wp.x + colX + colW, wp.y + thresholdY + max(1.f, releaseY - thresholdY) },
@@ -99,7 +100,7 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
     }
     else if (!ImGui::IsMouseDown(ImGuiPopupFlags_MouseButtonLeft))
     {
-        Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold);
+        Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold, myAdjustingSensorThreshold);
         myAdjustingSensorIndex = SENSOR_INDEX_NONE;
     }
 

@@ -181,13 +181,22 @@ void AdpApplication::MenuCallback()
 		// 	Device::Disconnect();
 
 #ifdef DEVICE_CLIENT_ENABLED
-		static char addrBuffer[64] = { 0 };
+		static char addrBuffer[64] = "ws://fsrio.local/ws";
+		static bool failed = false;
+
+		
+
 		ImGui::InputText("Device address", addrBuffer, 64);
 		ImGui::SameLine();
 		if (ImGui::Button("Connect")) {
-			Device::Connect(std::string(addrBuffer));
+			failed = !Device::Connect(std::string(addrBuffer));
 		}
+		
 #endif
+
+		if (failed) {
+			ImGui::Text("Connecting failed");
+		}
 
 		bool scanEnabled = true;
 		if (ImGui::MenuItem("Enable scan", nullptr, &scanEnabled))
@@ -199,8 +208,9 @@ void AdpApplication::MenuCallback()
 			for (int i = 0; i < Device::DeviceNumber(); ++i)
 			{
 				auto name = Device::GetDeviceName(i);
-				if (ImGui::RadioButton(name.data(), Device::DeviceSelected() == i))
-					Device::DeviceSelect(i);
+				if (ImGui::RadioButton(name.data(), Device::DeviceSelected() == i)) {
+					failed = !Device::DeviceSelect(i);
+				}
 			}
 		}
 		else

@@ -16,6 +16,8 @@
 uint8_t endpoint_in=0;
 uint8_t endpoint_out=0;
 
+#include <Arduino.h>
+
 class Gamepad : public MPG {
 	public:
 		Gamepad(int debounceMS = 5) : MPG(debounceMS)
@@ -34,10 +36,14 @@ class Gamepad : public MPG {
         {
             // Gather raw inputs
             state.buttons = 0
-                | ((ModulePadInstance.buttonsPressed[0])     ? GAMEPAD_MASK_UP    : 0)
-                | ((ModulePadInstance.buttonsPressed[1])   ? GAMEPAD_MASK_DOWN  : 0)
-                | ((ModulePadInstance.buttonsPressed[2])   ? GAMEPAD_MASK_LEFT  : 0)
-                | ((ModulePadInstance.buttonsPressed[3])  ? GAMEPAD_MASK_RIGHT : 0)
+                | ((ModulePadInstance.buttonsPressed[0]) ? GAMEPAD_MASK_B1     : 0)
+                | ((ModulePadInstance.buttonsPressed[1]) ? GAMEPAD_MASK_B2     : 0)
+                | ((ModulePadInstance.buttonsPressed[2]) ? GAMEPAD_MASK_B3     : 0)
+                | ((ModulePadInstance.buttonsPressed[3]) ? GAMEPAD_MASK_B4     : 0)
+                | ((ModulePadInstance.buttonsPressed[4]) ? GAMEPAD_MASK_L1     : 0)
+                | ((ModulePadInstance.buttonsPressed[5]) ? GAMEPAD_MASK_R1     : 0)
+                | ((ModulePadInstance.buttonsPressed[6]) ? GAMEPAD_MASK_L3     : 0)
+                | ((ModulePadInstance.buttonsPressed[7]) ? GAMEPAD_MASK_R3     : 0)
                 ;
         }
 };
@@ -46,12 +52,16 @@ Gamepad gamepad;
 
 static void sendReportData(void) {
 
-  // Poll every 1ms
-    const uint32_t interval_ms = 1;
-    static uint32_t start_ms = 0;
+  // // Poll every 1ms
+  //   const uint32_t interval_ms = 1;
+  //   static uint32_t start_ms = 0;
 
-    // if (board_millis() - start_ms < interval_ms) return;  // not enough time
-    // start_ms += interval_ms;
+  //   if (millis() - start_ms < interval_ms) return;  // not enough time
+  //   start_ms += interval_ms;
+
+    gamepad.read(); 
+    // gamepad.debounce();
+    gamepad.process();
 
     // Remote wakeup
     if (tud_suspended()) {
@@ -64,7 +74,7 @@ static void sendReportData(void) {
 
     if ((tud_ready()) && ((endpoint_in != 0)) && (!usbd_edpt_busy(0, endpoint_in))){
       usbd_edpt_claim(0, endpoint_in);
-      usbd_edpt_xfer(0, endpoint_in, buffer, gamepad.getReportSize());
+      usbd_edpt_xfer(0, endpoint_in, buffer, 20);
       usbd_edpt_release(0, endpoint_in);
     }   
 }
@@ -77,16 +87,19 @@ void HAL_USB_Setup()
 	  gamepad.read();
 
     // tusb_init();
+    USB.VID(0x045E);
+    USB.PID(0x028E);
+    USB.usbClass(0xFF);
+    USB.usbSubClass(0xFF);
+    USB.usbProtocol(0xFF);
+    
     USB.begin();
 }
 
 void HAL_USB_Update()
 {
-    gamepad.read(); 
-    // gamepad.debounce();
-    gamepad.process();
     sendReportData();
-    tud_task();
+    tud_task_ext(2, false);
 }
 
 static void xinput_init(void) {

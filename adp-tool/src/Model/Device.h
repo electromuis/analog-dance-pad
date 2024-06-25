@@ -102,7 +102,7 @@ class Device
 {
 public:
 	#ifdef DEVICE_CLIENT_ENABLED
-	static void Connect(std::string url);
+	static bool Connect(std::string url);
 	#endif
 	
 	static void Init();
@@ -123,7 +123,7 @@ public:
 
 	static const bool HasUnsavedChanges();
 
-	static bool SetThreshold(int sensorIndex, double threshold);
+	static bool SetThreshold(int sensorIndex, double threshold, double releaseThreshold);
 
 	static bool SetAdcConfig(int sensorIndex, int resistorValue);
 

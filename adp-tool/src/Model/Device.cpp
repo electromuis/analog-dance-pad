@@ -276,11 +276,16 @@ public:
 
 		UpdateLightsConfiguration(lightRules, ledMappings);
 		myPollingData.lastUpdate = system_clock::now();
+
+		running = true;
+		sensorThread = std::thread(&PadDevice::UpdateSensorThread, this);
 	}
 
 	~PadDevice()
 	{
-
+		running = false;
+		if (sensorThread.joinable())
+			sensorThread.join();
 	}
 
 	void UpdateName(const NameReport& report)
@@ -343,13 +348,32 @@ public:
 
 	bool UpdateSensorValues()
 	{
+		return running;
+	}
+
+	void UpdateSensorThread()
+	{
+		while(running)
+		{
+			if(!UpdateSensorFunc())
+			{
+				running = false;
+				break;
+			}
+			
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+	}
+
+	bool UpdateSensorFunc()
+	{
 		SensorValuesReport report;
 		std::vector<int> aggregateValues = std::vector<int>(myPad.numSensors, 0);
 
 		int pressedButtons = 0;
 		int inputsRead = 0;
 
-		for (int readsLeft = 100; readsLeft > 0; --readsLeft)
+		for (int readsLeft = 10; readsLeft > 0; --readsLeft)
 		{
 			switch (myReporter->Get(report, myPad.numSensors))
 			{
@@ -398,10 +422,10 @@ public:
 		return true;
 	}
 
-	bool SetThreshold(int sensorIndex, double threshold)
+	bool SetThreshold(int sensorIndex, double threshold, double releaseThreshold)
 	{
 		mySensors[sensorIndex].threshold = threshold;
-		mySensors[sensorIndex].releaseThreshold = threshold * myPad.releaseThreshold;
+		mySensors[sensorIndex].releaseThreshold = releaseThreshold;
 
 		// From v1.3 we have the SensorReport. Before that it's the PadConfiguration report
 		if (myPad.firmwareVersion.IsNewer({ 1, 2 })) {
@@ -684,6 +708,9 @@ public:
 #endif
 
 private:
+	bool running = false;
+	std::thread sensorThread;
+
 	unique_ptr<Reporter> myReporter;
 	DevicePath myPath;
 	PadState myPad;
@@ -715,6 +742,7 @@ enum ConnectionState
 	CS_CONNECTED,
 	CS_FAILED
 };
+
 class DeviceConnection
 {
 public:
@@ -726,26 +754,33 @@ public:
 
 	~DeviceConnection()
 	{
-		if (handle)
-			hid_close(handle);
+		if (hidHandle)
+			hid_close(hidHandle);
 	}
 
 	bool Probe()
 	{
-		handle = hid_open_path(path.c_str());
-		if (!handle)
+		if (!IsWs())
 		{
-			Log::Writef("DeviceConnection :: hid_open failed (%ls) :: %s", hid_error(nullptr), path);
-			return false;
+			hidHandle = hid_open_path(path.c_str());
+			if (!hidHandle)
+			{
+				Log::Writef("DeviceConnection :: hid_open failed (%ls) :: %s", hid_error(nullptr), path.c_str());
+				return false;
+			}
+
+			if (hid_set_nonblocking(hidHandle, 1) < 0)
+			{
+				Log::Write("ConnectionManager :: hid_set_nonblocking failed");
+				return false;
+			}
+
+			reporter = make_unique<Reporter>(hidHandle);
+		}
+		else {
+			reporter = make_unique<Reporter>(path);
 		}
 
-		if (hid_set_nonblocking(handle, 1) < 0)
-		{
-			Log::Write("ConnectionManager :: hid_set_nonblocking failed");
-			return false;
-		}
-
-		reporter = make_unique<Reporter>(handle);
 		if(!reporter->Get(nameReport))
 			return false;
 
@@ -782,10 +817,16 @@ public:
 		reporter.reset();
 	}
 
+	bool IsWs()
+	{
+		return path.substr(0, 2).compare("ws") == 0;
+	}
+
 protected:
 	ConnectionState state = CS_UNKNOWN;
 	std::string path;
-	hid_device* handle = nullptr;
+	hid_device* hidHandle = nullptr;
+
 	unique_ptr<Reporter> reporter;
 	NameReport nameReport;
 	IdentificationV2Report identificationReport;
@@ -830,7 +871,10 @@ public:
 				if(myConnectedDevice && myConnectedDevice->Path() == it->first)
 					myConnectedDevice.reset();
 
-				Log::Writef("ConnectionManager :: device removed (%hs)", it->second.GetName());
+				if (it->second.IsWs() && it->second.GetState() != CS_FAILED)
+					continue;
+
+				Log::Writef("ConnectionManager :: device removed (%hs)", it->second.GetName().c_str());
 				it = devices.erase(it);
 			}
 			else ++it;
@@ -863,97 +907,11 @@ public:
 		return false;
 	}
 
-	bool DiscoverDeviceOld()
+	bool ConnectToDeviceStage2(DeviceConnection& deviceCon)
 	{
-		if(emulator) {
-			auto reporter = make_unique<Reporter>();
-			return ConnectToDeviceStage2(reporter, NULL);
-		}
+		unique_ptr<Reporter>& reporter = deviceCon.GetReporter();
+		string devicePath = deviceCon.GetPath();
 
-		auto foundDevices = hid_enumerate(0x0, 0x0);
-
-		// Devices that are incompatible or had a communication failure are tracked in a failed device list to prevent
-		// a loop of reconnection attempts. Remove unplugged devices from the list. Then, the user can attempt to
-		// reconnect by plugging it back in, as it will be seen as a new device.
-
-		for (auto it = myFailedDevices.begin(); it != myFailedDevices.end();)
-		{
-			if (!ContainsDevice(foundDevices, it->first))
-			{
-				Log::Writef("ConnectionManager :: failed device removed (%hs)", it->second.data());
-				it = myFailedDevices.erase(it);
-			}
-			else ++it;
-		}
-
-		// Try to connect to the first compatible device that is not on the failed device list.
-
-		for (auto device = foundDevices; device; device = device->next)
-		{
-			if (myFailedDevices.count(device->path) == 0 && ConnectToDeviceStage1(device))
-				break;
-		}
-
-		hid_free_enumeration(foundDevices);
-		return (bool)myConnectedDevice;
-	}
-
-	bool ConnectToDeviceStage1(hid_device_info* deviceInfo)
-	{
-		// Check if the vendor and product are compatible.
-
-		bool compatible = false;
-
-		for (auto id : HID_IDS)
-		{
-			if (deviceInfo->vendor_id == id.vendorId && deviceInfo->product_id == id.productId)
-			{
-				compatible = true;
-				break;
-			}
-		}
-
-		if (!compatible)
-			return false;
-
-		using namespace std::chrono_literals;
-		// Wait for any udev rules to run
-		std::this_thread::sleep_for(200ms);
-
-		// Open and configure HID for communicating with the pad.
-
-		auto hid = hid_open_path(deviceInfo->path);
-		if (!hid)
-		{
-			Log::Writef("ConnectionManager :: hid_open failed (%ls) :: %s", hid_error(nullptr), deviceInfo->path);
-
-			AddIncompatibleDevice(deviceInfo);
-			return false;
-		}
-		if (hid_set_nonblocking(hid, 1) < 0)
-		{
-			Log::Write("ConnectionManager :: hid_set_nonblocking failed");
-			AddIncompatibleDevice(deviceInfo);
-			hid_close(hid);
-			return false;
-		}
-
-		// Try to read the pad configuration and name.
-		// If both succeeded, we'll assume the device is valid.
-
-		auto reporter = make_unique<Reporter>(hid);
-		bool result = ConnectToDeviceStage2(reporter, deviceInfo->path);
-		if(!result) {
-			AddIncompatibleDevice(deviceInfo);
-			// hid_close already happend becuase Reporter gets destructed
-			return false;
-		}
-
-		return result;
-	}
-
-	bool ConnectToDeviceStage2(unique_ptr<Reporter>& reporter, string devicePath)
-	{
 		NameReport name;
 		IdentificationReport padIdentification;
 		IdentificationV2Report padIdentificationV2;
@@ -1153,7 +1111,7 @@ public:
 		auto it = devices.begin();
 		std::advance(it, index);
 
-		return ConnectToDeviceStage2(it->second.GetReporter(), it->second.GetPath());
+		return ConnectToDeviceStage2(it->second);
 	}
 
 	int DeviceSelected()
@@ -1173,6 +1131,32 @@ public:
 		return -1;
 	}
 
+	bool ConnectToUrl(string url)
+	{
+		if (devices.contains(url)) {
+			int c = 0;
+
+			for (auto& it : devices)
+			{
+				if (it.second.GetPath() == url)
+					return c;
+				
+				return DeviceSelect(c);
+			}
+
+			return false;
+		}
+
+		auto it = devices.emplace(url, url);
+		if (!it.first->second.Probe())
+		{
+			devices.erase(it.first);
+			return false;
+		}
+
+		return ConnectToDeviceStage2(it.first->second);
+	}
+
 private:
 	map<DevicePath, DeviceConnection> devices;
 	
@@ -1187,14 +1171,6 @@ private:
 
 static ConnectionManager* connectionManager = nullptr;
 static bool searching = true;
-
-#ifdef DEVICE_CLIENT_ENABLED
-void Device::Connect(std::string url)
-{
-	auto reporter = make_unique<Reporter>(url);
-	connectionManager->ConnectToDeviceStage2(reporter, url);
-}
-#endif
 
 void Device::Init()
 {
@@ -1293,10 +1269,10 @@ const bool Device::HasUnsavedChanges()
 	return device ? device->HasUnsavedChanges() : false;
 }
 
-bool Device::SetThreshold(int sensorIndex, double threshold)
+bool Device::SetThreshold(int sensorIndex, double threshold, double releaseThreshold)
 {
 	auto device = connectionManager->ConnectedDevice();
-	return device ? device->SetThreshold(sensorIndex, threshold) : false;
+	return device ? device->SetThreshold(sensorIndex, threshold, releaseThreshold) : false;
 }
 
 bool Device::SetReleaseThreshold(double threshold)
@@ -1402,6 +1378,14 @@ int Device::DeviceSelected()
 	return connectionManager->DeviceSelected();
 }
 
+#ifdef DEVICE_CLIENT_ENABLED
+bool Device::Connect(std::string url)
+{
+	return connectionManager->ConnectToUrl(url);
+}
+#endif
+
+
 void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 {
 	if((groups & DPG_LIGHTS) > 0 && Pad()->featureLights) {
@@ -1464,7 +1448,7 @@ void Device::LoadProfile(json& j, DeviceProfileGroups groups)
 			auto sensor = j["sensors"][key];
 
 			if (groups & DPG_SENSITIVITY && sensor.contains("threshold")) {
-				SetThreshold(key, sensor["threshold"]);
+				SetThreshold(key, sensor["threshold"], sensor["threshold"]);
 			}
 
 			if (groups & DPG_MAPPING && sensor.contains("button")) {

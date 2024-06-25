@@ -1,5 +1,6 @@
 #include <Model/DeviceClient.h>
 #include <Model/Reporter.h>
+#include <Model/Log.h>
 
 #include <cstdlib>
 #include <deque>
@@ -52,6 +53,7 @@ public:
         con->set_open_handler(std::bind(&BackendWs::on_connect, this, std::placeholders::_1));
         con->set_close_handler(std::bind(&BackendWs::on_disconnect, this, std::placeholders::_1));
         con->set_message_handler(std::bind(&BackendWs::on_message, this, std::placeholders::_1, std::placeholders::_2));
+        con->set_fail_handler(std::bind(&BackendWs::on_disconnect, this, std::placeholders::_1));
 
         socket_.connect(con);
         
@@ -71,10 +73,10 @@ public:
 
     void on_message(websocketpp::connection_hdl hdl, ws_client::message_ptr message)
     {
-        if (responseQueue.empty())
+        if (message->get_opcode() != websocketpp::frame::opcode::binary)
             return;
 
-        if (message->get_opcode() != websocketpp::frame::opcode::binary)
+        if (responseQueue.empty())
             return;
 
         responseQueue.back().set_value(message->get_payload());
@@ -90,8 +92,19 @@ public:
 
     void on_disconnect(websocketpp::connection_hdl con)
     {
-        connected = false;
-        connectedPromise.set_value(false);
+        if (connected) {
+            connected = false;
+        }
+        else {
+            connectedPromise.set_value(false);
+        }
+        
+            
+        while (!responseQueue.empty()) {
+            responseQueue.back().set_exception(std::make_exception_ptr("Disconnected"));
+            responseQueue.pop_back();
+        }
+
         con_hdl.reset();
     }
 
@@ -143,7 +156,15 @@ public:
         request.header.length = length-1;
         request.data = std::string((const char*)data+1, length-1);
 
-        ReportPacket response = send_and_get(request);
+        ReportPacket response;
+
+        try {
+            response = send_and_get(request);
+        }
+        catch (...) {
+            return -1;
+        }
+
 
         if(response.header.cmd != CMD_REPORT_SEND_ACK || response.header.reportId != request.header.reportId)
             return 0;
@@ -160,7 +181,13 @@ public:
         request.header.cmd = CMD_DATA_READ;
         request.header.reportId = data[0];
 
-        ReportPacket response = send_and_get(request);
+        ReportPacket response;
+        try {
+            response = send_and_get(request);
+        }
+        catch (...) {
+            return -1;
+        }
         
         if (response.header.cmd != CMD_DATA_READ_ACK || response.header.reportId != request.header.reportId)
             return 0;
@@ -172,7 +199,7 @@ public:
 
 	int write(unsigned char *data, size_t length)
 	{
-		return 0;
+		return send_feature_report(data, length);
 	}
 
 	const wchar_t* error()

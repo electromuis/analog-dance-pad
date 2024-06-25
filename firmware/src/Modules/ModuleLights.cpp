@@ -75,8 +75,13 @@ void ModuleLights::Update()
 	{
         const LedMapping& mapping = configuration.lightConfiguration.ledMappings[m];
 
-        if (!(mapping.flags & LMF_ENABLED) || mapping.lightRuleIndex >= MAX_LIGHT_RULES || mapping.sensorIndex >= SENSOR_COUNT)
-            continue;
+        if (
+            !(mapping.flags & LMF_ENABLED) ||
+            mapping.lightRuleIndex >= MAX_LIGHT_RULES ||
+            mapping.sensorIndex >= SENSOR_COUNT ||
+            mapping.ledIndexBegin > LED_COUNT ||
+            mapping.ledIndexEnd > LED_COUNT
+        ) continue;
 
         const LightRule& rule = configuration.lightConfiguration.lightRules[mapping.lightRuleIndex];
 
@@ -89,8 +94,7 @@ void ModuleLights::Update()
 		uint16_t sensorValue = ModulePadInstance.sensorValues[mapping.sensorIndex];
 		uint16_t sensorThreshold = s.threshold;		
 		bool sensorState = ModulePadInstance.sensorStates[mapping.sensorIndex];
-
-
+        
         for (uint8_t led = mapping.ledIndexBegin; led < mapping.ledIndexEnd; ++led) {
             HAL_Lights_SetLed(led, CalcColor(rule, sensorState, sensorValue, sensorThreshold));
 		}

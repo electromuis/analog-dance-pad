@@ -1,6 +1,10 @@
+
+#include "adp_config.hpp"
 #ifdef FEATURE_WEBSERVER_ENABLED
 
 #include <Arduino.h>
+
+#include <WiFiManager.h>
 
 #include "WiFi.h"
 #include <AsyncTCP.h>
@@ -10,12 +14,12 @@
 #include <cstring>
 #include "Reports/Reports.hpp"
 
+WiFiManager wifiManager;
+
 #define STACK_SIZE 1024 * 8
 StaticTask_t xTaskBuffer;
 StackType_t xStack[ STACK_SIZE ];
 
-const char* mySsid     = "VRWifi";
-const char* myPassword = "12345678";
 AsyncWebServer myServer(80);
 AsyncWebSocket myWs("/ws");
 
@@ -121,20 +125,18 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
 
 void wifiTask(void * parameter)
 {
-    vTaskDelay(300);
+    // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+    // WiFi.setHostname(hostname); //define hostname
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(mySsid, myPassword);
-    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        return;
+    if(SPIFFS.begin()){
+       auto staticHandler = myServer.serveStatic("/", SPIFFS, "/").setDefaultFile("adp-tool.html");
+    } else {
+        myServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+            request->send(200, "text/plain", "Hello, world! (No data)");
+        });
     }
 
-    if(!SPIFFS.begin()){
-       return;
-    }
-
-    auto staticHandler = myServer.serveStatic("/", SPIFFS, "/").setDefaultFile("adp-tool.html");
-    staticHandler.setCacheControl("max-age=2592000");
+    
 
     myWs.onEvent(onWsEvent);
     myServer.addHandler(&myWs);
@@ -150,21 +152,47 @@ void wifiTask(void * parameter)
 
 void HAL_Webserver_Init()
 {
-    xTaskCreateStaticPinnedToCore(
-        wifiTask,
-        "wifiTask",
-        STACK_SIZE,
-        ( void * ) 1,
-        6,
-        xStack,
-        &xTaskBuffer,
-        0
-    );
+    WiFi.mode(WIFI_STA);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+
+    wifiManager.setDebugOutput(false);
+    // wifiManager.resetSettings();
+
+    wifiManager.setTitle("FSRio wifi setup");
+    wifiManager.setShowInfoUpdate(false);
+    wifiManager.setShowInfoErase(false);
+
+    wifiManager.setHostname("fsrio.local");
+    wifiManager.setConfigPortalBlocking(false);
+    wifiManager.setConfigPortalTimeout(180);
+    //wifiManager.setSaveConfigCallback(startServer);
+
+    if(wifiManager.autoConnect("FSRio")) {
+        xTaskCreateStaticPinnedToCore(
+            wifiTask,
+            "wifiTask",
+            STACK_SIZE,
+            ( void * ) 1,
+            7,
+            xStack,
+            &xTaskBuffer,
+            0
+        );
+    }
+}
+
+void HAL_Webserver_Update()
+{
+    wifiManager.process();
 }
 
 #else
 
 void HAL_Webserver_Init()
+{
+}
+
+void HAL_Webserver_Update()
 {
 }
 
