@@ -16,10 +16,9 @@ uint16_t USBDescriptorSize = 0;
 
 void inputLoop(void *pvParameter)
 {
+    vTaskDelay(500);
     while (true) {
-        ModulePadInstance.UpdateStatus();
-        HAL_USB_Update();
-        // vTaskDelay(300);
+        ModuleUSBInstance.Update();
     }
 }
 
@@ -28,24 +27,23 @@ void ModuleUSB::Setup()
     HAL_USB_Setup();
 
     #ifdef FEATURE_RTOS_ENABLED
-    // xTaskCreatePinnedToCore(
-    //     inputLoop,
-    //     "inputLoop",
-    //     1024 * 2,
-    //     ( void * ) 1,
-    //     5,
-    //     nullptr,
-    //     1
-    // );
+    taskPrority = 18;
+    xTaskCreatePinnedToCore(
+        inputLoop,
+        "inputLoop",
+        1024 * 2,
+        ( void * ) 1,
+        taskPrority,
+        nullptr,
+        1
+    );
     #endif
 }
 
 void ModuleUSB::Update()
 {
-    // #ifndef FEATURE_RTOS_ENABLED
     ModulePadInstance.UpdateStatus();
     HAL_USB_Update();
-    // #endif
 }
 
 void ModuleUSB::Reconnect()

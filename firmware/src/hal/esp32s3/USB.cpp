@@ -10,6 +10,8 @@
 #include "Reports/Reports.hpp"
 #include "Reports/PadReports.hpp"
 
+#include "esp32-hal-tinyusb.h"
+
 class USBPad: public USBHIDDevice {
 public:
     USBPad();
@@ -57,8 +59,12 @@ USBPad usbPad;
 
 void USBPad::sendInputReport()
 {
+    if(!tud_hid_n_ready(0))
+        return;
+        
     InputHIDReport report;
-    this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report), 200U);
+    //this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report), 100U);
+    tud_hid_n_report(0, INPUT_REPORT_ID, &report, sizeof(report));
 }
 
 uint16_t USBPad::_onGetFeature(uint8_t report_id, uint8_t* buffer, uint16_t len)

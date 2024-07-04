@@ -17,13 +17,17 @@
 
 #define PIN_ANALOG_IN 5
 
-#define PIN_LED_POWER 2
-#define REG_LED_POWER 2
-#define PORT_LED_POWER 2
+#define PIN_LED_POWER DDD5
+#define REG_LED_POWER DDRD
+#define PORT_LED_POWER PORTD
 
-#define PIN_LED_DATA 3
-#define REG_LED_DATA 3
-#define PORT_LED_DATA 3
+#define PIN_LED_DATA DDB0
+#define REG_LED_DATA DDRB
+#define PORT_LED_DATA PORTB
+
+#define LED_STRIP_PORT PORTC
+#define LED_STRIP_DDR  DDRC
+#define LED_STRIP_PIN  6
 
 #define ADC_REG_ADC0 0b000000
 #define ADC_REG_ADC1 0b000001
@@ -55,10 +59,10 @@ static const unsigned char sensorToAnalogPin[SENSOR_COUNT_V1] = {
     ADC_REG_A1,
     ADC_REG_A2,
     ADC_REG_A3,
-    ADC_REG_A4,
-    ADC_REG_A5,
     ADC_REG_A6,
     ADC_REG_A7,
+    ADC_REG_A8,
+    ADC_REG_A9,
 	
 	0b111111,
 	0b111111,

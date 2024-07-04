@@ -7,6 +7,11 @@
 #include "ModuleLights.hpp"
 #include "hal/hal_Webserver.hpp"
 
+#ifdef FEATURE_RTOS_ENABLED
+#include "FreeRTOS.h"
+#include "task.h"
+#endif
+
 #ifdef FEATURE_WEBSERVER_ENABLED
 class ModuleWebserver : public Module {
 public:
@@ -41,5 +46,6 @@ void ModulesSetup()
 void ModulesUpdate()
 {
     for (auto module : modules)
-        module->Update();
+        if(module->ShouldMainUpdate())
+            module->Update();
 }

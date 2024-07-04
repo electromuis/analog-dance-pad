@@ -13,8 +13,8 @@ void ModulePad::Setup()
 
 void ModulePad::Update()
 {
+    // UpdateStatus();
     // HAL_USB_Update();
-    //UpdateStatus();
 }
 
 void ModulePad::UpdateStatus()
@@ -22,7 +22,12 @@ void ModulePad::UpdateStatus()
     ModuleLightsInstance.DataCycle();
 
     for (int i = 0; i < SENSOR_COUNT; i++) {
-        sensorValues[i] = HAL_ADC_ReadSensor(i);
+        // ADC is noise while lights are updating
+        if(ModuleLightsInstance.IsWriting())
+            continue;
+        
+        sensorValues[i] = (sensorValues[i] + HAL_ADC_ReadSensor(i)) / 2;
+        // sensorValues[i] = HAL_ADC_ReadSensor(i);
     }
 
     for (int i = 0; i < BUTTON_COUNT; i++) {
@@ -35,6 +40,7 @@ void ModulePad::UpdateStatus()
             }
 
             uint16_t sensorVal = sensorValues[j];
+            sensorStates[j] = sensorVal > s.threshold;
 
             if (buttonsPressed[i]) {
                 if (sensorVal > s.releaseThreshold) {
@@ -47,8 +53,6 @@ void ModulePad::UpdateStatus()
                     break;
                 }
             }
-
-            sensorStates[j] = newButtonPressedState;
         }
 
         buttonsPressed[i] = newButtonPressedState;

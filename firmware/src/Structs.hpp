@@ -103,9 +103,10 @@ enum LedMappingFlags
 
 enum LightRuleFlags
 {
-    LRF_ENABLED  = 0x1,
-    LRF_FADE_ON  = 0x2,
-    LRF_FADE_OFF = 0x4,
+    LRF_ENABLED  = (1 << 0),
+    LRF_FADE_ON  = (1 << 1),
+    LRF_FADE_OFF = (1 << 2),
+    LRF_PULSE    = (1 << 3),
 };
 
 

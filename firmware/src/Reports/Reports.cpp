@@ -11,11 +11,11 @@ typedef struct ReportRegistration {
     ReportRegistration();
     ReportRegistration(const uint8_t ReportID, uint16_t const ReportSize, WriteReportFunc* Write, ProcessReportFunc* Process);
     
-    WriteReportFunc* Write;
-    ProcessReportFunc* Process;
+    WriteReportFunc* Write = nullptr;
+    ProcessReportFunc* Process = nullptr;
 
-    uint8_t ReportID;
-    uint16_t ReportSize;
+    uint8_t ReportID = 0;
+    uint16_t ReportSize = 0;
 } ReportRegistration;
 
 ReportRegistration registrations[18];

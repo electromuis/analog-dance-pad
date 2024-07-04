@@ -3,12 +3,15 @@
 #include "adp_config.hpp"
 #include "Modules/ModuleConfig.hpp"
 #include "SPI.h"
+#include <driver/adc.h>
+#include "Modules/ModuleLights.hpp"
 
-SPIClass spiPot = SPIClass(HSPI);
+SPIClass* spiPot = nullptr;
 static const int spiClk = 80000000; // 80 MHz
 static bool spiReady = false;
+adc1_channel_t channel = ADC1_CHANNEL_9;
 
-uint8_t sensorLookup[SENSOR_COUNT] = {
+uint8_t sensorLookup[16] = {
     7,
     6,
     5,
@@ -29,16 +32,22 @@ uint8_t sensorLookup[SENSOR_COUNT] = {
 
 void HAL_ADC_Init()
 {
-    spiPot.begin(PIN_SPI_SCK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_SPI_POT_CS);
-    spiPot.beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE0));
+    adc_set_clk_div(8);
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(channel, ADC_ATTEN_DB_12);
+
+    spiPot = new SPIClass(HSPI);
+
+    spiPot->begin(PIN_SPI_SCK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_SPI_POT_CS);
+    spiPot->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE0));
 
     pinMode(PIN_MUX_1, OUTPUT);
     pinMode(PIN_MUX_2, OUTPUT);
     pinMode(PIN_MUX_3, OUTPUT);
     pinMode(PIN_MUX_4, OUTPUT);
-    pinMode(spiPot.pinSS(), OUTPUT);
+    pinMode(PIN_SPI_POT_CS, OUTPUT);
 
-    digitalWrite(spiPot.pinSS(), HIGH);
+    digitalWrite(PIN_SPI_POT_CS, HIGH);
 
     spiReady = true;
 }
@@ -55,22 +64,24 @@ void setMuxer(uint8_t sensorIndex)
 
 void setDigipot(uint8_t sensorIndex)
 {
-    if(!spiReady)
-        return;
-
     SensorConfig sensorConfig = ModuleConfigInstance.GetSensorConfig(sensorIndex);
 
     // spiPot->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE0));
-    digitalWrite(spiPot.pinSS(), LOW);
-    SPI.transfer(0b00010001);
-    SPI.transfer(sensorConfig.resistorValue);
-    digitalWrite(spiPot.pinSS(), HIGH);
+    digitalWrite(PIN_SPI_POT_CS, LOW);
+    spiPot->transfer(0b00010001);
+    spiPot->transfer(sensorConfig.resistorValue);
+    digitalWrite(PIN_SPI_POT_CS, HIGH);
     // spiPot->endTransaction();
 }
 
 uint16_t HAL_ADC_ReadSensor(uint8_t sensorIndex)
 {
+    if(!spiReady)
+        return 0;
+
     setMuxer(sensorIndex);
-    // setDigipot(sensorIndex);
-    return analogRead(PIN_ANALOG_IN);
+    setDigipot(sensorIndex);
+    uint16_t value = adc1_get_raw(channel);
+
+    return value;
 }

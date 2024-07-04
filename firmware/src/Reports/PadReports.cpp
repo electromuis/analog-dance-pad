@@ -23,8 +23,6 @@ InputHIDReport::InputHIDReport()
     for (int i = 0; i < SENSOR_COUNT; i++) {
         sensorValues[i] = ModulePadInstance.sensorValues[i];
     }
-
-    //ModuleLightsInstance.DataCycle();
 }
 
 NameFeatureHIDReport::NameFeatureHIDReport()

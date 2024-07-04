@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "adp_config.hpp"
 #include "hal/hal_Lights.hpp"
+#include "Modules/ModuleLights.hpp"
 #include <FastLED.h>
 
 #define BRIGHTNESS  254

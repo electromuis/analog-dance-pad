@@ -41,11 +41,6 @@ void ADC_LoadPot(uint8_t sensor) {
 	
 	// Set the digipot via SPI
 	
-	#if defined(LED_PIN_FIX)
-		// Light pin is on the SPI register. Need to enable/disable SPI each time.
-		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
-	#endif
-	
 	REG_POT_CS &= ~(1 << PIN_POT_CS);
 	
 	SPDR = 0b00010001;
@@ -55,11 +50,6 @@ void ADC_LoadPot(uint8_t sensor) {
     while(! (SPSR & (1 << SPIF)) ) ;
 	
 	REG_POT_CS |= 1 << PIN_POT_CS;
-	
-	#if defined(LED_PIN_FIX)
-		// Light pin is on the SPI register. Need to enable/disable SPI each time.
-		SPCR = 0;
-	#endif
 }
 
 void HAL_ADC_Init()
@@ -76,10 +66,10 @@ void HAL_ADC_Init()
 	DDRC |= 1 << DDC6;
 	DDRE |= 1 << DDE6;
 	
-	#if defined(FEATURE_DIGIPOT_ENABLED)
+	// #if defined(FEATURE_DIGIPOT_ENABLED)
 		DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
 		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
-	#endif
+	// #endif
 }
 
 uint16_t HAL_ADC_ReadSensor(uint8_t sensor)
@@ -89,9 +79,9 @@ uint16_t HAL_ADC_ReadSensor(uint8_t sensor)
 		return 0;
 	}
 	
-	#if defined(FEATURE_DIGIPOT_ENABLED)
+	// #if defined(FEATURE_DIGIPOT_ENABLED)
 		ADC_LoadPot(sensor);
-	#endif
+	// #endif
 
     // see: https://www.avrfreaks.net/comment/885267#comment-885267
     ADMUX = (ADMUX & 0xE0) | (pin & 0x1F);   //select channel (MUX0-4 bits)

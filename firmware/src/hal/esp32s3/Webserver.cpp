@@ -136,8 +136,6 @@ void wifiTask(void * parameter)
         });
     }
 
-    
-
     myWs.onEvent(onWsEvent);
     myServer.addHandler(&myWs);
 
@@ -150,7 +148,7 @@ void wifiTask(void * parameter)
     }
 }
 
-void HAL_Webserver_Init()
+void webserverLoop(void *pvParameter)
 {
     WiFi.mode(WIFI_STA);
     WiFi.setTxPower(WIFI_POWER_8_5dBm);
@@ -163,27 +161,40 @@ void HAL_Webserver_Init()
     wifiManager.setShowInfoErase(false);
 
     wifiManager.setHostname("fsrio.local");
-    wifiManager.setConfigPortalBlocking(false);
+    // wifiManager.setConfigPortalBlocking(false);
     wifiManager.setConfigPortalTimeout(180);
-    //wifiManager.setSaveConfigCallback(startServer);
 
     if(wifiManager.autoConnect("FSRio")) {
-        xTaskCreateStaticPinnedToCore(
-            wifiTask,
-            "wifiTask",
-            STACK_SIZE,
-            ( void * ) 1,
-            7,
-            xStack,
-            &xTaskBuffer,
-            0
-        );
+        wifiTask(nullptr);
+        // xTaskCreateStaticPinnedToCore(
+        //     wifiTask,
+        //     "wifiTask",
+        //     STACK_SIZE,
+        //     ( void * ) 1,
+        //     7,
+        //     xStack,
+        //     &xTaskBuffer,
+        //     0
+        // );
     }
+}
+
+void HAL_Webserver_Init()
+{
+    xTaskCreatePinnedToCore(
+        webserverLoop,
+        "webserverLoop",
+        1024*16,
+        ( void * ) 1,
+        1,
+        nullptr,
+        0
+    );
 }
 
 void HAL_Webserver_Update()
 {
-    wifiManager.process();
+    // wifiManager.process();
 }
 
 #else

@@ -12,7 +12,7 @@ extern const Configuration DEFAULT_CONFIGURATION;
 
 Configuration configuration;
 
-static const uint8_t magicBytes[5] = {9, 62, SENSOR_COUNT, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
+static const uint8_t magicBytes[5] = {9, 58, SENSOR_COUNT, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
 #define MAGIC_BYTES_ADDRESS ((uint16_t) 0x00)
 #define CONFIGURATION_ADDRESS ((uint16_t) (MAGIC_BYTES_ADDRESS + (uint16_t)sizeof (magicBytes)))
 
