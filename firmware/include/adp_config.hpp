@@ -17,7 +17,7 @@
 #define MAX_SENSOR_VALUE 1024
 #define SENSOR_COUNT_V1 12
 #define BUTTON_COUNT 16
-#define LED_UPDATE_INTERVAL 20
+#define LED_UPDATE_INTERVAL 1
 
 #include "arch.h"
 #include "adp_pins.h"
