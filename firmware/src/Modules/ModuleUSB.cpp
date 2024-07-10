@@ -14,6 +14,7 @@ ModuleUSB ModuleUSBInstance = ModuleUSB();
 uint8_t USBDescriptor[512];
 uint16_t USBDescriptorSize = 0;
 
+#ifdef FEATURE_RTOS_ENABLED
 void inputLoop(void *pvParameter)
 {
     vTaskDelay(500);
@@ -21,6 +22,7 @@ void inputLoop(void *pvParameter)
         ModuleUSBInstance.Update();
     }
 }
+#endif
 
 void ModuleUSB::Setup()
 {
