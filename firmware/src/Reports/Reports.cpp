@@ -41,13 +41,12 @@ void RegisterReports()
     RegisterSensorReports();
 }
 
-bool WriteReport(const uint8_t ReportID, uint8_t* ReportData, uint16_t* const ReportSize)
+bool WriteReport(const uint8_t reqReportID, uint8_t* ReportData, uint16_t* const ReportSize)
 {
+
+    uint8_t ReportID = reqReportID;
     if(ReportID == 0) {
-        *ReportSize = registrations[INPUT_REPORT_ID].ReportSize;
-        registrations[INPUT_REPORT_ID].Write(ReportData);
-        
-        return true;
+        ReportID = INPUT_REPORT_ID;
     }
 
     if(ReportID >= 18) {

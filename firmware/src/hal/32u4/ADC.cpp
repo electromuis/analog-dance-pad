@@ -4,40 +4,57 @@
 #include <avr/io.h>
 #include "adp_config.hpp"
 
+static const uint8_t sensorToMuxerIndex[SENSOR_COUNT] = {
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
+	9,
+	10,
+	11
+};
+
 void ADC_LoadPot(uint8_t sensor) {
-	SensorConfig s = ModuleConfigInstance.GetSensorConfig(sensor);
+	const SensorConfig& s = ModuleConfigInstance.GetSensorConfig(sensor);
 	
 	// PD1 PD0 PC6 PE6
 	
 	// Set the correct muxer output
 	
-	if(sensor & 1) {
-		REG_MUX_1 |= 1 << PIN_MUX_1;
-	}
-	else {
-		REG_MUX_1 &= ~(1 << PIN_MUX_1);
-	}
+	// if(sensor & 1) {
+	// 	REG_MUX_1 |= 1 << PIN_MUX_1;
+	// }
+	// else {
+	// 	REG_MUX_1 &= ~(1 << PIN_MUX_1);
+	// }
 	
-	if(sensor & (1 << 1)) {
-		REG_MUX_2 |= 1 << PIN_MUX_2;
-	}
-	else {
-		REG_MUX_2 &= ~(1 << PIN_MUX_2);
-	}
+	// if(sensor & (1 << 1)) {
+	// 	REG_MUX_2 |= 1 << PIN_MUX_2;
+	// }
+	// else {
+	// 	REG_MUX_2 &= ~(1 << PIN_MUX_2);
+	// }
 	
-	if(sensor & (1 << 2)) {
-		REG_MUX_3 |= 1 << PIN_MUX_3;
-	}
-	else {
-		REG_MUX_3 &= ~(1 << PIN_MUX_3);
-	}
+	// if(sensor & (1 << 2)) {
+	// 	REG_MUX_3 |= 1 << PIN_MUX_3;
+	// }
+	// else {
+	// 	REG_MUX_3 &= ~(1 << PIN_MUX_3);
+	// }
 	
-	if(sensor & (1 << 3)) {
-		REG_MUX_4 |= 1 << PIN_MUX_4;
-	}
-	else {
-		REG_MUX_4 &= ~(1 << PIN_MUX_4);
-	}
+	// if(sensor & (1 << 3)) {
+	// 	REG_MUX_4 |= 1 << PIN_MUX_4;
+	// }
+	// else {
+	// 	REG_MUX_4 &= ~(1 << PIN_MUX_4);
+	// }
+
+	PORTD = (PORTD & 0b11110000) | (sensorToMuxerIndex[sensor] & 0b00001111);
 	
 	// Set the digipot via SPI
 	
@@ -62,14 +79,13 @@ void HAL_ADC_Init()
     ADCSRB = (1 << ADHSM); // enable high speed mode
 
 	// Muxer outputs
-	DDRD |= (1 << DDD0) | (1 << DDD1);
-	DDRC |= 1 << DDC6;
+	DDRD |= 0b00001111;
 	DDRE |= 1 << DDE6;
+	DDRB |= (1 << DDB2) | (1 << DDB1); //spi pins on port b MOSI, SCK outputs
 	
-	// #if defined(FEATURE_DIGIPOT_ENABLED)
-		DDRB |= (1 << DDB6) | (1 << DDB2) | (1 << DDB1); //spi pins on port b SS, MOSI, SCK outputs
+	#if defined(FEATURE_DIGIPOT_ENABLED)
 		SPCR = (1 << SPE) | (1 << MSTR);  // SPI enable, Master
-	// #endif
+	#endif
 }
 
 uint16_t HAL_ADC_ReadSensor(uint8_t sensor)
@@ -79,9 +95,9 @@ uint16_t HAL_ADC_ReadSensor(uint8_t sensor)
 		return 0;
 	}
 	
-	// #if defined(FEATURE_DIGIPOT_ENABLED)
+	#if defined(FEATURE_DIGIPOT_ENABLED)
 		ADC_LoadPot(sensor);
-	// #endif
+	#endif
 
     // see: https://www.avrfreaks.net/comment/885267#comment-885267
     ADMUX = (ADMUX & 0xE0) | (pin & 0x1F);   //select channel (MUX0-4 bits)

@@ -1,21 +1,19 @@
-#define PIN_MUX_1   DDD1
-#define PIN_MUX_2   DDD0
-#define PIN_MUX_3   DDC6
-#define PIN_MUX_4   DDE6
-#define PIN_POT_CS  DDB6
+#define PIN_MUX_1   DDD0
+#define PIN_MUX_2   DDD1
+#define PIN_MUX_3   DDD2
+#define PIN_MUX_4   DDD3
+#define PIN_POT_CS  DDE6
 
 #define REG_MUX_1   PORTD
 #define REG_MUX_2   PORTD
-#define REG_MUX_3   PORTC
-#define REG_MUX_4   PORTE
-#define REG_POT_CS  PORTB
+#define REG_MUX_3   PORTD 
+#define REG_MUX_4   PORTD
+#define REG_POT_CS  PORTE
 
 #define PIN_SPI_MOSI    11
 #define PIN_SPI_MISO    13
 #define PIN_SPI_SCK     12
 #define PIN_SPI_POT_CS  14
-
-#define PIN_ANALOG_IN 5
 
 #define PIN_LED_POWER DDD5
 #define REG_LED_POWER DDRD
@@ -55,14 +53,14 @@
 #define ADC_REG_A10 ADC_REG_ADC13
 
 static const unsigned char sensorToAnalogPin[SENSOR_COUNT_V1] = {
-    ADC_REG_A0,
-    ADC_REG_A1,
-    ADC_REG_A2,
-    ADC_REG_A3,
-    ADC_REG_A6,
-    ADC_REG_A7,
-    ADC_REG_A8,
-    ADC_REG_A9,
+    ADC_REG_ADC0,
+    ADC_REG_ADC1,
+    ADC_REG_ADC4,
+    ADC_REG_ADC5,
+    ADC_REG_ADC6,
+    ADC_REG_ADC7,
+    ADC_REG_ADC8,
+    ADC_REG_ADC9,
 	
 	0b111111,
 	0b111111,

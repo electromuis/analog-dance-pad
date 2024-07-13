@@ -10,7 +10,7 @@ public:
     void LoadDefaults();
     void Load();
     void Save();
-    SensorConfig GetSensorConfig(uint8_t index);
+    const SensorConfig& GetSensorConfig(uint8_t index);
 };
 
 extern Configuration configuration;

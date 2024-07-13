@@ -64,7 +64,7 @@ void setMuxer(uint8_t sensorIndex)
 
 void setDigipot(uint8_t sensorIndex)
 {
-    SensorConfig sensorConfig = ModuleConfigInstance.GetSensorConfig(sensorIndex);
+    const SensorConfig& sensorConfig = ModuleConfigInstance.GetSensorConfig(sensorIndex);
 
     // spiPot->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE0));
     digitalWrite(PIN_SPI_POT_CS, LOW);

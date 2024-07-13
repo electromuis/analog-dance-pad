@@ -2,15 +2,14 @@
 #include "ModuleLights.hpp"
 #include "ModulePad.hpp"
 #include "ModuleConfig.hpp"
-#include <Arduino.h>
+// #include <Arduino.h>
+#include <string.h>
+
+ModuleLights ModuleLightsInstance = ModuleLights();
 
 #ifdef FEATURE_RTOS_ENABLED
 #include "FreeRTOS.h"
 #include "task.h"
-#endif
-
-ModuleLights ModuleLightsInstance = ModuleLights();
-
 
 void lightLoop(void *pvParameter)
 {
@@ -19,6 +18,8 @@ void lightLoop(void *pvParameter)
         vTaskDelay(5);
     }
 }
+
+#endif
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -47,7 +48,7 @@ bool operator!=(const rgb_color& a, const rgb_color& b)
 LedMappingWrapper::LedMappingWrapper(uint8_t i)
     :mappingIndex(i)
 {
-
+    mapping = &configuration.lightConfiguration.ledMappings[mappingIndex];
 }
 
 bool LedMappingWrapper::HasFlag(LightRuleFlags f)
@@ -55,32 +56,38 @@ bool LedMappingWrapper::HasFlag(LightRuleFlags f)
     return GetRule().flags & f;
 }
 
-const LedMapping& LedMappingWrapper::GetMapping()
-{
-    return configuration.lightConfiguration.ledMappings[mappingIndex];
-}
-
 const LightRule& LedMappingWrapper::GetRule()
 {
-    return configuration.lightConfiguration.lightRules[GetMapping().lightRuleIndex];
+    return configuration.lightConfiguration.lightRules[mapping->lightRuleIndex];
 }
 
-SensorConfig LedMappingWrapper::GetSensorConfig()
+const SensorConfig& LedMappingWrapper::GetSensorConfig()
 {
-    return ModuleConfigInstance.GetSensorConfig(GetMapping().sensorIndex);
+    return ModuleConfigInstance.GetSensorConfig(mapping->sensorIndex);
 }
 
 bool LedMappingWrapper::IsValid()
 {
-    auto& mapping = GetMapping();
+    if(mapping == nullptr)
+        return false;
 
-    if (
-            !(mapping.flags & LMF_ENABLED) ||
-            mapping.lightRuleIndex >= MAX_LIGHT_RULES ||
-            mapping.sensorIndex >= SENSOR_COUNT ||
-            mapping.ledIndexBegin > LED_COUNT ||
-            mapping.ledIndexEnd > LED_COUNT
-    ) return false;
+    if(mappingIndex >= MAX_LED_MAPPINGS)
+        return false;
+
+    if(!(mapping->flags & LMF_ENABLED))
+        return false;
+
+    if(mapping->lightRuleIndex >= MAX_LIGHT_RULES)
+        return false;
+
+    if(mapping->sensorIndex >= SENSOR_COUNT)
+        return false;
+
+    if(mapping->ledIndexBegin > LED_COUNT)
+        return false;
+
+    if(mapping->ledIndexEnd > LED_COUNT)
+        return false;
 
     if (!HasFlag(LRF_ENABLED))
         return false;
@@ -91,13 +98,12 @@ bool LedMappingWrapper::IsValid()
 
 rgb_color LedMappingWrapper::CalcColor()
 {
-    auto& mapping = GetMapping();
     const LightRule& rule = GetRule();
 
-    SensorConfig s = ModuleConfigInstance.GetSensorConfig(mapping.sensorIndex);
-    uint16_t sensorValue = ModulePadInstance.sensorValues[mapping.sensorIndex];
+    const SensorConfig& s = ModuleConfigInstance.GetSensorConfig(mapping->sensorIndex);
+    uint16_t sensorValue = ModulePadInstance.sensorValues[mapping->sensorIndex];
     uint16_t sensorThreshold = s.threshold;		
-    bool sensorState = ModulePadInstance.sensorStates[mapping.sensorIndex];
+    bool sensorState = ModulePadInstance.sensorStates[mapping->sensorIndex];
     
     rgb_color color;
 		
@@ -132,89 +138,79 @@ rgb_color LedMappingWrapper::CalcColor()
 
 bool LedMappingWrapper::ApplyPulse()
 {
-    auto& mapping = GetMapping();
-    auto& rule = GetRule();
+    // auto& mapping = GetMapping();
+    // auto& rule = GetRule();
 
-    bool sensorState = ModulePadInstance.sensorStates[mapping.sensorIndex];
-    unsigned long now = millis();
+    // bool sensorState = ModulePadInstance.sensorStates[mapping.sensorIndex];
+    // unsigned long now = millis();
 
-    if(sensorState != lastState) {
-        lastState = sensorState;
+    // if(sensorState != lastState) {
+    //     lastState = sensorState;
 
-        if(lastState)
-            pulses.push_back(now);
-    }
+    //     if(lastState)
+    //         pulses.push_back(now);
+    // }
 
-    Fill(rule.offColor);
+    // Fill(rule.offColor);
 
-    for(unsigned long pulseTime : pulses) {
-        unsigned long pulseDuration = now - pulseTime;
-        float pulsePosition = (float)pulseDuration / (float)PULSE_TICK_RATE;
-        if(pulsePosition >= 20)
-            continue;
+    // for(unsigned long pulseTime : pulses) {
+    //     unsigned long pulseDuration = now - pulseTime;
+    //     float pulsePosition = (float)pulseDuration / (float)PULSE_TICK_RATE;
+    //     if(pulsePosition >= 20)
+    //         continue;
 
-        uint16_t panelSize = (mapping.ledIndexEnd - mapping.ledIndexBegin) / 2;
-        uint16_t ledCenter = mapping.ledIndexBegin + panelSize;
+    //     uint16_t panelSize = (mapping.ledIndexEnd - mapping.ledIndexBegin) / 2;
+    //     uint16_t ledCenter = mapping.ledIndexBegin + panelSize;
 
-        uint16_t pulseLed = map(pulsePosition, 0, 16, 0, panelSize);
-        pulseLed = (pulseLed/2)*2;
+    //     uint16_t pulseLed = map(pulsePosition, 0, 16, 0, panelSize);
+    //     pulseLed = (pulseLed/2)*2;
 
-        if(pulsePosition < 15) {
-            HAL_Lights_SetLed(ledCenter + pulseLed, rule.onColor);
-            HAL_Lights_SetLed(ledCenter + pulseLed+1, rule.onColor);
+    //     if(pulsePosition < 15) {
+    //         HAL_Lights_SetLed(ledCenter + pulseLed, rule.onColor);
+    //         HAL_Lights_SetLed(ledCenter + pulseLed+1, rule.onColor);
 
-            HAL_Lights_SetLed(ledCenter + ((pulseLed)*-1)-1, rule.onColor);
-            HAL_Lights_SetLed(ledCenter + ((pulseLed+1)*-1)-1, rule.onColor);
-        }
+    //         HAL_Lights_SetLed(ledCenter + ((pulseLed)*-1)-1, rule.onColor);
+    //         HAL_Lights_SetLed(ledCenter + ((pulseLed+1)*-1)-1, rule.onColor);
+    //     }
 
 
-        if(pulseLed > 0) {
-            rgb_color color_mid = mapColor(1, 0, 2, rule.onColor, rule.offColor);
+    //     if(pulseLed > 0) {
+    //         rgb_color color_mid = mapColor(1, 0, 2, rule.onColor, rule.offColor);
             
-            HAL_Lights_SetLed(ledCenter + pulseLed - 1, color_mid);
-            HAL_Lights_SetLed(ledCenter + pulseLed - 1 - 1, color_mid);
+    //         HAL_Lights_SetLed(ledCenter + pulseLed - 1, color_mid);
+    //         HAL_Lights_SetLed(ledCenter + pulseLed - 1 - 1, color_mid);
 
-            HAL_Lights_SetLed(ledCenter + ((pulseLed - 1)*-1)-1, color_mid);
-            HAL_Lights_SetLed(ledCenter + ((pulseLed - 1 - 1)*-1)-1, color_mid);
-        }
+    //         HAL_Lights_SetLed(ledCenter + ((pulseLed - 1)*-1)-1, color_mid);
+    //         HAL_Lights_SetLed(ledCenter + ((pulseLed - 1 - 1)*-1)-1, color_mid);
+    //     }
         
-    }
+    // }
 
-    std::vector<std::reference_wrapper<unsigned long>> fv;
-    std::copy_if(pulses.begin(), pulses.end(), std::back_inserter(fv), [now](unsigned long x){
-        return ((now - x) / PULSE_TICK_RATE) < 30;
-    });
+    // std::vector<std::reference_wrapper<unsigned long>> fv;
+    // std::copy_if(pulses.begin(), pulses.end(), std::back_inserter(fv), [now](unsigned long x){
+    //     return ((now - x) / PULSE_TICK_RATE) < 30;
+    // });
 
     return true;
 }
 
 void LedMappingWrapper::Fill(rgb_color c)
 {
-    auto& mapping = GetMapping();
-
-    for (uint8_t led = mapping.ledIndexBegin; led < mapping.ledIndexEnd; ++led) {
+    for (uint8_t led = mapping->ledIndexBegin; led < mapping->ledIndexEnd; ++led) {
         HAL_Lights_SetLed(led, c);
     }
 }
 
-bool LedMappingWrapper::Apply()
+void LedMappingWrapper::Apply()
 {
-    if(HasFlag(LRF_PULSE)) {
-        return ApplyPulse();
-    }
-    
-    auto& mapping = GetMapping();
-    rgb_color newColor;
+    if(!IsValid())
+        return;
 
-    if(newColor != lastColor) {
-        lastColor = newColor;
+    // if(HasFlag(LRF_PULSE)) {
+    //     return ApplyPulse();
+    // }
 
-        Fill(newColor);
-
-        return true;
-    }
-
-    return false;
+    Fill(CalcColor());
 }
 
 // ModuleLights
@@ -222,10 +218,6 @@ bool LedMappingWrapper::Apply()
 
 void ModuleLights::Setup()
 {
-    for(uint8_t i=0; i<MAX_LED_MAPPINGS; i++) {
-        wrappers[i] = LedMappingWrapper(i);
-    }
-
     HAL_Lights_Setup();
     HAL_Lights_SetHWLed(HWLeds::HWLed_POWER, true);
     taskPrority = 5;
@@ -253,29 +245,19 @@ void ModuleLights::Update()
 
     ledTimer = LED_UPDATE_INTERVAL;
 
-    bool update = false;
-    
     for(int i=0; i<LED_COUNT; i++)
     {
-        HAL_Lights_SetLed(i, {0, 0, 0});
+        // HAL_Lights_SetLed(i, {0, 0, 0});
     }
 
-    for (uint8_t m = 0; m < MAX_LED_MAPPINGS; ++m)
+    for (uint8_t m = 0; m < MAX_LED_MAPPINGS; m++)
 	{
-        LedMappingWrapper& w = wrappers[m];
-        if(!w.IsValid())
-            continue;
-
-        if(w.Apply())
-            update = true;
+        wrappers[m].Apply();
     }
 
-    if(update)
-    {
-        writing = true;
-        HAL_Lights_Update();
-        writing = false;
-    }
+    writing = true;
+    HAL_Lights_Update();
+    writing = false;
 }
 
 void ModuleLights::SetManualMode(bool mode)
@@ -292,13 +274,11 @@ void ModuleLights::DataCycle()
 {
     if(dataCycleCount == 0)
     {
-        HAL_Lights_SetHWLed(HWLeds::HWLed_DATA, true);
+        HAL_Lights_SetHWLed(HWLeds::HWLed_DATA, ledState);
+        ledState = !ledState;
         dataCycleCount = 100;
         return;
     }
-
-    if(dataCycleCount == 50)
-        HAL_Lights_SetHWLed(HWLeds::HWLed_DATA, false);
 
     dataCycleCount--;
 }

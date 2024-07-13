@@ -19,12 +19,10 @@ void ModulePad::Update()
 
 void ModulePad::UpdateStatus()
 {
-    ModuleLightsInstance.DataCycle();
-
     for (int i = 0; i < SENSOR_COUNT; i++) {
         // ADC is noise while lights are updating
-        if(ModuleLightsInstance.IsWriting())
-            continue;
+        // if(ModuleLightsInstance.IsWriting())
+        //     continue;
         
         sensorValues[i] = (sensorValues[i] + HAL_ADC_ReadSensor(i)) / 2;
         // sensorValues[i] = HAL_ADC_ReadSensor(i);
@@ -34,7 +32,7 @@ void ModulePad::UpdateStatus()
         bool newButtonPressedState = false;
 
         for (int j = 0; j < SENSOR_COUNT; j++) {
-			SensorConfig s = ModuleConfigInstance.GetSensorConfig(j);
+			const SensorConfig& s = ModuleConfigInstance.GetSensorConfig(j);
             if(s.buttonMapping != i) {
                 continue;
             }
@@ -58,4 +56,6 @@ void ModulePad::UpdateStatus()
         buttonsPressed[i] = newButtonPressedState;
     }
 
+
+    ModuleLightsInstance.DataCycle();
 }

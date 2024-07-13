@@ -18,6 +18,11 @@
         .offFadeColor = {0, 0, 255},         \
     }
 
+#define LIGHT_RULE_DISABLED() \
+    {                         \
+        .flags = 0,           \
+    }
+
 #define DEFAULT_LED_MAPPING(rule, sensor, lbegin, lend) \
     {                                                   \
         .flags = LMF_ENABLED,                           \
@@ -25,6 +30,11 @@
         .sensorIndex = sensor,                          \
         .ledIndexBegin = lbegin,                        \
         .ledIndexEnd = lend,                            \
+    }
+
+#define LED_MAPPING_DISABLED() \
+    {                         \
+        .flags = 0,           \
     }
 
 #define DEFAULT_SENSOR_CONFIG(button) 	\

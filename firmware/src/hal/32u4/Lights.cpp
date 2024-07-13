@@ -2,9 +2,10 @@
 #include "hal/hal_Lights.hpp"
 #include <LUFA/Drivers/Board/LEDs.h>
 
-#define LED_STRIP_PORT PORTC
-#define LED_STRIP_DDR  DDRC
-#define LED_STRIP_PIN  6
+extern "C" {
+#include <avr/interrupt.h>
+#include <avr/io.h>
+}
 
 static rgb_color LED_COLORS[LED_COUNT];
 
@@ -74,16 +75,18 @@ void __attribute__((noinline)) led_strip_write(rgb_color * colors, uint16_t coun
   sei();          // Re-enable interrupts now that we are done.
 }
 
+#define LED_BOOT LEDS_LED2
+#define LED_DATA LEDS_LED1
+
 void HAL_Lights_Setup()
 {
-  
-  PORT_LED_POWER &= ~(1<<PIN_LED_POWER);
-  REG_LED_POWER |= (1<<PIN_LED_POWER);
-
-  PORT_LED_DATA &= ~(1<<PIN_LED_DATA);
-  REG_LED_DATA |= (1<<PIN_LED_DATA);
-  
+  LEDs_Init();
+	LEDs_SetAllLEDs(LEDS_ALL_LEDS);
+	Delay_MS(200);
+	LEDs_SetAllLEDs(LED_BOOT);
 }
+
+bool hasUpdate = false;
 
 void HAL_Lights_SetLed(uint8_t index, rgb_color color)
 {
@@ -99,6 +102,8 @@ void HAL_Lights_SetLed(uint8_t index, rgb_color color)
 #else
 
     if(index >= LED_COUNT) return;
+    if(LED_COLORS[index].red == color.red && LED_COLORS[index].green == color.green && LED_COLORS[index].blue == color.blue) return;
+    hasUpdate = true;
     LED_COLORS[index] = color;
 
 #endif
@@ -106,25 +111,37 @@ void HAL_Lights_SetLed(uint8_t index, rgb_color color)
 
 void HAL_Lights_Update()
 {
+    if(!hasUpdate) return;
+
     led_strip_write(LED_COLORS, LED_COUNT);
+    
+    hasUpdate = false;
 }
+
+uint8_t ledState = 0;
 
 void HAL_Lights_SetHWLed(HWLeds led, bool state)
 {
     if(led == HWLed_DATA)
     {
-      if(state)
-        REG_LED_DATA |= (1<<PIN_LED_DATA);
+      LEDs_TurnOnLEDs(LED_DATA);
+     
+      
+      if(state == true)
+        ledState |= LED_DATA;
       else
-        REG_LED_DATA &= ~(1<<PIN_LED_DATA);
+        ledState &= ~LED_DATA;
+      
+     
     }
 
     if(led == HWLed_POWER)
     {
       if(state)
-        REG_LED_POWER |= (1<<PIN_LED_POWER);
+        ledState |= LED_BOOT;
       else
-        REG_LED_POWER &= ~(1<<PIN_LED_POWER);
+        ledState &= ~LED_BOOT;
     }
-    
+
+    LEDs_SetAllLEDs(ledState);
 }

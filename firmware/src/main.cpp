@@ -16,7 +16,7 @@ void loop() {
 int main(void)
 {
   setup();
-  while (true)
+  for(;;)
     loop();
   return 0;
 }

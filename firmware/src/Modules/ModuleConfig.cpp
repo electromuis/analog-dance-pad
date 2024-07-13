@@ -12,7 +12,7 @@ extern const Configuration DEFAULT_CONFIGURATION;
 
 Configuration configuration;
 
-static const uint8_t magicBytes[5] = {9, 58, SENSOR_COUNT, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
+static const uint8_t magicBytes[5] = {10, 58, SENSOR_COUNT, FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR};
 #define MAGIC_BYTES_ADDRESS ((uint16_t) 0x00)
 #define CONFIGURATION_ADDRESS ((uint16_t) (MAGIC_BYTES_ADDRESS + (uint16_t)sizeof (magicBytes)))
 
@@ -49,10 +49,10 @@ void ModuleConfig::Save()
     HAL_EEPROM_Write(CONFIGURATION_ADDRESS, (uint8_t*)&configuration, sizeof(configuration));
 }
 
-SensorConfig ModuleConfig::GetSensorConfig(uint8_t index)
+const SensorConfig& ModuleConfig::GetSensorConfig(uint8_t index)
 {
-    if (index < SENSOR_COUNT)
+    // if (index < SENSOR_COUNT)
         return configuration.padConfiguration.sensors[index];
-    else
-        return SensorConfig();
+    // else
+    //     return SensorConfig();
 }

@@ -5,6 +5,8 @@
 #include <LUFA/Drivers/USB/USB.h>
 
 #include <string.h>
+#include <avr/power.h>
+#include <avr/wdt.h>
 
 /* Macros: */
 /** Endpoint address of the Generic HID reporting IN endpoint. */
@@ -24,7 +26,12 @@ enum InterfaceDescriptors_t
 
 void HAL_USB_Setup()
 {
+    // MCUSR &= ~(1 << WDRF);
+    // wdt_disable();
+    // clock_prescale_set(clock_div_1);
+
     USB_Init();
+    GlobalInterruptEnable();
 }
 
 static uint8_t PrevHIDReportBuffer[GENERIC_EPSIZE];
