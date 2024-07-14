@@ -10,3 +10,6 @@
 [submodule "adp-tool/lib/esp-serial-flasher"]
 	path = adp-tool/lib/esp-serial-flasher
 	url = https://github.com/electromuis/esp-serial-flasher
+[submodule "adp-tool/vcpkg"]
+	path = adp-tool/vcpkg
+	url = https://github.com/microsoft/vcpkg

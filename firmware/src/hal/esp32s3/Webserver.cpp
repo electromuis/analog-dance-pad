@@ -184,7 +184,7 @@ void HAL_Webserver_Init()
     xTaskCreatePinnedToCore(
         webserverLoop,
         "webserverLoop",
-        1024*16,
+        1024*32,
         ( void * ) 1,
         1,
         nullptr,

@@ -116,8 +116,7 @@ jobs:
           cd firmware
           pio run
           mkdir build_artifacts
-          cp .pio/build/32u4/firmware.hex build_artifacts/32u4.hex
-          cp .pio/build/esp32-s3/firmware.bin build_artifacts/esp32.bin
+          cp .pio/build/*/*.adpf build_artifacts/
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
