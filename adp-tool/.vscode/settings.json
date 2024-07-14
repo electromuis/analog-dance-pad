@@ -117,5 +117,6 @@
         "strstream": "cpp",
         "syncstream": "cpp",
         "stk500.h": "c"
-    }
+    },
+    "cmake.configureOnOpen": true
 }

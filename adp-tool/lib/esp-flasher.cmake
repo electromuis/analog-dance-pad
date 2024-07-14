@@ -4,6 +4,7 @@ add_library(esp_serial
     ${ESPSERIAL_PATH}port/wjwwood_serial_port.cpp
     ${ESPSERIAL_PATH}src/esp_loader.c
     ${ESPSERIAL_PATH}src/esp_targets.c
+    ${ESPSERIAL_PATH}src/esp_stubs.c
     ${ESPSERIAL_PATH}src/md5_hash.c
     ${ESPSERIAL_PATH}src/slip.c
     ${ESPSERIAL_PATH}src/protocol_uart.c

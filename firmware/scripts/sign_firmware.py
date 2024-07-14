@@ -1,21 +1,22 @@
 Import("env")
 import zipfile
 
-def package_firmware_esp32s3(source, target, env):
-    package_file = env.subst("$BUILD_DIR") + "/firmware.adpf"
+def package_firmware(env, files):
+    envname = env.subst("$PIOENV")
+    package_file = env.subst("$BUILD_DIR") + "/" + envname + ".adpf"
+
     with zipfile.ZipFile(package_file, 'w') as zipf:
-        zipf.write(env.subst("$BUILD_DIR") + "/firmware.bin", "firmware.bin")
-        zipf.write(env.subst("$BUILD_DIR") + "/bootloader.bin", "bootloader.bin")
-        zipf.write(env.subst("$BUILD_DIR") + "/partitions.bin", "partitions.bin")
-        zipf.writestr("boardtype.txt", "esp32s3_fsriov3")
+        for f in files:
+            zipf.write(env.subst("$BUILD_DIR") + "/"+f, f)
+
+        zipf.writestr("boardtype.txt", env.GetProjectOption("board_package_signature"))
     print("Signed firmware package created: " + package_file)
 
+def package_firmware_esp32s3(source, target, env):
+    return package_firmware(env, ["firmware.bin", "bootloader.bin", "partitions.bin"])
+
 def package_firmware_32u4(source, target, env):
-    package_file = env.subst("$BUILD_DIR") + "/firmware.adpf"
-    with zipfile.ZipFile(package_file, 'w') as zipf:
-        zipf.write(env.subst("$BUILD_DIR") + "/firmware.hex", "firmware.hex")
-        zipf.writestr("boardtype.txt", "avr_fsriov2")
-    print("Signed firmware package created: " + package_file)
+    return package_firmware(env, ["firmware.hex"])
     
 env.AddPostAction("$BUILD_DIR/firmware.bin", package_firmware_esp32s3)
 env.AddPostAction("$BUILD_DIR/firmware.hex", package_firmware_32u4)

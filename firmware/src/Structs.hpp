@@ -34,6 +34,13 @@ enum REPORT_ID
 
 // PAD
 
+
+enum ReleaseMode {
+    RELEASE_NONE = 0,
+    RELEASE_GLOBAL = 1,
+    RELEASE_INDIVIDUAL = 2
+};
+
 typedef struct {
 	uint16_t threshold;
 	uint16_t releaseThreshold;
@@ -54,6 +61,8 @@ typedef struct {
 typedef struct {
     SensorConfig sensors[SENSOR_COUNT];
 	uint8_t selectedSensorIndex;
+    uint8_t releaseMode;
+    uint8_t lastPropertyId;
 } __attribute__((packed)) PadConfiguration;
 
 typedef struct {
@@ -108,9 +117,6 @@ enum LightRuleFlags
     LRF_FADE_OFF = (1 << 2),
     LRF_PULSE    = (1 << 3),
 };
-
-
-
 
 // Configuration
 

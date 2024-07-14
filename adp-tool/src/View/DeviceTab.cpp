@@ -33,118 +33,231 @@ static constexpr const char* UpdateFirmwareMsg =
     "Upload a firmware file to the pad device.";
 
 #ifndef __EMSCRIPTEN__
-
-class UpdateTask {
+class FlashInstance {
 public:
-    UpdateTask(std::string firmwareFile)
+    FlashInstance()
     {
-        firmware = FirmwarePackageRead(firmwareFile);
+        uploader.Reset();
     }
-
-    // void FirmwareCallback(AvrdudeEvent event, std::string message, int p)
-    // {
-    //     switch(event) {
-    //         case AE_START:
-    //             status = "Starting";
-    //             break;
-
-    //         case AE_PROGRESS:
-    //             if(message != lastTask)
-    //             {
-    //                 lastTask = message;
-    //                 tasksCompleted ++;
-    //             }
-
-    //             progress = tasksCompleted * 100 + p;
-    //             break;
-    //     }
-    // }
-
-    FlashResult Start()
-    {
-        //uploader.SetEventHandler(std::bind(&UpdateTask::FirmwareCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        return uploader.WriteFirmwareThreaded(firmware);
-    }
-
-    void Done()
-    {
-
-    }
-
+    
     void Render()
     {
-        if (ImGui::BeginPopupModal("Updating", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        if(shoudlOpen)
         {
-            ImGui::TextUnformatted("Updating firmware ...");
-
-            // ImGui::LabelText("Status", status.c_str());
-            // float progressFloat = (float)progress / 300;
-            float progressFloat = uploader.GetProgress();
-            ImGui::ProgressBar(progressFloat);
-
-            ImGui::EndPopup();
+            ImGui::OpenPopup("Flash");
+            shoudlOpen = false;
         }
 
-        bool close = false;
-        if (ImGui::BeginPopupModal("Update error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-        {
-            ImGui::TextUnformatted(uploader.GetErrorMessage().c_str());
+        if (!ImGui::BeginPopupModal("Flash", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            return;
 
-            ImGui::EndPopup();
+        ImGui::InputText("Firmware file", firmwareFile, 255);
+        ImGui::SameLine();
+        if (ImGui::Button("Browse", ImVec2(120, 0)))
+        {
+            nfdchar_t* rawOutPath = nullptr;
+            const nfdchar_t* defaultPath = firmwareFile;
+            auto nfdResult = NFD_OpenDialog("adpf", nullptr, &rawOutPath);
+            if (nfdResult == NFD_OKAY)
+            {   
+                string outPath(rawOutPath ? rawOutPath : "");
+                free(rawOutPath);
+                outPath.copy(firmwareFile, 255);
+            }
         }
+
+        static char selectedPortStr[255] = "Select port";
+        if(selectedPort != -1)
+        {
+            strcpy_s(selectedPortStr, 255, serialPorts[selectedPort].c_str());
+        }
+
+        if(advancedMode)
+        {
+            ImGui::Checkbox("Ignore board type", &ignoreBoardType);
+
+            if(ImGui::BeginCombo("Serial port", selectedPortStr))
+            {
+                for(int i=0; i<serialPorts.size(); i++)
+                {
+                    if(ImGui::Selectable(serialPorts[i].c_str(), i == selectedPort))
+                        selectedPort = i;
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        ImGui::TextUnformatted("Status:");
+        ImGui::SameLine();
+        ImGui::TextUnformatted(message.c_str());
+
+        ImGui::ProgressBar(uploader.GetProgress());
+
+        bool disabled = !CanFlash();
+
+        if(disabled)
+            ImGui::BeginDisabled();
+
+        if(ImGui::Button("Flash", ImVec2(120, 0)))
+        {
+            Start();
+        }
+
+        if(disabled)
+            ImGui::EndDisabled();
+
+        disabled = IsWorking();
+
+        if(disabled)
+            ImGui::BeginDisabled();
+        ImGui::SameLine();
+        if(ImGui::Button("Close", ImVec2(120, 0)) && !IsWorking())
+        {
+            Close();
+        }
+        if(disabled)
+            ImGui::EndDisabled();
+
+        ImGui::EndPopup();
+
+        PollUploader();
     }
 
-    std::string GetFirmwareFile() { return firmware->GetFileName(); }
+    void Close()
+    {
+        ImGui::CloseCurrentPopup();
+        Device::SetSearching(true);
+    }
+
+    void Open(bool advanced = false)
+    {
+        advancedMode = advanced;
+        if(advancedMode)
+        {
+            serialPorts.clear();
+            ListSerialPorts(serialPorts);
+            selectedPort = -1;
+        }
+
+        shoudlOpen = true;
+    }
+
+    void FirmwareCallback(FlashResult event, std::string m, int progress)
+    {
+        if(event == FLASHRESULT_MESSAGE)
+        {
+            message = m;
+        }
+    }
 
 protected:
+    void PollUploader()
+    {
+        switch(uploader.GetFlashResult())
+        {
+            case FLASHRESULT_NOTHING:
+                break;
+            case FLASHRESULT_SUCCESS:
+                message = "Success";
+                uploader.Reset();
+                Device::SetSearching(true);
+                break;
+            case FLASHRESULT_FAILURE:
+                message = uploader.GetErrorMessage();
+                uploader.Reset();
+                Device::SetSearching(true);
+                break;
+        }
+    }
+
+    bool IsWorking()
+    {
+        if(uploader.GetFlashResult() != FLASHRESULT_NOTHING)
+            return true;
+
+        return false;
+    }
+
+    void Start()
+    {
+        if(!CanFlash())
+            return;
+
+        try {
+            firmware = FirmwarePackageRead(firmwareFile);
+        } catch (std::exception& e) {
+            Log::Writef("Error: %s", e.what());
+            message = e.what();
+            return;
+        }
+
+        uploader.SetEventHandler([this](FlashResult event, std::string message, int progress)
+        {
+            FirmwareCallback(event, message, progress);
+        });
+
+        if(advancedMode)
+        {
+            uploader.SetIgnoreBoardType(ignoreBoardType);
+            uploader.SetPort(serialPorts[selectedPort]);
+            if(ignoreBoardType)
+            {
+                uploader.SetArchtType(firmware->GetBoardType().archType);
+            }
+        } else {
+            uploader.SetDoDeviceConnect(true);
+        }
+
+        try {
+            Device::SetSearching(false);
+            uploader.WriteFirmwareThreaded(firmware);
+        } catch (std::exception& e) {
+            Log::Writef("Error: %s", e.what());
+            message = e.what();
+        }
+    }
+
+    bool CanFlash()
+    {
+        if(advancedMode)
+        {
+            if(selectedPort == -1 || selectedPort >= serialPorts.size())
+                return false;
+        }
+
+        if(strlen(firmwareFile) == 0)
+            return false;
+
+        if(IsWorking())
+            return false;
+
+        return true;
+    }
+
+    bool ignoreBoardType = false;
+    bool advancedMode = false;
+    bool shoudlOpen = false;
+    char firmwareFile[255];
+    std::vector<std::string> serialPorts;
+    int selectedPort = -1;
+    std::string message = "IDLE";
+
     FirmwarePackagePtr firmware;
     FirmwareUploader uploader;
-    // std::string status;
-    // std::string lastTask;
-    // int tasksCompleted = 0;
-    // int progress = 0;
 };
 
-std::unique_ptr<UpdateTask> updateTask;
+FlashInstance flashInstance;
+#endif // __EMSCRIPTEN__
 
-static void OnUploadFirmware()
+void DeviceTab::RenderFlash()
 {
-    nfdchar_t* rawOutPath = nullptr;
-	const nfdchar_t* defaultPath = (updateTask == nullptr ? nullptr : updateTask->GetFirmwareFile().data());
-	auto nfdResult = NFD_OpenDialog("hex", nullptr, &rawOutPath);
-	if (nfdResult != NFD_OKAY)
-		return;
-		
-	string outPath(rawOutPath ? rawOutPath : "");
-	free(rawOutPath);
-
-    if(updateTask)
-        updateTask.reset();
-
-    updateTask = std::make_unique<UpdateTask>(outPath);
-    updateTask->Render();
-
-    auto updateResult = updateTask->Start();
-    switch(updateResult) {
-        case FLASHRESULT_NOTHING:
-            ImGui::OpenPopup("Updating");
-            break;
-        case FLASHRESULT_FAILURE_BOARDTYPE:
-            ImGui::OpenPopup("Update board type error");
-            break;
-        default:
-            ImGui::OpenPopup("Update error");
-            break;
-    }
-
-    if(updateTask->Start() != FLASHRESULT_NOTHING) {
-        ImGui::OpenPopup("Update error");
-    } else {
-        ImGui::OpenPopup("Updating");
-    }
+    flashInstance.Render();
 }
 
-#endif
+void DeviceTab::OpenFlashDialog(bool advanced)
+{
+    flashInstance.Open(advanced);
+}
 
 static char padName[255] = "";
 
@@ -202,17 +315,17 @@ void DeviceTab::Render()
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 20);
     ImGui::TextUnformatted(UpdateFirmwareMsg);
     if (ImGui::Button("Update firmware...", { 200, 30 }))
-        OnUploadFirmware();
+        OpenFlashDialog(false);
 #endif // __EMSCRIPTEN__
 
     ImGui::PopStyleVar();
 
     RenamePopup();
     
-#ifndef __EMSCRIPTEN__
-    if(updateTask)
-        updateTask->Render();
-#endif
+// #ifndef __EMSCRIPTEN__
+//     if(updateTask)
+//         updateTask->Render();
+// #endif
 }
 
 }; // namespace adp.

@@ -1,7 +1,7 @@
 #pragma once
 
 #define FIRMWARE_VERSION_MAJOR 2
-#define FIRMWARE_VERSION_MINOR 0
+#define FIRMWARE_VERSION_MINOR 1
 
 #define FEATURE_DEBUG 1 << 0
 #define FEATURE_DIGIPOT 1 << 1

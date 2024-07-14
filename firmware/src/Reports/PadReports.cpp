@@ -63,6 +63,20 @@ IdentificationV2FeatureReport::IdentificationV2FeatureReport(): features(0)
     #endif
 }
 
+SetPropertyHIDReport::SetPropertyHIDReport()
+{
+    propertyId = configuration.padConfiguration.lastPropertyId;
+    switch (propertyId)
+    {
+    case SPID_RELEASE_MODE:
+        propertyValue = configuration.padConfiguration.releaseMode;
+        break;
+    
+    default:
+        propertyValue = 0;
+    }
+}
+
 void SetPropertyHIDReport::Process()
 {
     switch (propertyId)
@@ -80,6 +94,13 @@ void SetPropertyHIDReport::Process()
     case SPID_SELECTED_SENSOR_INDEX:
         if(propertyValue < SENSOR_COUNT)
             ModulePadInstance.selectedSensorIndex = (uint8_t)propertyValue;
+        break;
+    case SPID_RELEASE_MODE:
+        if(propertyValue < 3)
+            configuration.padConfiguration.releaseMode = (uint8_t)propertyValue;
+        break;
+    case SPID_SELECTED_PROPERTY:
+        configuration.padConfiguration.lastPropertyId = (uint8_t)propertyValue;
         break;
     // case SPID_SENSOR_CAL_PRELOAD:
     //     PAD_CONF.selectedSensorIndex = (uint8_t)propertyValue;
@@ -124,7 +145,7 @@ void RegisterPadReports()
     REGISTER_REPORT_WRITE(IDENTIFICATION_V2_REPORT_ID, IdentificationV2FeatureReport)
     REGISTER_REPORT_WRITE(DEBUG_REPORT_ID, DebugHIDReport)
 
-    REGISTER_REPORT_PROCESS(SET_PROPERTY_REPORT_ID, SetPropertyHIDReport)
+    REGISTER_REPORT(SET_PROPERTY_REPORT_ID, SetPropertyHIDReport)
 
     REGISTER_REPORT_PROCESS_FUNC(RESET_REPORT_ID, HAL_Bootloader)
     REGISTER_REPORT_PROCESS_FUNC(SAVE_CONFIGURATION_REPORT_ID, SaveConfiguration)

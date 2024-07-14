@@ -2,6 +2,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(msvc) adp-tool",
+            "type": "cppvsdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "ADP_ADVANCED",
+                    "value": "1"
+                }
+            ],
+            "console": "integratedTerminal"
+        },
+
+        {
             "name": "(msvc) Test profile load",
             "type": "cppvsdbg",
             "request": "launch",

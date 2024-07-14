@@ -19,6 +19,6 @@
       "default-features": false
     },
     "argparse",
-    "libusb"
+    "pthreads"
   ]
 }

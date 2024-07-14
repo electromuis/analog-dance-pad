@@ -160,6 +160,12 @@ struct SetPropertyReport
 	uint32_le propertyValue;
 };
 
+enum ReleaseMode {
+    RELEASE_NONE = 0,
+    RELEASE_GLOBAL = 1,
+    RELEASE_INDIVIDUAL = 2
+};
+
 struct DebugReport
 {
 	uint8_t reportId = REPORT_DEBUG;

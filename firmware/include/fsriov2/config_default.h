@@ -23,8 +23,7 @@ const Configuration DEFAULT_CONFIGURATION = {
         .lightRules =
         {
             DEFAULT_LIGHT_RULE_BLUE,
-            DEFAULT_LIGHT_RULE_RED,
-            [2 ... MAX_LIGHT_RULES - 1] = LIGHT_RULE_DISABLED()
+            [1 ... MAX_LIGHT_RULES - 1] = LIGHT_RULE_DISABLED()
         },
         .ledMappings =
         {

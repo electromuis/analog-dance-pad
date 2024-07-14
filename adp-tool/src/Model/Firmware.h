@@ -10,12 +10,6 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#ifndef __EMSCRIPTEN__
-	#include "serial/serial.h"
-
-	using namespace serial;
-#endif // __EMSCRIPTEN__
-
 namespace adp {
 	
 enum ArchType {
@@ -45,6 +39,7 @@ enum FlashResult
 	FLASHRESULT_FAILURE_BOARDTYPE,
 	FLASHRESULT_RUNNING,
 	FLASHRESULT_PROGRESS,
+	FLASHRESULT_MESSAGE,
 	FLASHRESULT_CANCELLED
 };
 
@@ -68,8 +63,8 @@ struct BoardTypeStruct
 
 	bool CompatibleWith(BoardTypeStruct other, bool strict=true) const;
 
-	ArchType archType;
-	BoardType boardType;
+	ArchType archType = ARCH_UNKNOWN;
+	BoardType boardType = BOARD_UNKNOWN;
 
 	std::string ToString() const;
 };
@@ -90,6 +85,8 @@ FirmwarePackagePtr FirmwarePackageRead(std::string fileName);
 
 typedef std::function<void(FlashResult event, std::string message, int progress)> FirmwareCallback;
 
+void ListSerialPorts(std::vector<std::string>& ports);
+
 class FirmwareUploader
 {
 public:
@@ -97,6 +94,7 @@ public:
 	FlashResult WriteFirmware(FirmwarePackagePtr package);
 	FlashResult WriteFirmwareThreaded(FirmwarePackagePtr package);
 	
+	void Reset();
 	bool SetPort(std::string portName);
 	void SetIgnoreBoardType(bool ignoreBoardType);
 	void SetArchtType(ArchType archType) {connectedBoardType.archType = archType;};
@@ -104,20 +102,32 @@ public:
 	std::string GetErrorMessage();
 	FlashResult GetFlashResult();
 	void SetEventHandler(FirmwareCallback callback) {this->callback = callback;};
+	void SetDoDeviceConnect(bool doDeviceConnect) {this->doDeviceConnect = doDeviceConnect;};
 
-	int GetProgress() {return progress;};
+	float GetProgress() 
+	{
+		if(maxProgress == 0)
+			return 0;
+		return (float)progress / (float)maxProgress;
+	};
 
 private:
+	FirmwarePackagePtr firmware;
 	std::thread thread;
 	int progress = 0;
+	int maxProgress = 0;
 	BoardTypeStruct connectedBoardType;
+	bool doDeviceConnect = false;
 
-	PortInfo comPort;
+	std::string comPort;
 	std::string errorMessage;
 	FlashResult flashResult = FLASHRESULT_NOTHING;
 	json configBackup;
 	bool ignoreBoardType = false;
 	FirmwareCallback callback;
+
+	bool FlashEsp32();
+	bool FlashAvr();
 };
 #endif //__EMSCRIPTEN__
 

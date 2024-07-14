@@ -134,7 +134,7 @@ public:
 
 	int read(unsigned char *data, size_t length)
 	{
-		return hid_read(myHid, data, length);
+		return hid_read_timeout(myHid, data, length, 1);
 	}
 
 	int write(unsigned char *data, size_t length)

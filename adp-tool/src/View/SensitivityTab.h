@@ -14,6 +14,7 @@ private:
     void RenderSensor(int, float, float, float, float);
     int myAdjustingSensorIndex;
     double myAdjustingSensorThreshold;
+    double myAdjustingSensorReleaseOffset;
 };
 
 }; // namespace adp.

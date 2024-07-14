@@ -19,7 +19,8 @@ const Configuration DEFAULT_CONFIGURATION = {
             [13] = DEFAULT_SENSOR_CONFIG(13),
             [14] = DEFAULT_SENSOR_CONFIG(14),
             [15] = DEFAULT_SENSOR_CONFIG(15)
-		}
+		},
+        .releaseMode = RELEASE_NONE,
     },
     .nameAndSize = {
         .size = sizeof(DEFAULT_NAME) - 1,//, // we don't care about the null at the end.
@@ -28,7 +29,8 @@ const Configuration DEFAULT_CONFIGURATION = {
 	.lightConfiguration = {
         .lightRules =
         {
-            DEFAULT_LIGHT_RULE_BLUE
+            DEFAULT_LIGHT_RULE_BLUE,
+            [1 ... MAX_LIGHT_RULES - 1] = LIGHT_RULE_DISABLED()
         },
         .ledMappings =
         {
@@ -39,7 +41,8 @@ const Configuration DEFAULT_CONFIGURATION = {
             DEFAULT_LED_MAPPING(0, 4, 4, 5),
             DEFAULT_LED_MAPPING(0, 5, 5, 6),
             DEFAULT_LED_MAPPING(0, 6, 6, 7),
-            DEFAULT_LED_MAPPING(0, 7, 7, 8)
+            DEFAULT_LED_MAPPING(0, 7, 7, 8),
+            [8 ... MAX_LED_MAPPINGS - 1] = LED_MAPPING_DISABLED()
         }
 	}
 };

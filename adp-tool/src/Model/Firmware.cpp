@@ -8,6 +8,8 @@
 
 #ifndef __EMSCRIPTEN__
 #include "libzippp.h"
+#include <serial/serial.h>
+using namespace serial;
 #endif
 
 #include <Model/Firmware.h>
@@ -40,12 +42,21 @@ size_t split_str(const std::string &txt, std::vector<std::string> &strs, char ch
     return strs.size();
 }
 
+void ListSerialPorts(std::vector<std::string>& ports)
+{
+	vector<PortInfo> comPorts = list_ports();
+	for (PortInfo port : comPorts)
+	{
+		ports.push_back(port.port);
+	}
+}
+
 // BoardTypeStruct
 
-BoardTypeStruct::BoardTypeStruct(std::string boardType)
+BoardTypeStruct::BoardTypeStruct(std::string boardTypeString)
 {
 	std::vector<std::string> pts;
-	split_str(boardType, pts, '_');
+	split_str(boardTypeString, pts, '_');
 	if(pts.size() == 1)
 	{
 		archType = ARCH_AVR;
@@ -96,8 +107,14 @@ bool BoardTypeStruct::CompatibleWith(BoardTypeStruct other, bool strict) const
 	if (archType != compArchType)
 		return false;
 
-	if (strict && boardType != other.boardType)
-		return false;
+	if(strict)
+	{
+		if (boardType == BOARD_UNKNOWN || other.boardType == BOARD_UNKNOWN)
+			return false;
+	
+		if(boardType != other.boardType)
+			return false;
+	}
 
 	return true;
 }
@@ -201,11 +218,33 @@ FirmwarePackagePtr FirmwarePackageRead(std::string fileName)
 
 // FirmwareUploader
 
-bool FlashEsp32(PortInfo& port, FirmwarePackagePtr firmware, FirmwareCallback callback);
-bool FlashAvr(PortInfo& port, FirmwarePackagePtr firmware, FirmwareCallback callback, bool raw = false);
+void FirmwareUploader::Reset()
+{
+	flashResult = FLASHRESULT_NOTHING;
+	// progress = 0;
+	// maxProgress = 0;
+	errorMessage = "";
+	callback = nullptr;
+	connectedBoardType = BoardTypeStruct();
+	comPort = "";
+	doDeviceConnect = false;
+	ignoreBoardType = false;
+
+	if(thread.joinable())
+		thread.join();
+}
 
 FlashResult FirmwareUploader::WriteFirmware(FirmwarePackagePtr package)
 {
+	firmware = package;
+
+	if(doDeviceConnect)
+	{
+		flashResult = ConnectDevice();
+		if(flashResult != FLASHRESULT_CONNECTED)
+			return flashResult;
+	}
+	
 	if(flashResult != FLASHRESULT_CONNECTED)
 	{
 		errorMessage = "Not connected to a device";
@@ -219,7 +258,6 @@ FlashResult FirmwareUploader::WriteFirmware(FirmwarePackagePtr package)
 		return FLASHRESULT_FAILURE;
 	}
 
-	Device::SetSearching(false);
 	flashResult = FLASHRESULT_RUNNING;
 
 	FirmwareCallback callback = [this](FlashResult event, std::string message, int progress)
@@ -241,18 +279,21 @@ FlashResult FirmwareUploader::WriteFirmware(FirmwarePackagePtr package)
 
 	bool result = false;
 
+	PortInfo portInfo;
+	portInfo.port = comPort;
+
 	if(connectedBoardType.archType == ARCH_ESP)
 	{
-		result = FlashEsp32(comPort, package, callback);
+		result = FlashEsp32();
 	}
 	else if(connectedBoardType.archType == ARCH_AVR)
 	{
-		result = FlashAvr(comPort, package, callback);
+		result = FlashAvr();
 	}
-	else if(connectedBoardType.archType == ARCH_AVR_ARD)
-	{
-		result = FlashAvr(comPort, package, callback, true);
-	}
+	// else if(connectedBoardType.archType == ARCH_AVR_ARD)
+	// {
+	// 	result = FlashAvr(true);
+	// }
 	else
 	{
 		errorMessage = "Unsupported architecture";
@@ -329,7 +370,7 @@ FlashResult FirmwareUploader::ConnectDevice()
 
 			if (!found) {
 				foundNewPort = true;
-				comPort = port;
+				comPort = port.port;
 				break;
 			}
 		}
@@ -343,7 +384,7 @@ FlashResult FirmwareUploader::ConnectDevice()
 
 bool FirmwareUploader::SetPort(std::string portName)
 {
-	this->comPort.port = portName;
+	this->comPort = portName;
 	flashResult = FLASHRESULT_CONNECTED;
 	return true;
 }

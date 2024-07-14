@@ -56,7 +56,7 @@ set(GLOBAL_LIBS
 	hidapi
 	fmt::fmt
 	nlohmann_json::nlohmann_json
-	# esp_serial
+	esp_serial
 )
 
 if(NOT EMSCRIPTEN)

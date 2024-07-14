@@ -49,8 +49,11 @@ typedef struct IdentificationV2FeatureReport {
 #define SPID_SELECTED_LED_MAPPING_INDEX 1
 #define SPID_SELECTED_SENSOR_INDEX 2
 #define SPID_SENSOR_CAL_PRELOAD 3
+#define SPID_RELEASE_MODE 4
+#define SPID_SELECTED_PROPERTY 5
 
 typedef struct SetPropertyHIDReport {
+    SetPropertyHIDReport();
     void Process();
     
     uint32_t propertyId;
