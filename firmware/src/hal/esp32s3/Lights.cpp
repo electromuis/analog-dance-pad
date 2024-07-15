@@ -9,6 +9,8 @@
 #define COLOR_ORDER GRB
 CRGB leds[LED_COUNT];
 
+bool hasUpdate = false;
+
 void HAL_Lights_Setup()
 {
     pinMode(PIN_LED, OUTPUT);
@@ -21,14 +23,22 @@ void HAL_Lights_Setup()
 
 void HAL_Lights_SetLed(uint8_t index, rgb_color color)
 {
+    if(color.red == leds[index].r && color.green == leds[index].g && color.blue == leds[index].b) return;
+
     leds[index].r = color.red;
     leds[index].g = color.green;
     leds[index].b = color.blue;
+    
+    hasUpdate = true;
 }
 
 void HAL_Lights_Update()
 {
+    return;
+    if(!hasUpdate) return;
+
     FastLED.show();
+    hasUpdate = false;
 }
 
 void HAL_Lights_SetHWLed(HWLeds led, bool state)

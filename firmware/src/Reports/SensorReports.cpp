@@ -44,8 +44,6 @@ void SensorHIDReport::Process()
         sc->buttonMapping = sensor.buttonMapping;
         sc->resistorValue = sensor.resistorValue;
         sc->flags = sensor.flags;
-
-        // Pad_UpdateConfiguration(&configuration.padConfiguration);
     }
 }
 

@@ -8,7 +8,8 @@ extern "C" {
 #endif
 
 void HAL_USB_Setup();
-void HAL_USB_Update();
+bool HAL_USB_Update();
+void HAL_USB_Reconnect();
 
 bool USB_CreateReport(uint8_t report_id, uint8_t* buffer, uint16_t* len);
 bool USB_ProcessReport(uint8_t report_id, const uint8_t* buffer, uint16_t len);

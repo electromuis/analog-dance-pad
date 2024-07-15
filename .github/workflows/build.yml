@@ -80,7 +80,8 @@ jobs:
           submodules: 'true'
 
       - name: Install dependencies
-        run: choco install -y visualstudio2022buildtools visualstudio2022-workload-nativedesktop cmake
+        run: choco install -y cmake
+        # run: choco install -y visualstudio2022buildtools visualstudio2022-workload-nativedesktop cmake
       
       - name: Build project
         run: |

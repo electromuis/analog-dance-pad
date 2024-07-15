@@ -134,7 +134,8 @@ public:
 
 	int read(unsigned char *data, size_t length)
 	{
-		return hid_read_timeout(myHid, data, length, 1);
+		return hid_read(myHid, data, length);
+		// return hid_read_timeout(myHid, data, length, 1);
 	}
 
 	int write(unsigned char *data, size_t length)
@@ -286,6 +287,15 @@ bool Reporter::Get(DebugReport& report)
 	return GetFeatureReport(report, "GetDebugReport");
 }
 
+bool Reporter::Get(SetPropertyReport& report)
+{
+	if (emulator) {
+		return true;
+	}
+
+	return GetFeatureReport(report, "SetPropertyReport");
+}
+
 void Reporter::SendReset()
 {
 	WriteData(REPORT_RESET, "SendResetReport", false);
@@ -355,6 +365,7 @@ bool Reporter::Send(const SetPropertyReport& report)
 	return SendFeatureReport(report, "SendSetPropertyReport");
 }
 
+
 bool Reporter::SendAndGet(NameReport& report)
 {
 	if(!Send(report))
@@ -370,6 +381,20 @@ bool Reporter::SendAndGet(NameReport& report)
 }
 
 bool Reporter::SendAndGet(PadConfigurationReport& report)
+{
+	if (!Send(report))
+		return false;
+
+	// Wait for the controller to get into a ready state
+	std::this_thread::sleep_for(2ms);
+
+	if (!Get(report))
+		return false;
+
+	return true;
+}
+
+bool Reporter::SendAndGet(SetPropertyReport& report)
 {
 	if (!Send(report))
 		return false;

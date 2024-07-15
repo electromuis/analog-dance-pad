@@ -282,3 +282,8 @@ void ModuleLights::DataCycle()
 
     dataCycleCount--;
 }
+
+void ModuleLights::SetPowerLed(bool state)
+{
+    HAL_Lights_SetHWLed(HWLeds::HWLed_POWER, state);
+}

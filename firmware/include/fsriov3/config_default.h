@@ -20,7 +20,7 @@ const Configuration DEFAULT_CONFIGURATION = {
             [14] = DEFAULT_SENSOR_CONFIG(14),
             [15] = DEFAULT_SENSOR_CONFIG(15)
 		},
-        .releaseMode = RELEASE_NONE,
+        .releaseMode = RELEASE_GLOBAL,
     },
     .nameAndSize = {
         .size = sizeof(DEFAULT_NAME) - 1,//, // we don't care about the null at the end.

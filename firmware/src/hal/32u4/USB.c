@@ -59,10 +59,12 @@ USB_ClassInfo_HID_Device_t Generic_HID_Interface =
     }
 };
 
-void HAL_USB_Update() 
+bool HAL_USB_Update() 
 {
     HID_Device_USBTask(&Generic_HID_Interface);
     USB_USBTask();
+
+    return true;
 }
 
 /** Event handler for the library USB Configuration Changed event. */
@@ -330,4 +332,10 @@ void CALLBACK_HID_Device_ProcessHIDReport(USB_ClassInfo_HID_Device_t* const HIDI
                                           const uint16_t ReportSize)
 {
     USB_ProcessReport(ReportID, (const uint8_t*)ReportData, ReportSize);
+}
+
+void HAL_USB_Reconnect()
+{
+    USB_Disable();
+    USB_Init();
 }

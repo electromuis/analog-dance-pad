@@ -129,11 +129,8 @@ void SaveConfiguration()
 
 void FactoryReset()
 {
-    // LEDs_SetAllLEDs(0);
     ModuleConfigInstance.LoadDefaults();
     ModuleUSBInstance.Reconnect();
-    
-    // LEDs_SetAllLEDs(LED_BOOT);
 }
 
 void RegisterPadReports()

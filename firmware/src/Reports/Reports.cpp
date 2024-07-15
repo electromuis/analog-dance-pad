@@ -73,9 +73,9 @@ bool ProcessReport(const uint8_t ReportID, const uint8_t* ReportData, uint16_t c
         return false;
     }
 
-    // if(ReportSize != registrations[ReportID].ReportSize && registrations[ReportID].ReportSize != 0) {
-    //     return false;
-    // }
+    if(ReportSize != registrations[ReportID].ReportSize && registrations[ReportID].ReportSize != 0) {
+        return false;
+    }
 
     registrations[ReportID].Process(ReportData);
 

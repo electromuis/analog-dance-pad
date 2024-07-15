@@ -2,6 +2,7 @@
 #ifdef USB_MODE_HID
 
 #include <Arduino.h>
+#include <mutex>
 
 #include <USB.h>
 #include <USBHID.h>
@@ -18,7 +19,7 @@ public:
     void begin();
     void end();
 
-    void sendInputReport();
+    bool sendInputReport();
 
     // internal use
     uint16_t _onGetDescriptor(uint8_t* buffer);
@@ -27,8 +28,13 @@ public:
     virtual void _onOutput(uint8_t report_id, const uint8_t* buffer, uint16_t len) override;
 
 private:
+    bool sendInputReportInternal();
+    bool connected = false;
     USBHID hid;
+    std::mutex usbMutex;
 };
+
+static bool suspended = false;
 
 USBPad::USBPad(): hid()
 {
@@ -42,12 +48,30 @@ void USBPad::begin()
         initialized = true;
         hid.addDevice(this, USB_DescriptorSize());
     }
-    
+
     hid.begin();
+    USB.onEvent([](void* event_handler_arg,
+                                        esp_event_base_t event_base,
+                                        int32_t event_id,
+                                        void* event_data){
+        arduino_usb_hid_event_data_t * data = (arduino_usb_hid_event_data_t *)event_data;
+        switch (event_id)
+        {
+            case ARDUINO_USB_SUSPEND_EVENT:
+                suspended = true;
+                break;
+            case ARDUINO_USB_RESUME_EVENT:
+                suspended = false;
+                break;
+        }
+    });
+    
     USB.begin();
 }
 
-void USBPad::end(){
+void USBPad::end()
+{
+    
 }
 
 uint16_t USBPad::_onGetDescriptor(uint8_t* buffer)
@@ -57,14 +81,28 @@ uint16_t USBPad::_onGetDescriptor(uint8_t* buffer)
 
 USBPad usbPad;
 
-void USBPad::sendInputReport()
+bool USBPad::sendInputReportInternal()
 {
-    if(!tud_hid_n_ready(0))
-        return;
-        
     InputHIDReport report;
-    //this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report), 100U);
-    tud_hid_n_report(0, INPUT_REPORT_ID, &report, sizeof(report));
+    return this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report), 1U);
+}
+
+bool USBPad::sendInputReport()
+{
+    bool result = sendInputReportInternal();
+    if(result)
+    {
+        connected = true;
+        return true;
+    }
+
+    delay(1);
+
+    // Not connected yet, so not raising an error
+    if(!connected)
+        return true;
+
+    return false;
 }
 
 uint16_t USBPad::_onGetFeature(uint8_t report_id, uint8_t* buffer, uint16_t len)
@@ -97,9 +135,20 @@ void HAL_USB_Setup(){
     usbPad.begin();
 }
 
-void HAL_USB_Update()
+bool HAL_USB_Update()
 {
-    usbPad.sendInputReport();
+    if(suspended)
+    {
+        delay(50);
+        return true;
+    }
+
+    return usbPad.sendInputReport();
+}
+
+void HAL_USB_Reconnect()
+{
+    esp_restart();
 }
 
 #endif

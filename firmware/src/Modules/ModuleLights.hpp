@@ -43,6 +43,7 @@ public:
     void SetManualMode(bool mode);
     void SetManual(int index, rgb_color color);
     bool IsWriting() { return writing; };
+    void SetPowerLed(bool state);
 
 	uint8_t selectedLightRuleIndex = 0;
     uint8_t selectedLedMappingIndex = 0;

@@ -1,5 +1,6 @@
 #include "adp_config.hpp"
 #include "ModuleUSB.hpp"
+#include "ModuleLights.hpp"
 #include "hal/hal_USB.hpp"
 #include "Reports/Reports.hpp"
 #include "ModulePad.hpp"
@@ -45,12 +46,29 @@ void ModuleUSB::Setup()
 void ModuleUSB::Update()
 {
     ModulePadInstance.UpdateStatus();
-    HAL_USB_Update();
+    if(HAL_USB_Update())
+    {
+        ModuleLightsInstance.DataCycle();
+        errCount = 0;
+    }
+    else
+    {
+        errCount ++;
+
+        // ESP usb has probably crashed, try to reconnect
+        if(errCount > 2000)
+        {
+            Reconnect();
+            errCount = 0;
+        }
+    }
 }
 
 void ModuleUSB::Reconnect()
 {
-
+    ModuleLightsInstance.SetPowerLed(false);
+    HAL_USB_Reconnect();
+    ModuleLightsInstance.SetPowerLed(true);
 }
 
 bool USB_CreateReport(uint8_t report_id, uint8_t* buffer, uint16_t* len)

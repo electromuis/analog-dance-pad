@@ -55,7 +55,4 @@ void ModulePad::UpdateStatus()
 
         buttonsPressed[i] = newButtonPressedState;
     }
-
-
-    ModuleLightsInstance.DataCycle();
 }

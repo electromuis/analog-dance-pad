@@ -178,7 +178,7 @@ static void PrintLightRuleReport(const LightRuleReport& r)
 {
 	Log::Write("light rule [");
 	Log::Writef("  lightRuleIndex: %i", r.lightRuleIndex);
-	Log::Writef("  flags: %i", r.flags);
+	Log::Writef("  flags: %s", fmt::format("{:b}", r.flags).c_str());
 	Log::Writef("  onColor: [R%i G%i B%i]", r.onColor.red, r.onColor.green, r.onColor.blue);
 	Log::Writef("  offColor: [R%i G%i B%i]", r.offColor.red, r.offColor.green, r.offColor.blue);
 	Log::Writef("  onFadeColor: [R%i G%i B%i]", r.onFadeColor.red, r.onFadeColor.green, r.onFadeColor.blue);
@@ -190,7 +190,7 @@ static void PrintLedMappingReport(const LedMappingReport& r)
 {
 	Log::Write("led mapping [");
 	Log::Writef("  ledMappingIndex: %i", r.ledMappingIndex);
-	Log::Writef("  flags: %i", r.flags);
+	Log::Writef("  flags: %s", fmt::format("{:b}", r.flags).c_str());
 	Log::Writef("  lightRuleIndex: %i", r.lightRuleIndex);
 	Log::Writef("  sensorIndex: %i", r.sensorIndex);
 	Log::Writef("  ledIndexBegin: %i", r.ledIndexBegin);
@@ -206,7 +206,7 @@ static void PrintSensorReport(const SensorReport& r)
 	Log::Writef("  releaseThreshold: %i", ReadU16LE(r.releaseThreshold));
 	Log::Writef("  buttonMapping: %i", r.buttonMapping);
 	Log::Writef("  resistorValue: %i", r.resistorValue);
-	Log::Writef("  flags: %i", ReadU16LE(r.flags));
+	Log::Writef("  flags: %s", fmt::format("{:b}", ReadU16LE(r.flags)).c_str());
 	Log::Write("]");
 }
 
@@ -272,6 +272,23 @@ public:
 		}
 		else if (myPad.firmwareVersion.IsNewer({ 1, 1 })) {
 			myPad.featureLights = (bool)(identification.ledCount > 0);
+		}
+
+		try {
+			SetPropertyReport report;
+			report.propertyId = WriteU32LE(SetPropertyReport::SPID_SELECTED_PROPERTY);
+			report.propertyValue = WriteU32LE(SetPropertyReport::SPID_RELEASE_MODE);
+
+			if (myReporter->SendAndGet(report)) {
+				int resultId = ReadU32LE(report.propertyId);
+				if (resultId != SetPropertyReport::SPID_RELEASE_MODE) {
+					Log::Write("Fetching release mode bugged (1)");		
+				} else {
+					myPad.releaseMode = (ReleaseMode)ReadU32LE(report.propertyValue);
+				}
+			}
+		} catch(...) {
+			Log::Write("Fetching release mode failed");
 		}
 
 		UpdateLightsConfiguration(lightRules, ledMappings);
@@ -353,6 +370,9 @@ public:
 
 	void UpdateSensorThread()
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+		myPollingData.lastUpdate = system_clock::now();
 		while(running)
 		{
 			if(!UpdateSensorFunc())
@@ -360,8 +380,8 @@ public:
 				running = false;
 				break;
 			}
-			
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			this_thread::sleep_for(chrono::milliseconds(16));
 		}
 	}
 
@@ -407,7 +427,7 @@ public:
 
 		auto now = system_clock::now();
 		if (now > myPollingData.lastUpdate + 1s)
-		{
+		{	
 			auto dt = duration<double>(now - myPollingData.lastUpdate).count();
 			myPollingData.pollingRate = (int)lround(myPollingData.readsSinceLastUpdate / dt);
 			myPollingData.readsSinceLastUpdate = 0;
@@ -420,6 +440,17 @@ public:
 		}
 
 		return true;
+	}
+
+	bool SetReleaseMode(ReleaseMode mode)
+	{
+		myPad.releaseMode = mode;
+
+		SetPropertyReport report;
+		report.propertyId = WriteU32LE(SetPropertyReport::SPID_RELEASE_MODE);
+		report.propertyValue = WriteU32LE((uint32_t)mode);
+		
+		return myReporter->Send(report);
 	}
 
 	bool SetThreshold(int sensorIndex, double threshold, double releaseThreshold)
@@ -760,18 +791,25 @@ public:
 
 	bool Probe()
 	{
+		if(state == CS_FAILED)
+			return false;
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
 		if (!IsWs())
 		{
 			hidHandle = hid_open_path(path.c_str());
 			if (!hidHandle)
 			{
 				Log::Writef("DeviceConnection :: hid_open failed (%ls) :: %s", hid_error(nullptr), path.c_str());
+				state = CS_FAILED;
 				return false;
 			}
 
 			if (hid_set_nonblocking(hidHandle, 1) < 0)
 			{
 				Log::Write("ConnectionManager :: hid_set_nonblocking failed");
+				state = CS_FAILED;
 				return false;
 			}
 
@@ -782,10 +820,16 @@ public:
 		}
 
 		if(!reporter->Get(nameReport))
+		{
+			state = CS_FAILED;
 			return false;
+		}
 
 		if(!reporter->Get(identificationReport))
+		{
+			state = CS_FAILED;
 			return false;
+		}
 
 		state = CS_PROBED;
 		return true;
@@ -821,6 +865,8 @@ public:
 	{
 		return path.substr(0, 2).compare("ws") == 0;
 	}
+
+	bool ConnectStage2();
 
 protected:
 	ConnectionState state = CS_UNKNOWN;
@@ -967,9 +1013,13 @@ public:
 			for (int i = 0; i < MAX_LIGHT_RULES; ++i)
 			{
 				selectReport.propertyValue = WriteU32LE(i);
-				bool sendResult = reporter->Send(selectReport);
+				if(!reporter->Send(selectReport))
+					return false;
 
-				if (sendResult && reporter->Get(lightReport) && (lightReport.flags & LRF_ENABLED))
+				if(!reporter->Get(lightReport))
+					return false;
+
+				if (lightReport.flags & LRF_ENABLED)
 				{
 					PrintLightRuleReport(lightReport);
 					lightRules.push_back(lightReport);
@@ -981,9 +1031,13 @@ public:
 			for (int i = 0; i < MAX_LED_MAPPINGS; ++i)
 			{
 				selectReport.propertyValue = WriteU32LE(i);
-				bool sendResult = reporter->Send(selectReport);
+				if(!reporter->Send(selectReport))
+					return false;
 
-				if (sendResult && reporter->Get(ledReport) && (ledReport.flags & LMF_ENABLED))
+				if(!reporter->Get(ledReport))
+					return false;
+
+				if (ledReport.flags & LMF_ENABLED)
 				{
 					PrintLedMappingReport(ledReport);
 					ledMappings.push_back(ledReport);
@@ -999,13 +1053,14 @@ public:
 			for (int i = 0; i < padIdentificationV2.sensorCount; ++i)
 			{
 				selectReport.propertyValue = WriteU32LE(i);
-				bool sendResult = reporter->Send(selectReport);
+				if(!reporter->Send(selectReport))
+					return false;
 
-				if (sendResult && reporter->Get(sensorReport))
-				{
-					PrintSensorReport(sensorReport);
-					sensors.push_back(sensorReport);
-				}
+				if(!reporter->Get(sensorReport))
+					return false;
+
+				PrintSensorReport(sensorReport);
+				sensors.push_back(sensorReport);
 			}
 		}
 		else {
@@ -1043,7 +1098,7 @@ public:
 		Log::Writef("  Name: %s", device->State().name.c_str());
 		Log::Writef("  Board: %s: %s", padIdentificationV2.boardType, boardType.c_str());
 		Log::Writef("  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
-		Log::Writef("  Feautre flags: %u", ReadU16LE(padIdentificationV2.features));
+		Log::Writef("  Feautre flags: %s", fmt::format("{:b}", ReadU16LE(padIdentificationV2.features)).c_str());
 		Log::Writef("  Path: %s", devicePath.c_str());
 		
 		/*
@@ -1111,7 +1166,10 @@ public:
 		auto it = devices.begin();
 		std::advance(it, index);
 
-		return ConnectToDeviceStage2(it->second);
+		if(!it->second.ConnectStage2())
+			return false;
+
+		return true;
 	}
 
 	int DeviceSelected()
@@ -1154,7 +1212,13 @@ public:
 			return false;
 		}
 
-		return ConnectToDeviceStage2(it.first->second);
+		if(!it.first->second.ConnectStage2())
+		{
+			devices.erase(it.first);
+			return false;
+		}
+
+		return true;
 	}
 
 private:
@@ -1171,6 +1235,29 @@ private:
 
 static ConnectionManager* connectionManager = nullptr;
 static bool searching = true;
+
+
+bool DeviceConnection::ConnectStage2()
+{
+	if(!connectionManager)
+		return false;
+
+	if(state == CS_FAILED)
+		return false;
+
+	for(int tries=0; tries<3; ++tries)
+	{
+		if(connectionManager->ConnectToDeviceStage2(*this))
+			return true;
+
+		Log::Writef("DeviceConnection :: ConnectStage2 failed (%d)", tries);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+
+	state = CS_FAILED;
+	return false;
+}
+
 
 void Device::Init()
 {
@@ -1328,6 +1415,14 @@ void Device::CalibrateSensor(int sensorIndex)
 	auto device = connectionManager->ConnectedDevice();
 	if(device) {
 		device->CalibrateSensor(sensorIndex);
+	}
+}
+
+bool Device::SetReleaseMode(ReleaseMode mode)
+{
+	auto device = connectionManager->ConnectedDevice();
+	if(device) {
+		return device->SetReleaseMode(mode);
 	}
 }
 

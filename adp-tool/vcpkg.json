@@ -3,6 +3,9 @@
     "asio",
     "fmt",
     {
+      "name": "glfw3"
+    },
+    {
       "name": "imgui",
       "features": [
         "docking-experimental",

@@ -25,8 +25,8 @@ static const char* ReleaseMsg =
 static bool EDITING_RELEASE = false;
 static constexpr int SENSOR_INDEX_NONE = -1;
 static int SENSOR_VALUE_TYPE = 0;
-static int RELEASE_MODE = -1;
 static float GLOBAL_RELEASE_THRESHOLD = 0.0;
+static ReleaseMode RELEASE_MODE = ReleaseMode::RELEASE_GLOBAL;
 
 SensitivityTab::SensitivityTab()
     : myAdjustingSensorIndex(SENSOR_INDEX_NONE)
@@ -197,8 +197,10 @@ void SensitivityTab::Render()
     auto pad = Device::Pad();
     if (pad)
     {
-        double lastReleaseThresholdPct = 0.0;
-        int lastReleaseMode = RELEASE_MODE;
+        RELEASE_MODE = pad->releaseMode;
+        
+        // double lastReleaseThresholdPct = 0.0;
+        // int lastReleaseMode = RELEASE_MODE;
 
         for (int i = 0; i < pad->numSensors; ++i)
         {
@@ -210,23 +212,23 @@ void SensitivityTab::Render()
             }
 
             // Detect release mode.
-            if(RELEASE_MODE == -1 && sensor->releaseThreshold != sensor->threshold) {
-                RELEASE_MODE = 1;
-                lastReleaseThresholdPct = sensor->releaseThreshold / sensor->threshold;
-            }
+            // if(RELEASE_MODE == -1 && sensor->releaseThreshold != sensor->threshold) {
+            //     RELEASE_MODE = 1;
+            //     lastReleaseThresholdPct = sensor->releaseThreshold / sensor->threshold;
+            // }
 
-            if(lastReleaseMode == -1 && RELEASE_MODE == RELEASE_GLOBAL)
-            {
-                double releaseThresholdPct = sensor->releaseThreshold / sensor->threshold;
-                if(releaseThresholdPct != lastReleaseThresholdPct) {
-                    RELEASE_MODE = RELEASE_INDIVIDUAL;
-                }
-            }
+            // if(lastReleaseMode == -1 && RELEASE_MODE == RELEASE_GLOBAL)
+            // {
+            //     double releaseThresholdPct = sensor->releaseThreshold / sensor->threshold;
+            //     if(releaseThresholdPct != lastReleaseThresholdPct) {
+            //         RELEASE_MODE = RELEASE_INDIVIDUAL;
+            //     }
+            // }
         }
 
-        if(RELEASE_MODE == -1) {
-            RELEASE_MODE = RELEASE_NONE;
-        }
+        // if(RELEASE_MODE == -1) {
+        //     RELEASE_MODE = RELEASE_NONE;
+        // }
     }
 
     float colX = 10;
@@ -247,7 +249,11 @@ void SensitivityTab::Render()
     ImGui::TextUnformatted("Release Mode:");
     ImGui::SameLine();
 
-    if(ImGui::RadioButton("None", &RELEASE_MODE, 0)) {
+    int releaseModeVal = RELEASE_MODE;
+
+    if(ImGui::RadioButton("None", &releaseModeVal, 0)) {
+        Device::SetReleaseMode(ReleaseMode::RELEASE_NONE);
+        
         for (int i = 0; i < pad->numSensors; ++i)
         {
             auto sensor = Device::Sensor(i);
@@ -258,8 +264,9 @@ void SensitivityTab::Render()
     }
 
     ImGui::SameLine();
-    if(ImGui::RadioButton("Global", &RELEASE_MODE, 1)) {
+    if(ImGui::RadioButton("Global", &releaseModeVal, 1)) {
         GLOBAL_RELEASE_THRESHOLD = 0.9f;
+        Device::SetReleaseMode(RELEASE_GLOBAL);
 
         for (int i = 0; i < pad->numSensors; ++i)
         {
@@ -271,7 +278,9 @@ void SensitivityTab::Render()
     }
     
     ImGui::SameLine();
-    ImGui::RadioButton("Individial", &RELEASE_MODE, 2);
+    if(ImGui::RadioButton("Individial", &releaseModeVal, 2)) {
+        Device::SetReleaseMode(RELEASE_INDIVIDUAL);
+    }
 
     if(RELEASE_MODE == RELEASE_GLOBAL) {
         ImGui::SliderFloat("##", &GLOBAL_RELEASE_THRESHOLD, 0.0, 1.0, "%.2f");

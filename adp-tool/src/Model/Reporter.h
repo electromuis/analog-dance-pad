@@ -153,7 +153,9 @@ struct SetPropertyReport
 		SELECTED_LIGHT_RULE_INDEX = 0,
 		SELECTED_LED_MAPPING_INDEX = 1,
 		SELECTED_SENSOR_INDEX = 2,
-		CALIBRATE_SENSOR = 3
+		CALIBRATE_SENSOR = 3,
+		SPID_RELEASE_MODE = 4,
+		SPID_SELECTED_PROPERTY = 5
 	};
 	uint8_t reportId = REPORT_SET_PROPERTY;
 	uint32_le propertyId;
@@ -210,6 +212,7 @@ public:
 	bool Get(LedMappingReport& report);
 	bool Get(SensorReport& report);
 	bool Get(DebugReport& report);
+	bool Get(SetPropertyReport& report);
 
 	void SendReset();
 	void SendFactoryReset();
@@ -224,6 +227,7 @@ public:
 
 	bool SendAndGet(NameReport& report);
 	bool SendAndGet(PadConfigurationReport& report);
+	bool SendAndGet(SetPropertyReport& report);
 
 private:
 	// hid_device* myHid;

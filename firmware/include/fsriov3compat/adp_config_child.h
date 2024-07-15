@@ -1,6 +1,6 @@
 #pragma once
 
-#define BOARD_TYPE "fsriov3c"
+#define BOARD_TYPE "fsriov3"
 
 //#define FEATURE_WEBSERVER_ENABLED 1
 //#define FEATURE_RTOS_ENABLED 1

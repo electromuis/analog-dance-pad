@@ -72,6 +72,7 @@ struct PadState
 	bool featureDigipot;
 	bool featureLights;
 	VersionType firmwareVersion = versionTypeUnknown;
+	ReleaseMode releaseMode = ReleaseMode::RELEASE_GLOBAL;
 };
 
 struct LedMapping
@@ -122,6 +123,8 @@ public:
 	static std::string ReadDebug();
 
 	static const bool HasUnsavedChanges();
+
+	static bool SetReleaseMode(ReleaseMode mode);
 
 	static bool SetThreshold(int sensorIndex, double threshold, double releaseThreshold);
 
