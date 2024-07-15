@@ -5,6 +5,7 @@
 #include "ModuleConfig.hpp"
 #include "ModulePad.hpp"
 #include "ModuleLights.hpp"
+#include "ModuleDebug.hpp"
 #include "hal/hal_Webserver.hpp"
 
 #ifdef FEATURE_RTOS_ENABLED
@@ -27,13 +28,14 @@ ModuleWebserver ModuleWebserverInstance;
 #endif
 
 Module* modules[] = {
-    &ModuleConfigInstance,
+    &ModuleDebugInstance,
+    // &ModuleConfigInstance,
     &ModuleLightsInstance,
     &ModuleUSBInstance,
     &ModulePadInstance,
-#ifdef FEATURE_WEBSERVER_ENABLED
-    &ModuleWebserverInstance
-#endif
+// #ifdef FEATURE_WEBSERVER_ENABLED
+//     &ModuleWebserverInstance
+// #endif
     
 };
 

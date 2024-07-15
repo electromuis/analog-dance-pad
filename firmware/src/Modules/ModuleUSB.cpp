@@ -4,6 +4,7 @@
 #include "hal/hal_USB.hpp"
 #include "Reports/Reports.hpp"
 #include "ModulePad.hpp"
+#include "ModuleDebug.hpp"
 #include <string.h>
 
 #ifdef FEATURE_RTOS_ENABLED
@@ -49,15 +50,22 @@ void ModuleUSB::Update()
     if(HAL_USB_Update())
     {
         ModuleLightsInstance.DataCycle();
+        if(errCount > 0)
+            ModuleDebugInstance.Write("HAL_USB_Update Recovered");
         errCount = 0;
     }
     else
     {
+        if(errCount == 0)
+            ModuleDebugInstance.Write("HAL_USB_Update Error");
+            
         errCount ++;
 
         // ESP usb has probably crashed, try to reconnect
         if(errCount > 2000)
         {
+            ModuleDebugInstance.Write("HAL_USB_Update Error limit. Restarting");
+
             Reconnect();
             errCount = 0;
         }

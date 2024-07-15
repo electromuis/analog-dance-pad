@@ -2,6 +2,7 @@
 #include "PadReports.hpp"
 #include "LightReports.hpp"
 #include "SensorReports.hpp"
+#include "Modules/ModuleDebug.hpp"
 
 #include "hid_def.h"
 
@@ -51,9 +52,11 @@ bool WriteReport(const uint8_t reqReportID, uint8_t* ReportData, uint16_t* const
 
     if(ReportID >= 18) {
         return false;
+        ModuleDebugInstance.Write("Write ReportID >= 18\n");
     }
 
     if(registrations[ReportID].Write == nullptr) {
+        ModuleDebugInstance.Write("Write ReportID not registered: %d\n", ReportID);
         return false;
     }
 
@@ -65,15 +68,18 @@ bool WriteReport(const uint8_t reqReportID, uint8_t* ReportData, uint16_t* const
 
 bool ProcessReport(const uint8_t ReportID, const uint8_t* ReportData, uint16_t const ReportSize)
 {
-    if(ReportID >= 16) {
+    if(ReportID >= 18) {
+        ModuleDebugInstance.Write("Process ReportID >= 18\n");
         return false;
     }
 
     if(registrations[ReportID].Process == nullptr) {
+        ModuleDebugInstance.Write("Process ReportID not registered: %d\n", ReportID);
         return false;
     }
 
     if(ReportSize != registrations[ReportID].ReportSize && registrations[ReportID].ReportSize != 0) {
+        ModuleDebugInstance.Write("Process ReportSize mismatch: %d != %d\n", ReportSize, registrations[ReportID].ReportSize);
         return false;
     }
 

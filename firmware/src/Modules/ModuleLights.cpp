@@ -255,9 +255,9 @@ void ModuleLights::Update()
         wrappers[m].Apply();
     }
 
-    writing = true;
-    HAL_Lights_Update();
-    writing = false;
+    // writing = true;
+    // HAL_Lights_Update();
+    // writing = false;
 }
 
 void ModuleLights::SetManualMode(bool mode)

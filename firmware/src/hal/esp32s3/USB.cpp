@@ -8,10 +8,13 @@
 #include <USBHID.h>
 
 #include "hal/hal_USB.hpp"
+#include "esp32-hal-tinyusb.h"
 #include "Reports/Reports.hpp"
 #include "Reports/PadReports.hpp"
-
+#include "Modules/ModuleDebug.hpp"
 #include "esp32-hal-tinyusb.h"
+
+#include "driver/periph_ctrl.h"
 
 class USBPad: public USBHIDDevice {
 public:
@@ -35,6 +38,7 @@ private:
 };
 
 static bool suspended = false;
+static int startCount = 0;
 
 USBPad::USBPad(): hid()
 {
@@ -47,9 +51,12 @@ void USBPad::begin()
     if(!initialized){
         initialized = true;
         hid.addDevice(this, USB_DescriptorSize());
+
+        ModuleDebugInstance.Write("USB HID initialized");
     }
 
     hid.begin();
+    ModuleDebugInstance.Write("USB HID started");
     USB.onEvent([](void* event_handler_arg,
                                         esp_event_base_t event_base,
                                         int32_t event_id,
@@ -57,16 +64,36 @@ void USBPad::begin()
         arduino_usb_hid_event_data_t * data = (arduino_usb_hid_event_data_t *)event_data;
         switch (event_id)
         {
+            case ARDUINO_USB_STARTED_EVENT:
+                ModuleDebugInstance.Write("USB Start event");
+                startCount++;
+                if(startCount == 2)
+                {
+                    ModuleDebugInstance.Write("Double start???");   
+                    // usb_persist_restart(RESTART_NO_PERSIST);
+                    // periph_module_disable(PERIPH_USB_MODULE);
+                    // periph_module_reset(PERIPH_USB_MODULE);
+                    // periph_module_enable(PERIPH_USB_MODULE);
+
+                    // startCount = 0;
+                }
+                break;
             case ARDUINO_USB_SUSPEND_EVENT:
                 suspended = true;
+                ModuleDebugInstance.Write("USB Suspended");
                 break;
             case ARDUINO_USB_RESUME_EVENT:
                 suspended = false;
+                ModuleDebugInstance.Write("USB Resumed");
+                break;
+            default:
+                ModuleDebugInstance.Write("USB Event %d", event_id);
                 break;
         }
     });
     
     USB.begin();
+    ModuleDebugInstance.Write("USB really started");
 }
 
 void USBPad::end()
@@ -83,6 +110,8 @@ USBPad usbPad;
 
 bool USBPad::sendInputReportInternal()
 {
+    if(!tud_hid_n_ready(0))
+        return false;
     InputHIDReport report;
     return this->hid.SendReport(INPUT_REPORT_ID, &report, sizeof(report), 1U);
 }
@@ -92,6 +121,8 @@ bool USBPad::sendInputReport()
     bool result = sendInputReportInternal();
     if(result)
     {
+        if(!connected)
+            ModuleDebugInstance.Write("USB Connected");
         connected = true;
         return true;
     }
@@ -107,6 +138,7 @@ bool USBPad::sendInputReport()
 
 uint16_t USBPad::_onGetFeature(uint8_t report_id, uint8_t* buffer, uint16_t len)
 {
+    ModuleDebugInstance.Write("USB Get Feature");
     bool result = USB_CreateReport(report_id, buffer, &len);
     if(result) {
         return len;
@@ -116,11 +148,13 @@ uint16_t USBPad::_onGetFeature(uint8_t report_id, uint8_t* buffer, uint16_t len)
 
 void USBPad::_onSetFeature(uint8_t report_id, const uint8_t* buffer, uint16_t len)
 {
+    ModuleDebugInstance.Write("USB Set Feature");
     USB_ProcessReport(report_id, buffer, len);
 }
 
 void USBPad::_onOutput(uint8_t report_id, const uint8_t* buffer, uint16_t len)
 {
+    ModuleDebugInstance.Write("USB Output");
     USB_ProcessReport(report_id, buffer, len);
 }
 
