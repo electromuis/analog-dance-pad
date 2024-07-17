@@ -7,41 +7,42 @@
 #include "ModuleDebug.hpp"
 #include <string.h>
 
-#ifdef FEATURE_RTOS_ENABLED
+// #ifdef FEATURE_RTOS_ENABLED
 #include "FreeRTOS.h"
 #include "task.h"
-#endif
+// #endif
 
 ModuleUSB ModuleUSBInstance = ModuleUSB();
 uint8_t USBDescriptor[512];
 uint16_t USBDescriptorSize = 0;
 
-#ifdef FEATURE_RTOS_ENABLED
+// #ifdef FEATURE_RTOS_ENABLED
 void inputLoop(void *pvParameter)
 {
-    vTaskDelay(500);
     while (true) {
         ModuleUSBInstance.Update();
     }
 }
-#endif
+// #endif
 
 void ModuleUSB::Setup()
 {
     HAL_USB_Setup();
 
-    #ifdef FEATURE_RTOS_ENABLED
+    // #ifdef FEATURE_RTOS_ENABLED
     taskPrority = 18;
-    xTaskCreatePinnedToCore(
-        inputLoop,
-        "inputLoop",
-        1024 * 2,
-        ( void * ) 1,
-        taskPrority,
-        nullptr,
-        1
-    );
-    #endif
+    // xTaskCreatePinnedToCore(
+    //     inputLoop,
+    //     "inputLoop",
+    //     1024 * 4,
+    //     ( void * ) 1,
+    //     taskPrority,
+    //     nullptr,
+    //     1
+    // );
+    // #endif
+
+    xTaskCreate(inputLoop, "inputLoop", 4096, NULL, configMAX_PRIORITIES - 1, NULL);
 }
 
 void ModuleUSB::Update()
@@ -62,12 +63,12 @@ void ModuleUSB::Update()
         errCount ++;
 
         // ESP usb has probably crashed, try to reconnect
-        if(errCount > 2000)
+        if(errCount == 2000)
         {
             ModuleDebugInstance.Write("HAL_USB_Update Error limit. Restarting");
 
-            Reconnect();
-            errCount = 0;
+            // Reconnect();
+            // errCount = 0;
         }
     }
 }

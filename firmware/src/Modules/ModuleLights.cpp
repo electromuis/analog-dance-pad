@@ -22,7 +22,13 @@ void lightLoop(void *pvParameter)
 #endif
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    // Can't divide by zero
+    if(in_max == in_min)
+    {
+        return out_min;
+    }
+
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 rgb_color mapColor(long x, long in_min, long in_max, rgb_color col1, rgb_color col2) {

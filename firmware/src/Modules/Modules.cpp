@@ -29,7 +29,7 @@ ModuleWebserver ModuleWebserverInstance;
 
 Module* modules[] = {
     &ModuleDebugInstance,
-    // &ModuleConfigInstance,
+    &ModuleConfigInstance,
     &ModuleLightsInstance,
     &ModuleUSBInstance,
     &ModulePadInstance,

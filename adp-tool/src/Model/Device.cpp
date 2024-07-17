@@ -934,7 +934,7 @@ public:
 			auto it = devices.emplace(path, path);
 			if(!it.first->second.Probe())
 			{
-				devices.erase(it.first);
+				// devices.erase(it.first);
 				continue;
 			}
 		}

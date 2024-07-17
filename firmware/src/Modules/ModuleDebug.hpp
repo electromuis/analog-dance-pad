@@ -10,3 +10,6 @@ public:
 };
 
 extern ModuleDebug ModuleDebugInstance;
+
+
+#define DEBUG_WRITE(...) ModuleDebugInstance.Write(__VA_ARGS__)

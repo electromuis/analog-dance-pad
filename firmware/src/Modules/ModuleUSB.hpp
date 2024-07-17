@@ -8,6 +8,7 @@ public:
     void Setup() override;
     void Update() override;
     void Reconnect();
+    virtual bool ShouldMainUpdate() override { return false; }
 
 protected:
     uint32_t errCount = 0;

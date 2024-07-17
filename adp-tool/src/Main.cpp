@@ -218,14 +218,14 @@ void AdpApplication::MenuCallback()
 			ImGui::MenuItem("No devices found", nullptr, nullptr, false);
 		}
 
-		if(std::getenv("ADP_ADVANCED"))
-		{
+		// if(std::getenv("ADP_ADVANCED"))
+		// {
 			ImGui::Separator();
 			if(ImGui::MenuItem("Flash device"))
 			{
 				myDeviceTab.OpenFlashDialog(true);
 			}
-		}
+		// }
 
 		ImGui::EndMenu();
 	}

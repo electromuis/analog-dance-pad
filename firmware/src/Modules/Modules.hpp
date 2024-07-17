@@ -6,7 +6,7 @@ class Module {
 public:
     virtual void Setup() = 0;
     virtual void Update() {};
-    bool ShouldMainUpdate() {
+    virtual bool ShouldMainUpdate() {
         if(taskPrority == -1)
             return true;
 

@@ -24,8 +24,8 @@ void ModulePad::UpdateStatus()
         // if(ModuleLightsInstance.IsWriting())
         //     continue;
         
-        sensorValues[i] = (sensorValues[i] + HAL_ADC_ReadSensor(i)) / 2;
-        // sensorValues[i] = HAL_ADC_ReadSensor(i);
+        // sensorValues[i] = (sensorValues[i] + HAL_ADC_ReadSensor(i)) / 2;
+        sensorValues[i] = HAL_ADC_ReadSensor(i);
     }
 
     for (int i = 0; i < BUTTON_COUNT; i++) {
