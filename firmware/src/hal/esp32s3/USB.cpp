@@ -21,8 +21,6 @@
 #include <mutex>
 #include <Arduino.h>
 
-#define DEFAULT_NAME "FSRIOv3"
-
 extern "C" {
 
 tusb_desc_device_t const desc_device =

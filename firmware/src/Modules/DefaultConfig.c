@@ -3,7 +3,7 @@
 #define DEFAULT_LIGHT_RULE_RED              \
     {                                       \
         .onColor = {100, 100, 100},         \
-        .offColor = {2, 0, 0},              \
+        .offColor = {50, 0, 0},             \
         .onFadeColor = {0, 0, 0},           \
         .offFadeColor = {255, 0, 0},        \
         .flags = LRF_ENABLED | LRF_FADE_OFF \
@@ -13,7 +13,7 @@
     {                                        \
         .flags = LRF_ENABLED | LRF_FADE_OFF, \
         .onColor = {100, 100, 100},          \
-        .offColor = {0, 0, 2},               \
+        .offColor = {0, 0, 50},              \
         .onFadeColor = {0, 0, 0},            \
         .offFadeColor = {0, 0, 255},         \
     }

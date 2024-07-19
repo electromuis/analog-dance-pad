@@ -166,16 +166,6 @@ void webserverLoop(void *pvParameter)
 
     if(wifiManager.autoConnect("FSRio")) {
         wifiTask(nullptr);
-        // xTaskCreateStaticPinnedToCore(
-        //     wifiTask,
-        //     "wifiTask",
-        //     STACK_SIZE,
-        //     ( void * ) 1,
-        //     7,
-        //     xStack,
-        //     &xTaskBuffer,
-        //     0
-        // );
     }
 }
 
@@ -184,7 +174,7 @@ void HAL_Webserver_Init()
     xTaskCreatePinnedToCore(
         webserverLoop,
         "webserverLoop",
-        1024*32,
+        1024*16,
         ( void * ) 1,
         1,
         nullptr,

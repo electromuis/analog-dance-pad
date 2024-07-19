@@ -1,6 +1,7 @@
 #include "SensorReports.hpp"
 #include "ReportsInternal.hpp"
 #include "Modules/ModulePad.hpp"
+#include "Modules/ModuleLights.hpp"
 
 #include <string.h>
 
@@ -14,6 +15,8 @@ PadConfigurationFeatureHIDReport::PadConfigurationFeatureHIDReport()
         reportConfiguration.sensorThresholds[s] = configuration.padConfiguration.sensors[s].threshold;
         reportConfiguration.sensorToButtonMapping[s] = configuration.padConfiguration.sensors[s].buttonMapping;
     }
+
+    ModuleLightsInstance.Clear();
 }
 
 void PadConfigurationFeatureHIDReport::Process()
@@ -23,6 +26,8 @@ void PadConfigurationFeatureHIDReport::Process()
         configuration.padConfiguration.sensors[s].releaseThreshold = reportConfiguration.sensorThresholds[s] * reportConfiguration.releaseMultiplier;
         configuration.padConfiguration.sensors[s].buttonMapping = reportConfiguration.sensorToButtonMapping[s];
     }
+
+    ModuleLightsInstance.Clear();
 }
 
 SensorHIDReport::SensorHIDReport()
@@ -45,6 +50,8 @@ void SensorHIDReport::Process()
         sc->resistorValue = sensor.resistorValue;
         sc->flags = sensor.flags;
     }
+
+    ModuleLightsInstance.Clear();
 }
 
 void RegisterSensorReports()

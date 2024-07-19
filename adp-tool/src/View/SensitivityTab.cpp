@@ -26,7 +26,8 @@ static bool EDITING_RELEASE = false;
 static constexpr int SENSOR_INDEX_NONE = -1;
 static int SENSOR_VALUE_TYPE = 0;
 static float GLOBAL_RELEASE_THRESHOLD = 0.0;
-static ReleaseMode RELEASE_MODE = ReleaseMode::RELEASE_GLOBAL;
+static ReleaseMode RELEASE_MODE = ReleaseMode::RELEASE_NONE;
+// static ReleaseMode RELEASE_MODE = ReleaseMode::RELEASE_GLOBAL;
 
 SensitivityTab::SensitivityTab()
     : myAdjustingSensorIndex(SENSOR_INDEX_NONE)
@@ -158,7 +159,8 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
             } else {
                 if (!ImGui::IsMouseDown(ImGuiPopupFlags_MouseButtonLeft))
                 {
-                    Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold, releaseThreshold);
+                    Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold, myAdjustingSensorThreshold);
+                    // Device::SetThreshold(myAdjustingSensorIndex, myAdjustingSensorThreshold, releaseThreshold);
                     myAdjustingSensorIndex = SENSOR_INDEX_NONE;
                 }
             }
@@ -245,46 +247,46 @@ void SensitivityTab::Render()
         }
     }
 
-    ImGui::SetCursorPosY(ws.y - 80);
-    ImGui::TextUnformatted("Release Mode:");
-    ImGui::SameLine();
+    // ImGui::SetCursorPosY(ws.y - 80);
+    // ImGui::TextUnformatted("Release Mode:");
+    // ImGui::SameLine();
 
-    int releaseModeVal = RELEASE_MODE;
+    // int releaseModeVal = RELEASE_MODE;
 
-    if(ImGui::RadioButton("None", &releaseModeVal, 0)) {
-        Device::SetReleaseMode(ReleaseMode::RELEASE_NONE);
+    // if(ImGui::RadioButton("None", &releaseModeVal, 0)) {
+    //     Device::SetReleaseMode(ReleaseMode::RELEASE_NONE);
         
-        for (int i = 0; i < pad->numSensors; ++i)
-        {
-            auto sensor = Device::Sensor(i);
-            if(sensor) {
-                Device::SetThreshold(i, sensor->threshold, sensor->threshold);
-            }
-        }
-    }
+    //     for (int i = 0; i < pad->numSensors; ++i)
+    //     {
+    //         auto sensor = Device::Sensor(i);
+    //         if(sensor) {
+    //             Device::SetThreshold(i, sensor->threshold, sensor->threshold);
+    //         }
+    //     }
+    // }
 
-    ImGui::SameLine();
-    if(ImGui::RadioButton("Global", &releaseModeVal, 1)) {
-        GLOBAL_RELEASE_THRESHOLD = 0.9f;
-        Device::SetReleaseMode(RELEASE_GLOBAL);
+    // ImGui::SameLine();
+    // if(ImGui::RadioButton("Global", &releaseModeVal, 1)) {
+    //     GLOBAL_RELEASE_THRESHOLD = 0.9f;
+    //     Device::SetReleaseMode(RELEASE_GLOBAL);
 
-        for (int i = 0; i < pad->numSensors; ++i)
-        {
-            auto sensor = Device::Sensor(i);
-            if(sensor) {
-                Device::SetThreshold(i, sensor->threshold, sensor->threshold * GLOBAL_RELEASE_THRESHOLD);
-            }
-        }
-    }
+    //     for (int i = 0; i < pad->numSensors; ++i)
+    //     {
+    //         auto sensor = Device::Sensor(i);
+    //         if(sensor) {
+    //             Device::SetThreshold(i, sensor->threshold, sensor->threshold * GLOBAL_RELEASE_THRESHOLD);
+    //         }
+    //     }
+    // }
     
-    ImGui::SameLine();
-    if(ImGui::RadioButton("Individial", &releaseModeVal, 2)) {
-        Device::SetReleaseMode(RELEASE_INDIVIDUAL);
-    }
+    // ImGui::SameLine();
+    // if(ImGui::RadioButton("Individial", &releaseModeVal, 2)) {
+    //     Device::SetReleaseMode(RELEASE_INDIVIDUAL);
+    // }
 
-    if(RELEASE_MODE == RELEASE_GLOBAL) {
-        ImGui::SliderFloat("##", &GLOBAL_RELEASE_THRESHOLD, 0.0, 1.0, "%.2f");
-    }
+    // if(RELEASE_MODE == RELEASE_GLOBAL) {
+    //     ImGui::SliderFloat("##", &GLOBAL_RELEASE_THRESHOLD, 0.0, 1.0, "%.2f");
+    // }
 }
 
 }; // namespace adp.

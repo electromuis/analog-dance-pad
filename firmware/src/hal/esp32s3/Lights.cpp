@@ -13,12 +13,12 @@ bool hasUpdate = false;
 
 void HAL_Lights_Setup()
 {
-    // pinMode(PIN_LED, OUTPUT);
+    pinMode(PIN_LED, OUTPUT);
     pinMode(PIN_LED_DATA, OUTPUT);
     pinMode(PIN_LED_POWER, OUTPUT);
 
-    // FastLED.addLeds<LED_TYPE, PIN_LED, COLOR_ORDER>(leds, LED_COUNT).setCorrection( TypicalLEDStrip );
-    // FastLED.setBrightness(  BRIGHTNESS );
+    FastLED.addLeds<LED_TYPE, PIN_LED, COLOR_ORDER>(leds, LED_COUNT).setCorrection( TypicalLEDStrip );
+    FastLED.setBrightness(  BRIGHTNESS );
 }
 
 void HAL_Lights_SetLed(uint8_t index, rgb_color color)
@@ -34,8 +34,7 @@ void HAL_Lights_SetLed(uint8_t index, rgb_color color)
 
 void HAL_Lights_Update()
 {
-    return;
-    if(!hasUpdate) return;
+    // if(!hasUpdate) return;
 
     FastLED.show();
     hasUpdate = false;

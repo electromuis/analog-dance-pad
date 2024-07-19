@@ -13,18 +13,16 @@ void ModulePad::Setup()
 
 void ModulePad::Update()
 {
-    // UpdateStatus();
-    // HAL_USB_Update();
+    // This happens in ModuleUSB
 }
 
 void ModulePad::UpdateStatus()
 {
     for (int i = 0; i < SENSOR_COUNT; i++) {
         // ADC is noise while lights are updating
-        // if(ModuleLightsInstance.IsWriting())
-        //     continue;
+        if(ModuleLightsInstance.IsWriting())
+            continue;
         
-        // sensorValues[i] = (sensorValues[i] + HAL_ADC_ReadSensor(i)) / 2;
         sensorValues[i] = HAL_ADC_ReadSensor(i);
     }
 

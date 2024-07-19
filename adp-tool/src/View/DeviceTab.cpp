@@ -126,6 +126,7 @@ public:
     void Close()
     {
         ImGui::CloseCurrentPopup();
+        firmware = nullptr;
         Device::SetSearching(true);
     }
 

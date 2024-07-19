@@ -21,7 +21,6 @@
 
 #include "arch.h"
 #include "adp_pins.h"
-#include "adp_config_child.h"
 
 #if defined(FEATURE_LIGHTS_ENABLED)
     #define LED_COUNT (LED_PANELS * PANEL_LEDS)

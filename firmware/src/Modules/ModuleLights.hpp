@@ -38,6 +38,7 @@ class ModuleLights : public Module {
 public:
     void Setup() override;
     void Update() override;
+    void Clear();
 
     void DataCycle();
     void SetManualMode(bool mode);

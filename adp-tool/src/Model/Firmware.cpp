@@ -92,6 +92,7 @@ BoardType BoardTypeStruct::ParseBoardType(const std::string& str)
 		return BOARD_FSRIO_V3;
 
 	if (str == "fsrminipad") { return BOARD_FSRMINIPAD; }
+	if (str == "minipadv4") { return BOARD_FSRMINIPAD_V4; }
 	if (str == "teensy2") { return BOARD_TEENSY2; }
 	if (str == "leonardo") { return BOARD_LEONARDO; }
 	
@@ -148,6 +149,9 @@ std::string BoardTypeStruct::ToString() const
 		case BOARD_FSRMINIPAD:
 			ret += "fsrminipad";
 			break;
+		case BOARD_FSRMINIPAD_V4:
+			ret += "minipadv4";
+			break;
 		default:
 			ret += "unknown";
 	}
@@ -179,6 +183,12 @@ public:
 		boardType = BoardTypeStruct(boardTypeStr);
 		if(boardType.archType == ARCH_UNKNOWN || boardType.boardType == BOARD_UNKNOWN)
 			throw std::runtime_error("Invalid board type.");
+	}
+
+	~FirmwarePackageImpl()
+	{
+		if(zipFile.isOpen())
+			zipFile.close();
 	}
 
 	bool ReadFile(std::string fileName, std::vector<uint8_t>& buffer) override

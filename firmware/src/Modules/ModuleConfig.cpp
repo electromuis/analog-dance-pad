@@ -1,6 +1,5 @@
 #include "adp_config.hpp"
 #include "ModuleConfig.hpp"
-// #include "DefaultConfig.hpp"
 #include "hal/hal_EEPROM.hpp"
 #include <string.h>
 

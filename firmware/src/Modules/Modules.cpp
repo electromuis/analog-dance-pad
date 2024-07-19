@@ -33,9 +33,9 @@ Module* modules[] = {
     &ModuleLightsInstance,
     &ModuleUSBInstance,
     &ModulePadInstance,
-// #ifdef FEATURE_WEBSERVER_ENABLED
-//     &ModuleWebserverInstance
-// #endif
+#ifdef FEATURE_WEBSERVER_ENABLED
+    &ModuleWebserverInstance
+#endif
     
 };
 

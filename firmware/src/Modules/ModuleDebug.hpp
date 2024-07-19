@@ -12,4 +12,8 @@ public:
 extern ModuleDebug ModuleDebugInstance;
 
 
+#ifdef SERIAL_DEBUG_ENABLED
 #define DEBUG_WRITE(...) ModuleDebugInstance.Write(__VA_ARGS__)
+#else
+#define DEBUG_WRITE(...)
+#endif

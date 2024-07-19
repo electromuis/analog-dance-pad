@@ -227,6 +227,7 @@ void ModuleLights::Setup()
     HAL_Lights_Setup();
     HAL_Lights_SetHWLed(HWLeds::HWLed_POWER, true);
     taskPrority = 5;
+    Clear();
 
 #ifdef FEATURE_RTOS_ENABLED
     xTaskCreatePinnedToCore(
@@ -241,8 +242,17 @@ void ModuleLights::Setup()
 #endif
 }
 
+void ModuleLights::Clear()
+{
+    for(int i=0; i<LED_COUNT; i++)
+    {
+        HAL_Lights_SetLed(i, {100, 100, 100});
+    }
+}
+
 void ModuleLights::Update()
 {
+#ifndef FEATURE_RTOS_ENABLED
     if(ledTimer > 0)
     {
         ledTimer--;
@@ -250,20 +260,16 @@ void ModuleLights::Update()
     }
 
     ledTimer = LED_UPDATE_INTERVAL;
-
-    for(int i=0; i<LED_COUNT; i++)
-    {
-        // HAL_Lights_SetLed(i, {0, 0, 0});
-    }
+#endif
 
     for (uint8_t m = 0; m < MAX_LED_MAPPINGS; m++)
 	{
         wrappers[m].Apply();
     }
 
-    // writing = true;
-    // HAL_Lights_Update();
-    // writing = false;
+    writing = true;
+    HAL_Lights_Update();
+    writing = false;
 }
 
 void ModuleLights::SetManualMode(bool mode)
