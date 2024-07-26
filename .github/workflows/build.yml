@@ -109,14 +109,10 @@ jobs:
         run: |
           brew update
           brew install cmake
-          brew install glfw3
-          brew install gtk+3
-
 
       - name: Build project
         run: |
-          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/unofficial-nativefiledialog -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
-          cmake --build adp-tool/BuildMac
+          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_CXX_STANDARD=11          cmake --build adp-tool/BuildMac
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
