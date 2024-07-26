@@ -7,7 +7,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURC
 
 # Determine architecture for macOS
 if(APPLE)
-    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64") # Ensure both x86_64 and arm64 are specified
+    set(CMAKE_OSX_ARCHITECTURES "arm64") # Ensure both x86_64 and arm64 are specified
 endif()
 
 # Load dependencies start
