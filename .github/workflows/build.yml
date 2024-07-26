@@ -96,7 +96,7 @@ jobs:
             adp-tool/BuildWin/Release/adp-tool.exe
             adp-tool/BuildWin/Release/adp-cli.exe
 
-  build-adp-tool-macos:
+  build-adp-tool-macos-arm64:
     runs-on: macos-latest
 
     steps:
@@ -115,7 +115,7 @@ jobs:
 
       - name: Build project
         run: |
-          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_CXX_STANDARD=14          
+          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_CXX_STANDARD=14          
           cmake --build adp-tool/BuildMac --config Release
 
       - name: Archive artifacts
