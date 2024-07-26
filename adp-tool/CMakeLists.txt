@@ -119,9 +119,10 @@ if(NOT EMSCRIPTEN)
 endif()
 
 add_executable(${PROJECT_NAME} ${GUI_SOURCES})
-if(MINGW)
-    target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
-endif()
+# No static library options for Clang on macOS
+# if(MINGW)
+#     target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
+# endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF)
@@ -142,7 +143,8 @@ if(NOT EMSCRIPTEN)
         "src/Cli.cpp")
 
     add_executable("adp-cli" ${CLI_SOURCES})
-    target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
+    # No static library options for Clang on macOS
+    # target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
     set_target_properties("adp-cli" PROPERTIES
         CXX_STANDARD 20
         CXX_EXTENSIONS OFF)
