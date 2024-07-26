@@ -111,6 +111,7 @@ jobs:
           brew install cmake
           brew install glfw3
           brew install gtk+3
+          brew install pkg-config
 
       - name: Build project
         run: |
