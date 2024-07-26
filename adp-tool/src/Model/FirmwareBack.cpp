@@ -184,10 +184,10 @@ bool FirmwareUploader::FlashEsp32()
 	return true;
 }
 
-// bool FlashEsp32(PortInfo& port, FirmwarePackagePtr firmware, FirmwareCallback callback)
-// {
-// 	return false;
-// }
+bool FlashEsp32(PortInfo& port, FirmwarePackagePtr firmware, FirmwareCallback callback)
+ {
+ 	return false;
+ }
 
  // AVR
 
