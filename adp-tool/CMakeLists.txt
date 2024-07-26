@@ -5,9 +5,16 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 project(adp-tool VERSION 2.0)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
+# Determine architecture for macOS
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64") # Ensure both x86_64 and arm64 are specified
+endif()
+
 # Load dependencies start
 if(WIN32)
     SET(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "Triplet" FORCE)
+elseif(APPLE)
+    SET(VCPKG_TARGET_TRIPLET "arm64-osx" CACHE STRING "Triplet" FORCE)
 endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
