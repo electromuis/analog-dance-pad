@@ -58,9 +58,9 @@ if(EMSCRIPTEN)
     # No additional platform-specific libraries for Emscripten
 elseif(WIN32 OR MINGW)
     list(APPEND GLOBAL_LIBS setupapi ws2_32)
-elseif(UNIX)
+elseif(UNIX AND NOT APPLE)
     # Linux-specific libraries
-    list(APPEND GLOBAL_LIBS udev)
+    list(APPEND GLOBAL_LIBS udev X11)
 endif()
 
 set(SHARED_SOURCES
