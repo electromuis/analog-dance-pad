@@ -95,8 +95,35 @@ jobs:
           path: |
             adp-tool/BuildWin/Release/adp-tool.exe
             adp-tool/BuildWin/Release/adp-cli.exe
-  
-            
+
+  build-adp-tool-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install cmake
+          brew install glfw3
+          brew install gtk+3
+
+      - name: Build project
+        run: |
+          cmake -S adp-tool -B adp-tool/BuildMac
+          cmake --build adp-tool/BuildMac
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build MacOS
+          path: |
+            adp-tool/BuildMac/adp-tool
+            adp-tool/BuildMac/adp-cli
 
 
 
