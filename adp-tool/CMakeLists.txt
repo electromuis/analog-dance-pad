@@ -61,7 +61,7 @@ elseif(WIN32 OR MINGW)
 elseif(UNIX AND NOT APPLE)
     list(APPEND GLOBAL_LIBS udev X11)
 elseif(APPLE)
-	list(APPEND GLOBAL_LIBS X11)
+	list(APPEND GLOBAL_LIBS)
 endif()
 # Load dependencies end
 
