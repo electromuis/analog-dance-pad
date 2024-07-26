@@ -55,15 +55,13 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(EMSCRIPTEN)
-
+    # No additional platform-specific libraries for Emscripten
 elseif(WIN32 OR MINGW)
     list(APPEND GLOBAL_LIBS setupapi ws2_32)
-elseif(UNIX AND NOT APPLE)
-    list(APPEND GLOBAL_LIBS udev X11)
-elseif(APPLE)
-	list(APPEND GLOBAL_LIBS)
+elseif(UNIX)
+    # Linux-specific libraries
+    list(APPEND GLOBAL_LIBS udev)
 endif()
-# Load dependencies end
 
 set(SHARED_SOURCES
     "src/Model/Device.cpp"
@@ -105,11 +103,11 @@ if(NOT EMSCRIPTEN)
     if(APPLE)
         list(APPEND GUI_LIBS "-framework OpenGL")
     else()
-		if(UNIX AND NOT APPLE)
-			list(APPEND GUI_LIBS GL)
-		else()
-			list(APPEND GUI_LIBS opengl32)
-		endif()
+        if(UNIX AND NOT APPLE)
+            list(APPEND GUI_LIBS GL)
+        else()
+            list(APPEND GUI_LIBS opengl32)
+        endif()
     endif()
 endif()
 
