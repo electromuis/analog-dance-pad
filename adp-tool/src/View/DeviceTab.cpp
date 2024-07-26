@@ -16,6 +16,16 @@
 	#include <nfd.h>
 #endif
 
+#ifdef _MSC_VER
+    // Microsoft Visual C++ specific code
+    #include <cstring>
+    #define strcpy_s(dst, size, src) std::strcpy(dst, src)
+#else
+    // Non-Microsoft compilers
+    #include <cstring>
+    #define strcpy_s(dst, size, src) std::strncpy(dst, src, size)
+#endif
+
 using namespace std;
 
 namespace adp {
@@ -33,6 +43,7 @@ static constexpr const char* UpdateFirmwareMsg =
     "Upload a firmware file to the pad device.";
 
 #ifndef __EMSCRIPTEN__
+
 class FlashInstance {
 public:
     FlashInstance()
@@ -247,9 +258,9 @@ protected:
     FirmwareUploader uploader;
 };
 
-FlashInstance flashInstance;
+// FlashInstance flashInstance;
 #endif // __EMSCRIPTEN__
-
+/*
 void DeviceTab::RenderFlash()
 {
     flashInstance.Render();
@@ -259,7 +270,7 @@ void DeviceTab::OpenFlashDialog(bool advanced)
 {
     flashInstance.Open(advanced);
 }
-
+*/
 static char padName[255] = "";
 
 static void RenamePopup()
