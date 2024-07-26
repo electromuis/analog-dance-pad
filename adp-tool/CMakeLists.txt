@@ -108,7 +108,7 @@ set(GUI_LIBS
 if(NOT EMSCRIPTEN)
     list(APPEND GUI_LIBS unofficial::nativefiledialog::nfd)
     if(APPLE)
-        list(APPEND GUI_LIBS "-framework OpenGL")
+        list(APPEND GUI_LIBS "-framework OpenGL" "-framework CoreFoundation" "-framework IOKit")
     else()
         if(UNIX AND NOT APPLE)
             list(APPEND GUI_LIBS GL)
@@ -119,10 +119,6 @@ if(NOT EMSCRIPTEN)
 endif()
 
 add_executable(${PROJECT_NAME} ${GUI_SOURCES})
-# No static library options for Clang on macOS
-# if(MINGW)
-#     target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
-# endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF)
@@ -143,12 +139,14 @@ if(NOT EMSCRIPTEN)
         "src/Cli.cpp")
 
     add_executable("adp-cli" ${CLI_SOURCES})
-    # No static library options for Clang on macOS
-    # target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
     set_target_properties("adp-cli" PROPERTIES
         CXX_STANDARD 20
         CXX_EXTENSIONS OFF)
-    target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse)
+    if(APPLE)
+        target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse "-framework CoreFoundation" "-framework IOKit")
+    else()
+        target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse)
+    endif()
     if(EMSCRIPTEN)
         set_target_properties("adp-cli" PROPERTIES LINK_FLAGS ${EM_FLAGS})
     else()
