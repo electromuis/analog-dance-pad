@@ -5,9 +5,15 @@
 	#include <windows.h>
 #endif
 
+
+#if defined(__APPLE__)
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else
 extern "C" {
 #include <GL/gl.h>
 }
+#endif
 
 #include "imgui.h"
 #define STB_IMAGE_IMPLEMENTATION
