@@ -258,9 +258,9 @@ protected:
     FirmwareUploader uploader;
 };
 
-// FlashInstance flashInstance;
+FlashInstance flashInstance;
 #endif // __EMSCRIPTEN__
-/*
+
 void DeviceTab::RenderFlash()
 {
     flashInstance.Render();
@@ -270,7 +270,7 @@ void DeviceTab::OpenFlashDialog(bool advanced)
 {
     flashInstance.Open(advanced);
 }
-*/
+
 static char padName[255] = "";
 
 static void RenamePopup()
