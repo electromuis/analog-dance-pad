@@ -24,7 +24,7 @@ jobs:
       
       - name: Build project
         run: |
-          cmake -S adp-tool -B adp-tool/BuildNix
+          cmake -S adp-tool -B adp-tool/BuildNix -DCMAKE_CXX_STANDARD=14  
           cmake --build adp-tool/BuildNix
 
       - name: Archive artifacts
@@ -112,7 +112,7 @@ jobs:
 
       - name: Build project
         run: |
-          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_CXX_STANDARD=11          
+          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_CXX_STANDARD=14          
           cmake --build adp-tool/BuildMac
 
       - name: Archive artifacts
