@@ -109,6 +109,8 @@ jobs:
         run: |
           brew update
           brew install cmake
+          brew install glfw3
+          brew install gtk+3
 
       - name: Build project
         run: |
