@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include <Adp.h>
 
 #include <Model/Utils.h>
