@@ -58,8 +58,10 @@ if(EMSCRIPTEN)
 
 elseif(WIN32 OR MINGW)
     list(APPEND GLOBAL_LIBS setupapi ws2_32)
-elseif(UNIX OR APPLE)
+elseif(UNIX AND NOT APPLE)
     list(APPEND GLOBAL_LIBS udev X11)
+elseif(APPLE)
+	list(APPEND GLOBAL_LIBS X11)
 endif()
 # Load dependencies end
 
