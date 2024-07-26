@@ -11,5 +11,5 @@
 	path = adp-tool/vcpkg
 	url = https://github.com/microsoft/vcpkg
 [submodule "adp-tool/lib/esp-serial-flasher"]
-	path = /adp-tool/lib/esp-serial-flasher
+	path = adp-tool/lib/esp-serial-flasher
 	url = https://github.com/HannahPadd/esp-serial-flasher.git
