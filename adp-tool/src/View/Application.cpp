@@ -75,7 +75,7 @@ bool Application::Init(int width, int height, const char* title)
 #else
 	const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 #endif
 
 	m_WindowHandle = glfwCreateWindow(width, height, title, NULL, NULL);

@@ -7,8 +7,8 @@
 
 
 #if defined(__APPLE__)
-#include <OpenGL/gl3.h>
-#include <OpenGL/glu3.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
 #else
 extern "C" {
 #include <GL/gl.h>
