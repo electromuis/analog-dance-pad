@@ -24,8 +24,23 @@ jobs:
       
       - name: Build project
         run: |
-          cmake -S adp-tool -B adp-tool/BuildNix
-          cmake --build adp-tool/BuildNix
+          cmake -S adp-tool -B adp-tool/BuildNix -DCMAKE_CXX_STANDARD=14  
+          cmake --build adp-tool/BuildNix --config Release
+
+      - name: Create Release Linux X86_64
+        id: create_release_linux_x86_64
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Changes in this Release
+            - First Change
+            - Second Change
+          draft: false
+          prerelease: true
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
@@ -45,7 +60,7 @@ jobs:
           submodules: 'true'
 
       - name: Install dependencies
-        run: sudo apt update && sudo apt install -y build-essential cmake
+        run: sudo apt update && sudo apt install -y build-essential cmake libudev-dev libglfw3-dev libgtk-3-dev
 
       - name: Install emsdk
         run: |
@@ -95,8 +110,37 @@ jobs:
           path: |
             adp-tool/BuildWin/Release/adp-tool.exe
             adp-tool/BuildWin/Release/adp-cli.exe
-  
-            
+
+  build-adp-tool-macos-arm64:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install cmake
+          brew install glfw3
+          brew install gtk+3
+          brew install pkg-config
+
+      - name: Build project
+        run: |
+          cmake -S adp-tool -B adp-tool/BuildMac -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_CXX_STANDARD=14          
+          cmake --build adp-tool/BuildMac --config Release
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build MacOS
+          path: |
+            adp-tool/BuildMac/adp-tool
+            adp-tool/BuildMac/adp-cli
+
 
 
 

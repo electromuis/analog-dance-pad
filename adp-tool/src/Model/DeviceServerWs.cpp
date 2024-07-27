@@ -48,7 +48,7 @@ public:
         error_code ec;
         server::connection_ptr con = s.get_connection();
         if(ec) {
-            Log::Writef("MyDeviceServer :: could not create connection because: %s", ec.message());
+            Log::Writef("MyDeviceServer :: could not create connection because: %s", ec.message().c_str());
             return;
         }
 
