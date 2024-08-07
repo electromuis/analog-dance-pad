@@ -25,7 +25,7 @@ CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -I../Config/ -I.. -DBOARD_TYPE_$(BOARD_T
 LD_FLAGS     =
 
 # Default target
-all:
+all: | $(shell mkdir -p obj)
 
 # Include LUFA-specific DMBS extension modules
 DMBS_LUFA_PATH ?= $(LUFA_PATH)/Build/LUFA

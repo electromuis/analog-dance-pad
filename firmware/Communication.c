@@ -1,5 +1,5 @@
 #include <stdbool.h>
-
+#include <string.h>
 #include "Config/DancePadConfig.h"
 #include "Communication.h"
 #include "Pad.h"
