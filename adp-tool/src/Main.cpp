@@ -126,6 +126,9 @@ void AdpApplication::SaveProfile()
 		return;
 
 	string outPath(rawOutPath);
+	if(outPath.find(".") == string::npos)
+		outPath += ".json";
+
 	free(rawOutPath);
 
 	ofstream output_stream(outPath);
@@ -153,15 +156,23 @@ void AdpApplication::SaveProfile()
 
 void AdpApplication::MenuCallback()
 {
-
 	if (ImGui::BeginMenu("File"))
 	{
 #ifndef __EMSCRIPTEN__
+		bool saveEnabled = Device::Pad() != nullptr;
+		if(!saveEnabled)
+			ImGui::BeginDisabled();
+
 		if (ImGui::MenuItem("Load profile"))
+		{
 			LoadProfile();
+		}
 
 		if (ImGui::MenuItem("Save profile"))
 			SaveProfile();
+
+		if(!saveEnabled)
+			ImGui::EndDisabled();
 
 		if (ImGui::MenuItem("Exit"))
 			Close();
@@ -198,7 +209,7 @@ void AdpApplication::MenuCallback()
 			ImGui::Text("Connecting failed");
 		}
 
-		bool scanEnabled = true;
+		static bool scanEnabled = true;
 		if (ImGui::MenuItem("Enable scan", nullptr, &scanEnabled))
 			Device::SetSearching(scanEnabled);
 

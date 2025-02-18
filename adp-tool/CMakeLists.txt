@@ -116,7 +116,9 @@ if(NOT EMSCRIPTEN)
 	list(APPEND GUI_LIBS unofficial::nativefiledialog::nfd opengl32)
 endif()
 
-# if(WIN32) list(APPEND sources "src/Assets/Resource.rc") endif()
+if(WIN32)
+	list(APPEND GUI_SOURCES "src/Assets/Resource.rc")
+endif()
 
 add_executable (${PROJECT_NAME} ${GUI_SOURCES})
 if(MINGW)
@@ -127,6 +129,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	CXX_EXTENSIONS OFF)
 target_link_libraries(${PROJECT_NAME} ${GUI_LIBS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEVICE_CLIENT_ENABLED)
+if(WIN32)
+	target_link_options(${PROJECT_NAME} PRIVATE /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup)
+endif()
 
 if(EMSCRIPTEN)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS ${EM_FLAGS})

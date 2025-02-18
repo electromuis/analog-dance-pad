@@ -235,7 +235,7 @@ public:
 		const vector<LightRuleReport>& lightRules,
 		const vector<LedMappingReport>& ledMappings,
 		const vector<SensorReport>& sensors)
-		: myReporter(std::move(reporter))
+		: myReporter(reporter)
 		, myPath(path)
 	{
 		mySensors = vector<SensorState>(identification.sensorCount);
@@ -742,7 +742,7 @@ private:
 	bool running = false;
 	std::thread sensorThread;
 
-	unique_ptr<Reporter> myReporter;
+	unique_ptr<Reporter>& myReporter;
 	DevicePath myPath;
 	PadState myPad;
 	LightsState myLights;
@@ -835,8 +835,12 @@ public:
 		return true;
 	}
 
-	string GetName()
+	string GetName(bool update = false)
 	{
+		if(update) {
+			reporter->Get(nameReport);
+		}
+
 		return string((const char*)nameReport.name, nameReport.size);
 	}
 
@@ -963,7 +967,7 @@ public:
 		IdentificationV2Report padIdentificationV2;
 		vector<SensorReport> sensors;
 
-		if (!reporter->Get(name))
+		if (reporter == nullptr || !reporter->Get(name))
 		{
 			return false;
 		}
@@ -1145,14 +1149,14 @@ public:
 		return (int)devices.size();
 	}
 
-	string GetDeviceName(int index)
+	string GetDeviceName(int index, bool update = false)
 	{
 		if (index < 0 || index >= devices.size())
 			return "";
 
 		auto it = devices.begin();
 		std::advance(it, index);
-		return it->second.GetName();
+		return it->second.GetName(update);
 	}
 
 	bool DeviceSelect(int index)
@@ -1314,7 +1318,10 @@ DeviceChanges Device::Update()
 			connectionManager->DisconnectFailedDevice();
 			changes |= DCF_DEVICE;
 		}
-		
+
+		if(changes & DCF_NAME) {
+			connectionManager->GetDeviceName(connectionManager->DeviceSelected(), true);
+		}
 	}
 
 	return changes;
