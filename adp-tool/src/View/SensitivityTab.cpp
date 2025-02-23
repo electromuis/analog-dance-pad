@@ -74,6 +74,13 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
     auto fillH = sensor ? float(sensor->value) * colH : 0.f;
     float thresholdY = colY + float(1 - threshold) * colH;
 
+    
+    ImGui::SetCursorPos({ colX, colY });
+    ImGui::BeginChild(fmt::format("Sensor{}", sensorIndex).data(), { colW, colH }, false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::EndChild();
+
+    bool sensorHighlighted = ImGui::IsItemHovered();
+
     // Full bar.
     wdl->AddRectFilled(
         { wp.x + colX, wp.y + colY },
@@ -115,7 +122,7 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
     // Start/finish sensor threshold adjusting based on LMB click/release.
     if (myAdjustingSensorIndex == SENSOR_INDEX_NONE)
     {
-        if (ImGui::IsMouseClicked(ImGuiPopupFlags_MouseButtonLeft) && ImGui::IsMousePosValid())
+        if (sensorHighlighted && ImGui::IsMouseClicked(ImGuiPopupFlags_MouseButtonLeft) && ImGui::IsMousePosValid())
         {
             auto pos = ImGui::GetMousePos();
             bool inBox = pos.x >= wp.x + colX && pos.x < wp.x + colX + colW &&
@@ -132,7 +139,7 @@ void SensitivityTab::RenderSensor(int sensorIndex, float colX, float colY, float
             }
         }
 
-        if (ImGui::IsMouseClicked(ImGuiPopupFlags_MouseButtonRight) && ImGui::IsMousePosValid() && RELEASE_MODE == RELEASE_INDIVIDUAL)
+        if (sensorHighlighted && ImGui::IsMouseClicked(ImGuiPopupFlags_MouseButtonRight) && ImGui::IsMousePosValid() && RELEASE_MODE == RELEASE_INDIVIDUAL)
         {
             auto pos = ImGui::GetMousePos();
             bool inBox = pos.x >= wp.x + colX && pos.x < wp.x + colX + colW &&
