@@ -142,9 +142,10 @@ endif()
 
 if(NOT EMSCRIPTEN)
 	# CLI application start
-	file(GLOB_RECURSE CLI_SOURCES
+	set(CLI_SOURCES
 		${SHARED_SOURCES}
-		"src/Cli.cpp")
+		"src/Cli.cpp"
+		"src/Gateway/GatewayServer.cpp")
 
 	#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
 

@@ -1,6 +1,7 @@
 node_modules
 *.user
 .vscode
+.claude
 
 adp-tool/imgui.ini
 adp-tool/build*

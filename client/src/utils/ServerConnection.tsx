@@ -1,7 +1,3 @@
-import io from 'socket.io-client'
-
-import { ServerEvents, ClientEvents } from '../../../common-types/events'
-
 import {
   DeviceConfiguration,
   DeviceInputData,
@@ -18,46 +14,101 @@ interface ServerConnectionSettings {
 }
 
 class ServerConnection {
-  private ioSocket: SocketIOClient.Socket
+  private ws: WebSocket | null = null
+  private settings: ServerConnectionSettings
   private inputEventSubscriptions: SubscriptionManager<DeviceInputData>
   private rateEventSubscriptions: SubscriptionManager<number>
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private reconnectDelay = 250
+  private subscribedDevices: Set<string> = new Set()
 
   constructor(settings: ServerConnectionSettings) {
+    this.settings = settings
     this.inputEventSubscriptions = new SubscriptionManager()
     this.rateEventSubscriptions = new SubscriptionManager()
-
-    this.ioSocket = io(settings.address, {
-      transports: ['websocket'],
-      reconnectionDelay: 250,
-      reconnectionDelayMax: 1000
-    })
-    this.ioSocket.on('connect', settings.onConnect)
-    this.ioSocket.on('disconnect', settings.onDisconnect)
-    this.ioSocket.on('devicesUpdated', (event: ServerEvents.DevicesUpdated) =>
-      settings.onDevicesUpdated(event.devices)
-    )
-    this.ioSocket.on('inputEvent', this.handleInputEvent)
-    this.ioSocket.on('eventRate', this.handleRateEvent)
+    this.connect()
   }
 
-  private handleInputEvent = (event: ServerEvents.InputEvent) => {
-    this.inputEventSubscriptions.emit(event.deviceId, event.inputData)
+  private getWsUrl = (): string => {
+    const address = this.settings.address
+    if (address.startsWith('ws://') || address.startsWith('wss://')) {
+      return address
+    }
+    return `ws://${address.replace(/^https?:\/\//, '')}`
   }
 
-  private handleRateEvent = (event: ServerEvents.EventRate) => {
-    this.rateEventSubscriptions.emit(event.deviceId, event.eventRate)
+  private connect = () => {
+    try {
+      this.ws = new WebSocket(this.getWsUrl())
+    } catch {
+      this.scheduleReconnect()
+      return
+    }
+
+    this.ws.onopen = () => {
+      this.reconnectDelay = 250
+      this.settings.onConnect()
+      for (const deviceId of this.subscribedDevices) {
+        this.send('subscribeToDevice', { deviceId })
+      }
+    }
+
+    this.ws.onclose = () => {
+      this.settings.onDisconnect()
+      this.scheduleReconnect()
+    }
+
+    this.ws.onerror = () => {
+      // onclose fires after onerror; reconnect is handled there
+    }
+
+    this.ws.onmessage = (event: MessageEvent) => {
+      this.handleMessage(event.data)
+    }
+  }
+
+  private scheduleReconnect = () => {
+    if (this.reconnectTimer !== null) return
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.connect()
+    }, this.reconnectDelay)
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 1000)
+  }
+
+  private send = (action: string, data: unknown) => {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ action, data }))
+    }
+  }
+
+  private handleMessage = (raw: string) => {
+    try {
+      const { action, data } = JSON.parse(raw)
+      switch (action) {
+        case 'devicesUpdated':
+          this.settings.onDevicesUpdated(data.devices)
+          break
+        case 'inputEvent':
+          this.inputEventSubscriptions.emit(data.deviceId, data.inputData)
+          break
+        case 'eventRate':
+          this.rateEventSubscriptions.emit(data.deviceId, data.eventRate)
+          break
+      }
+    } catch (e) {
+      console.error('ServerConnection :: message parse error', e)
+    }
   }
 
   private subscribeToDevice = (deviceId: string) => {
-    const event: ClientEvents.SubscribeToDevice = { deviceId }
-    this.ioSocket.emit('subscribeToDevice', event)
+    this.subscribedDevices.add(deviceId)
+    this.send('subscribeToDevice', { deviceId })
   }
 
   private unsubscribeFromDevice = (deviceId: string) => {
-    const event: ClientEvents.UnsubscribeFromDevice = {
-      deviceId
-    }
-    this.ioSocket.emit('unsubscribeFromDevice', event)
+    this.subscribedDevices.delete(deviceId)
+    this.send('unsubscribeFromDevice', { deviceId })
   }
 
   private hasAnySubscriptionsForDevice = (deviceId: string) => {
@@ -74,7 +125,6 @@ class ServerConnection {
     if (!this.hasAnySubscriptionsForDevice(deviceId)) {
       this.subscribeToDevice(deviceId)
     }
-
     this.inputEventSubscriptions.subscribe(deviceId, callback)
 
     return () => {
@@ -92,7 +142,6 @@ class ServerConnection {
     if (!this.hasAnySubscriptionsForDevice(deviceId)) {
       this.subscribeToDevice(deviceId)
     }
-
     this.rateEventSubscriptions.subscribe(deviceId, callback)
 
     return () => {
@@ -108,13 +157,7 @@ class ServerConnection {
     configuration: Partial<DeviceConfiguration>,
     store: boolean
   ) => {
-    const event: ClientEvents.UpdateConfiguration = {
-      deviceId,
-      configuration,
-      store
-    }
-
-    this.ioSocket.emit('updateConfiguration', event)
+    this.send('updateConfiguration', { deviceId, configuration, store })
   }
 
   public updateSensorThreshold = (
@@ -123,23 +166,11 @@ class ServerConnection {
     newThreshold: number,
     store: boolean
   ) => {
-    const event: ClientEvents.UpdateSensorThreshold = {
-      deviceId,
-      sensorIndex,
-      newThreshold,
-      store
-    }
-
-    this.ioSocket.emit('updateSensorThreshold', event)
+    this.send('updateSensorThreshold', { deviceId, sensorIndex, newThreshold, store })
   }
 
   public calibrate = (deviceId: string, calibrationBuffer: number) => {
-    const event: ClientEvents.Calibrate = {
-      deviceId,
-      calibrationBuffer
-    }
-
-    this.ioSocket.emit('calibrate', event)
+    this.send('calibrate', { deviceId, calibrationBuffer })
   }
 }
 

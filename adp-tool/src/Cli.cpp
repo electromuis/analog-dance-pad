@@ -3,6 +3,7 @@
 #include "Model/Device.h"
 #include "Model/DeviceServer.h"
 #include "Model/Firmware.h"
+#include "Gateway/GatewayServer.h"
 
 #include <thread>
 #include <chrono>
@@ -207,6 +208,42 @@ void adp_server_run(argparse::ArgumentParser& args)
 }
 #endif
 
+void adp_gateway_run(argparse::ArgumentParser& args)
+{
+    int port = args.get<int>("-port");
+
+    Device::Init();
+    Device::SetSearching(true);
+    Device::Update();
+
+    GatewayServer gateway(port);
+
+    std::cout << "ADP gateway running on ws://localhost:" << port << std::endl;
+
+    auto lastRateBroadcast = std::chrono::system_clock::now();
+
+    while (true) {
+        auto changes = Device::Update();
+
+        if (changes & DCF_DEVICE) {
+            gateway.BroadcastDevicesUpdated();
+        }
+
+        if (Device::Pad()) {
+            gateway.BroadcastInputEvent("device_0");
+
+            auto now = std::chrono::system_clock::now();
+            if (now > lastRateBroadcast + std::chrono::seconds(1)) {
+                gateway.BroadcastEventRate("device_0", Device::PollingRate());
+                lastRateBroadcast = now;
+            }
+        }
+
+        gateway.ProcessCommands();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+}
+
 int main(int argc, char** argv)
 {
     Log::Init();
@@ -265,6 +302,14 @@ int main(int argc, char** argv)
     program.add_subparser(server_run_command);
 #endif
 
+    argparse::ArgumentParser gateway_run_command("gateway:run");
+    gateway_run_command.add_description("Run the JSON WebSocket gateway server");
+    gateway_run_command.add_argument("-port")
+        .help("WebSocket port to listen on")
+        .default_value(3333)
+        .scan<'i', int>();
+    program.add_subparser(gateway_run_command);
+
      try {
         program.parse_args(argc, argv);
 
@@ -282,6 +327,8 @@ int main(int argc, char** argv)
             adp_firmware_flash(firmware_flash_command);
         } else if(program.is_subcommand_used("firmware:update")) {
             adp_firmware_update(firmware_update_command);
+        } else if(program.is_subcommand_used("gateway:run")) {
+            adp_gateway_run(gateway_run_command);
         } else {
             throw std::runtime_error("Subcommand required");
         }
