@@ -69,7 +69,7 @@ public:
         static char selectedPortStr[255] = "Select port";
         if(selectedPort != -1)
         {
-            strcpy_s(selectedPortStr, 255, serialPorts[selectedPort].c_str());
+            strcpy(selectedPortStr, serialPorts[selectedPort].c_str());
         }
 
         if(advancedMode)

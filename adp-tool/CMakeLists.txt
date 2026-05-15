@@ -34,8 +34,6 @@ find_package(Stb REQUIRED)
 find_package(argparse REQUIRED)
 # Load dependencies end
 
-
-
 add_definitions (-D_WEBSOCKETPP_CPP11_FUNCTIONAL_)
 add_definitions (-D_WEBSOCKETPP_CPP11_SYSTEM_ERROR_)
 add_definitions (-D_WEBSOCKETPP_CPP11_RANDOM_DEVICE_)
@@ -113,7 +111,13 @@ set(GUI_LIBS
 )
 
 if(NOT EMSCRIPTEN)
-	list(APPEND GUI_LIBS unofficial::nativefiledialog::nfd opengl32)
+	list(APPEND GUI_LIBS unofficial::nativefiledialog::nfd)
+  if(WIN32 OR MINGW)
+    list(APPEND GUI_LIBS opengl32)
+  else()
+    find_package(OpenGL REQUIRED)
+    list(APPEND GUI_LIBS OpenGL::GL)
+  endif()
 endif()
 
 if(WIN32)
