@@ -229,14 +229,19 @@ void adp_gateway_run(argparse::ArgumentParser& args)
             gateway.BroadcastDevicesUpdated();
         }
 
-        if (Device::Pad()) {
-            gateway.BroadcastInputEvent("device_0");
+        int count = Device::ConnectedDeviceCount();
+        for (int i = 0; i < count; ++i) {
+            std::string deviceId = Device::ConnectedDevicePath(i);
+            gateway.BroadcastInputEvent(i, deviceId);
+        }
 
-            auto now = std::chrono::system_clock::now();
-            if (now > lastRateBroadcast + std::chrono::seconds(1)) {
-                gateway.BroadcastEventRate("device_0", Device::PollingRate());
-                lastRateBroadcast = now;
+        auto now = std::chrono::system_clock::now();
+        if (now > lastRateBroadcast + std::chrono::seconds(1)) {
+            for (int i = 0; i < count; ++i) {
+                std::string deviceId = Device::ConnectedDevicePath(i);
+                gateway.BroadcastEventRate(deviceId, Device::PollingRate(i));
             }
+            lastRateBroadcast = now;
         }
 
         gateway.ProcessCommands();

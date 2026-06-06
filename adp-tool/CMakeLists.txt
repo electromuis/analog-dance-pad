@@ -154,7 +154,9 @@ if(NOT EMSCRIPTEN)
 	#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
 
 	add_executable ("adp-cli" ${CLI_SOURCES})
-	target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
+	if(MINGW)
+		target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
+	endif()
 	set_target_properties("adp-cli" PROPERTIES
 		CXX_STANDARD 20
 		CXX_EXTENSIONS OFF)

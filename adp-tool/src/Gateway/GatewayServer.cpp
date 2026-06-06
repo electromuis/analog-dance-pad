@@ -27,6 +27,17 @@ struct GatewayClient {
     std::set<std::string> subscribedDevices;
 };
 
+// Find the connected-device index for a given path (used as device ID).
+static int FindDeviceIndex(const std::string& deviceId)
+{
+    int count = Device::ConnectedDeviceCount();
+    for (int i = 0; i < count; ++i) {
+        if (Device::ConnectedDevicePath(i) == deviceId)
+            return i;
+    }
+    return -1;
+}
+
 class GatewayServerImpl {
 public:
     GatewayServerImpl(int port) : port(port)
@@ -118,6 +129,11 @@ public:
 
     static void HandleUpdateConfiguration(const json& data)
     {
+        std::string deviceId = data.value("deviceId", "");
+        int idx = FindDeviceIndex(deviceId);
+        if (idx < 0) return;
+
+        Device::ConnectedDeviceSelect(deviceId);
         auto pad = Device::Pad();
         if (!pad) return;
 
@@ -128,9 +144,8 @@ public:
             Device::SetDeviceName(name.c_str());
         }
 
-        if (config.contains("releaseThreshold") && config["releaseThreshold"].is_number()) {
+        if (config.contains("releaseThreshold") && config["releaseThreshold"].is_number())
             Device::SetReleaseThreshold(config["releaseThreshold"].get<double>());
-        }
 
         if (config.contains("sensorThresholds") && config["sensorThresholds"].is_array()) {
             for (int i = 0; i < (int)config["sensorThresholds"].size() && i < pad->numSensors; ++i) {
@@ -141,9 +156,8 @@ public:
         }
 
         if (config.contains("sensorToButtonMapping") && config["sensorToButtonMapping"].is_array()) {
-            for (int i = 0; i < (int)config["sensorToButtonMapping"].size() && i < pad->numSensors; ++i) {
+            for (int i = 0; i < (int)config["sensorToButtonMapping"].size() && i < pad->numSensors; ++i)
                 Device::SetButtonMapping(i, config["sensorToButtonMapping"][i].get<int>());
-            }
         }
 
         if (data.value("store", false)) Device::SaveChanges();
@@ -151,6 +165,10 @@ public:
 
     static void HandleUpdateSensorThreshold(const json& data)
     {
+        std::string deviceId = data.value("deviceId", "");
+        if (FindDeviceIndex(deviceId) < 0) return;
+
+        Device::ConnectedDeviceSelect(deviceId);
         auto pad = Device::Pad();
         if (!pad) return;
 
@@ -165,10 +183,14 @@ public:
 
     static void HandleCalibrate(const json& data)
     {
+        std::string deviceId = data.value("deviceId", "");
+        int idx = FindDeviceIndex(deviceId);
+        if (idx < 0) return;
+
+        Device::ConnectedDeviceSelect(deviceId);
         auto pad = Device::Pad();
         if (!pad) return;
 
-        // calibrationBuffer is a margin added above the current sensor reading (0.1 = 10%)
         double calibrationBuffer = data.value("calibrationBuffer", 0.1);
 
         for (int i = 0; i < pad->numSensors; ++i) {
@@ -185,9 +207,13 @@ public:
     json BuildDevicesUpdated()
     {
         json devicesJson = json::object();
-        auto pad = Device::Pad();
-        if (pad) {
-            const std::string deviceId = "device_0";
+
+        int count = Device::ConnectedDeviceCount();
+        for (int i = 0; i < count; ++i) {
+            auto pad = Device::Pad(i);
+            if (!pad) continue;
+
+            std::string deviceId = Device::ConnectedDevicePath(i);
 
             json config;
             config["name"] = pad->name;
@@ -195,11 +221,12 @@ public:
             config["sensorThresholds"] = json::array();
             config["sensorToButtonMapping"] = json::array();
 
-            for (int i = 0; i < pad->numSensors; ++i) {
-                auto sensor = Device::Sensor(i);
+            for (int j = 0; j < pad->numSensors; ++j) {
+                auto sensor = Device::Sensor(i, j);
                 if (sensor) {
                     config["sensorThresholds"].push_back(sensor->threshold);
-                    config["sensorToButtonMapping"].push_back(sensor->button);
+                    // Client expects 0-based mapping; -1 means unmapped.
+                    config["sensorToButtonMapping"].push_back(sensor->button - 1);
                 }
             }
 
@@ -230,20 +257,23 @@ public:
         }
     }
 
-    void BroadcastInputEvent(const std::string& deviceId)
+    void BroadcastInputEvent(int deviceIndex, const std::string& deviceId)
     {
-        auto pad = Device::Pad();
+        auto pad = Device::Pad(deviceIndex);
         if (!pad) return;
 
         json sensors = json::array();
-        json buttons = json::array();
+        std::vector<bool> buttonStates(pad->numButtons, false);
         for (int i = 0; i < pad->numSensors; ++i) {
-            auto sensor = Device::Sensor(i);
+            auto sensor = Device::Sensor(deviceIndex, i);
             if (sensor) {
                 sensors.push_back(sensor->value);
-                buttons.push_back(sensor->pressed);
+                if (sensor->button > 0 && sensor->button <= pad->numButtons && sensor->pressed)
+                    buttonStates[sensor->button - 1] = true;
             }
         }
+        json buttons = json::array();
+        for (bool pressed : buttonStates) buttons.push_back(pressed);
 
         json msg;
         msg["action"] = "inputEvent";
@@ -302,7 +332,7 @@ GatewayServer::GatewayServer(int port) : impl(std::make_unique<GatewayServerImpl
 GatewayServer::~GatewayServer() = default;
 
 void GatewayServer::BroadcastDevicesUpdated() { impl->BroadcastDevicesUpdated(); }
-void GatewayServer::BroadcastInputEvent(const std::string& deviceId) { impl->BroadcastInputEvent(deviceId); }
+void GatewayServer::BroadcastInputEvent(int deviceIndex, const std::string& deviceId) { impl->BroadcastInputEvent(deviceIndex, deviceId); }
 void GatewayServer::BroadcastEventRate(const std::string& deviceId, int rate) { impl->BroadcastEventRate(deviceId, rate); }
 void GatewayServer::ProcessCommands() { impl->ProcessCommands(); }
 

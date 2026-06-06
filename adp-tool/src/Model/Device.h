@@ -160,6 +160,18 @@ public:
 
 	static int DeviceSelected();
 
+	static int ConnectedDeviceCount();
+
+	static std::string ConnectedDevicePath(int deviceIndex);
+
+	static bool ConnectedDeviceSelect(const std::string& path);
+
+	static const PadState* Pad(int deviceIndex);
+
+	static const SensorState* Sensor(int deviceIndex, int sensorIndex);
+
+	static int PollingRate(int deviceIndex);
+
 	static void LoadProfile(json& j, DeviceProfileGroups groups);
 
 	static void SaveProfile(json& j, DeviceProfileGroups groups);

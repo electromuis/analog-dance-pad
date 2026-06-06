@@ -887,11 +887,46 @@ class ConnectionManager
 public:
 	~ConnectionManager()
 	{
-		if (myConnectedDevice)
-			myConnectedDevice->SaveChanges();
+		for (auto& [path, device] : myConnectedDevices)
+			device->SaveChanges();
 	}
 
-	PadDevice* ConnectedDevice() const { return myConnectedDevice.get(); }
+	// Returns the "selected" device (for GUI / single-device APIs).
+	PadDevice* ConnectedDevice() const
+	{
+		if (mySelectedPath.empty()) {
+			return myConnectedDevices.empty() ? nullptr : myConnectedDevices.begin()->second.get();
+		}
+		auto it = myConnectedDevices.find(mySelectedPath);
+		return it != myConnectedDevices.end() ? it->second.get() : nullptr;
+	}
+
+	// Returns the nth connected device (across all pads).
+	PadDevice* ConnectedDevice(int index) const
+	{
+		if (index < 0 || index >= (int)myConnectedDevices.size()) return nullptr;
+		auto it = myConnectedDevices.begin();
+		std::advance(it, index);
+		return it->second.get();
+	}
+
+	int ConnectedDeviceCount() const { return (int)myConnectedDevices.size(); }
+
+	string ConnectedDevicePath(int index) const
+	{
+		if (index < 0 || index >= (int)myConnectedDevices.size()) return "";
+		auto it = myConnectedDevices.begin();
+		std::advance(it, index);
+		return it->first;
+	}
+
+	// Select by path (for gateway use; path is the device ID).
+	bool ConnectedDeviceSelect(const string& path)
+	{
+		if (!myConnectedDevices.count(path)) return false;
+		mySelectedPath = path;
+		return true;
+	}
 
 	void UpdateDeviceMap(std::vector<string>& devicePaths)
 	{
@@ -901,9 +936,6 @@ public:
 			for (auto dev = foundDevices; dev; dev = dev->next)
 			{
 				devicePaths.push_back(dev->path);
-				// if(!newDevice->Probe())
-				// 	continue;
-				// out.push_back(newDevice);
 			}
 		}
 	}
@@ -913,16 +945,20 @@ public:
 		std::vector<string> devicePaths;
 		UpdateDeviceMap(devicePaths);
 
-		// Remove any devices that are no longer connected
+		bool anyChanges = false;
+
+		// Remove devices that are no longer physically present.
 		for (auto it = devices.begin(); it != devices.end();)
 		{
 			if (std::find(devicePaths.begin(), devicePaths.end(), it->first) == devicePaths.end())
 			{
-				if(myConnectedDevice && myConnectedDevice->Path() == it->first)
-					myConnectedDevice.reset();
-
 				if (it->second.IsWs() && it->second.GetState() != CS_FAILED)
-					continue;
+					{ ++it; continue; }
+
+				if (myConnectedDevices.erase(it->first)) {
+					if (mySelectedPath == it->first) mySelectedPath.clear();
+					anyChanges = true;
+				}
 
 				Log::Writef("ConnectionManager :: device removed (%hs)", it->second.GetName().c_str());
 				it = devices.erase(it);
@@ -930,31 +966,32 @@ public:
 			else ++it;
 		}
 
-		for(auto& path : devicePaths)
+		// Probe newly seen devices (stage 1).
+		for (auto& path : devicePaths)
 		{
-			if(devices.contains(path))
+			if (devices.contains(path))
 				continue;
 
 			auto it = devices.emplace(path, path);
-			if(!it.first->second.Probe())
-			{
-				// devices.erase(it.first);
+			if (!it.first->second.Probe())
 				continue;
-			}
 		}
 
-		if(!myConnectedDevice)
+		// Connect all probed devices that are not yet connected (stage 2).
+		for (auto& [path, conn] : devices)
 		{
-			int c=0;
-			for(auto& it : devices)
-			{
-				if(it.second.GetState() != CS_FAILED)
-					return DeviceSelect(c);
-				c++;
-			}
+			if (conn.GetState() == CS_FAILED) continue;
+			if (myConnectedDevices.count(path)) continue;  // already connected
+
+			if (conn.ConnectStage2())
+				anyChanges = true;
 		}
 
-		return false;
+		// Auto-select first connected device if nothing is selected.
+		if (mySelectedPath.empty() && !myConnectedDevices.empty())
+			mySelectedPath = myConnectedDevices.begin()->first;
+
+		return anyChanges;
 	}
 
 	bool ConnectToDeviceStage2(DeviceConnection& deviceCon)
@@ -1104,43 +1141,44 @@ public:
 		Log::Writef("  Firmware version: v%u.%u", ReadU16LE(padIdentificationV2.firmwareMajor), ReadU16LE(padIdentificationV2.firmwareMinor));
 		Log::Writef("  Feautre flags: %s", fmt::format("{:b}", ReadU16LE(padIdentificationV2.features)).c_str());
 		Log::Writef("  Path: %s", devicePath.c_str());
-		
-		/*
-		if(deviceInfo != NULL) {
-			Log::Writef("  Product: %ls", deviceInfo->product_string);
-			#ifndef __EMSCRIPTEN__
-			Log::Writef("  Manufacturer: %ls", deviceInfo->manufacturer_string);
-
-			Log::Writef("  Path: %s", deviceInfo->path);
-			#endif
-
-		}
-		else {
-			Log::Writef("  Product: Dummy");
-		}
-		*/
-
 		Log::Write("]");
 
-		myConnectedDevice.reset(device);
+		myConnectedDevices[devicePath].reset(device);
+
+		if (mySelectedPath.empty())
+			mySelectedPath = devicePath;
+
 		return true;
 	}
 
-	void DisconnectFailedDevice()
+	// Remove any connected devices whose background thread has stopped.
+	bool DisconnectFailedDevices()
 	{
-		auto device = myConnectedDevice.get();
-		if (device)
+		bool anyRemoved = false;
+		for (auto it = myConnectedDevices.begin(); it != myConnectedDevices.end();)
 		{
-			if(devices.contains(device->Path()))
-				devices.at(device->Path()).SetFailed();
-
-			myConnectedDevice.reset();
+			if (!it->second->UpdateSensorValues())
+			{
+				Log::Writef("ConnectionManager :: device failed (%s)", it->first.c_str());
+				if (devices.count(it->first))
+					devices.at(it->first).SetFailed();
+				if (mySelectedPath == it->first)
+					mySelectedPath.clear();
+				it = myConnectedDevices.erase(it);
+				anyRemoved = true;
+			}
+			else ++it;
 		}
+
+		if (mySelectedPath.empty() && !myConnectedDevices.empty())
+			mySelectedPath = myConnectedDevices.begin()->first;
+
+		return anyRemoved;
 	}
 
 	void AddIncompatibleDevice(hid_device_info* device)
 	{
-		if (device->product_string) // Can be null on failure, apparently.
+		if (device->product_string)
 			myFailedDevices[device->path] = narrow(device->product_string, wcslen(device->product_string));
 	}
 
@@ -1151,7 +1189,7 @@ public:
 
 	string GetDeviceName(int index, bool update = false)
 	{
-		if (index < 0 || index >= devices.size())
+		if (index < 0 || index >= (int)devices.size())
 			return "";
 
 		auto it = devices.begin();
@@ -1159,53 +1197,48 @@ public:
 		return it->second.GetName(update);
 	}
 
+	// Select by index in the discovered-devices map (GUI use).
 	bool DeviceSelect(int index)
 	{
-		if (index < 0 || index >= devices.size())
+		if (index < 0 || index >= (int)devices.size())
 			return false;
-
-		if(index == DeviceSelected())
-			return true;
 
 		auto it = devices.begin();
 		std::advance(it, index);
+		const string& path = it->first;
 
-		if(!it->second.ConnectStage2())
-			return false;
+		// If not yet connected, try to connect now.
+		if (!myConnectedDevices.count(path)) {
+			if (!it->second.ConnectStage2())
+				return false;
+		}
 
+		mySelectedPath = path;
 		return true;
 	}
 
 	int DeviceSelected()
 	{
-		if(!myConnectedDevice)
-			return -1;
+		if (mySelectedPath.empty()) return -1;
 
 		int c = 0;
-		
-		for(auto& it : devices)
+		for (auto& [path, _] : devices)
 		{
-			if(myConnectedDevice->Path() == it.first)
-				return c;
+			if (path == mySelectedPath) return c;
 			c++;
 		}
-
 		return -1;
 	}
 
 	bool ConnectToUrl(string url)
 	{
 		if (devices.contains(url)) {
-			int c = 0;
-
-			for (auto& it : devices)
-			{
-				if (it.second.GetPath() == url)
-					return c;
-				
-				return DeviceSelect(c);
+			if (!myConnectedDevices.count(url))
+				devices.at(url).ConnectStage2();
+			if (myConnectedDevices.count(url)) {
+				mySelectedPath = url;
+				return true;
 			}
-
 			return false;
 		}
 
@@ -1216,7 +1249,7 @@ public:
 			return false;
 		}
 
-		if(!it.first->second.ConnectStage2())
+		if (!it.first->second.ConnectStage2())
 		{
 			devices.erase(it.first);
 			return false;
@@ -1227,8 +1260,8 @@ public:
 
 private:
 	map<DevicePath, DeviceConnection> devices;
-	
-	unique_ptr<PadDevice> myConnectedDevice;
+	map<DevicePath, unique_ptr<PadDevice>> myConnectedDevices;
+	string mySelectedPath;
 	map<DevicePath, DeviceName> myFailedDevices;
 	bool emulator = false;
 };
@@ -1298,30 +1331,31 @@ DeviceChanges Device::Update()
 {
 	DeviceChanges changes = 0;
 
-	// If there is currently no connected device, try to find one.
-	auto device = connectionManager->ConnectedDevice();
-	if (!device && searching)
+	// Always try to discover / connect new devices when searching.
+	if (searching)
 	{
 		if (connectionManager->DiscoverDevice())
 			changes |= DCF_DEVICE;
-
-		device = connectionManager->ConnectedDevice();
 	}
 
-	// If there is a device, update it.
-	if (device)
-	{
-		changes |= device->PopChanges();
-		
-		if (!device->UpdateSensorValues())
-		{
-			connectionManager->DisconnectFailedDevice();
-			changes |= DCF_DEVICE;
-		}
+	// Remove any devices whose background thread has stopped.
+	if (connectionManager->DisconnectFailedDevices())
+		changes |= DCF_DEVICE;
 
-		if(changes & DCF_NAME) {
-			connectionManager->GetDeviceName(connectionManager->DeviceSelected(), true);
-		}
+	// Collect change flags from all connected devices.
+	int count = connectionManager->ConnectedDeviceCount();
+	for (int i = 0; i < count; ++i)
+	{
+		auto device = connectionManager->ConnectedDevice(i);
+		if (device)
+			changes |= device->PopChanges();
+	}
+
+	if (changes & DCF_NAME)
+	{
+		int sel = connectionManager->DeviceSelected();
+		if (sel >= 0)
+			connectionManager->GetDeviceName(sel, true);
 	}
 
 	return changes;
@@ -1478,6 +1512,45 @@ int Device::DeviceSelected()
 {
 	if(!connectionManager) return -1;
 	return connectionManager->DeviceSelected();
+}
+
+int Device::ConnectedDeviceCount()
+{
+	if(!connectionManager) return 0;
+	return connectionManager->ConnectedDeviceCount();
+}
+
+string Device::ConnectedDevicePath(int deviceIndex)
+{
+	if(!connectionManager) return "";
+	return connectionManager->ConnectedDevicePath(deviceIndex);
+}
+
+bool Device::ConnectedDeviceSelect(const std::string& path)
+{
+	if(!connectionManager) return false;
+	return connectionManager->ConnectedDeviceSelect(path);
+}
+
+const PadState* Device::Pad(int deviceIndex)
+{
+	if(!connectionManager) return nullptr;
+	auto device = connectionManager->ConnectedDevice(deviceIndex);
+	return device ? &device->State() : nullptr;
+}
+
+const SensorState* Device::Sensor(int deviceIndex, int sensorIndex)
+{
+	if(!connectionManager) return nullptr;
+	auto device = connectionManager->ConnectedDevice(deviceIndex);
+	return device ? device->Sensor(sensorIndex) : nullptr;
+}
+
+int Device::PollingRate(int deviceIndex)
+{
+	if(!connectionManager) return 0;
+	auto device = connectionManager->ConnectedDevice(deviceIndex);
+	return device ? device->PollingRate() : 0;
 }
 
 #ifdef DEVICE_CLIENT_ENABLED

@@ -13,7 +13,7 @@ public:
     ~GatewayServer();
 
     void BroadcastDevicesUpdated();
-    void BroadcastInputEvent(const std::string& deviceId);
+    void BroadcastInputEvent(int deviceIndex, const std::string& deviceId);
     void BroadcastEventRate(const std::string& deviceId, int rate);
     void ProcessCommands();
 
