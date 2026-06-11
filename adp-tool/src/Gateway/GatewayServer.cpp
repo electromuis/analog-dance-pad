@@ -144,8 +144,11 @@ public:
             Device::SetDeviceName(name.c_str());
         }
 
-        if (config.contains("releaseThreshold") && config["releaseThreshold"].is_number())
-            Device::SetReleaseThreshold(config["releaseThreshold"].get<double>());
+        // if (config.contains("releaseThreshold") && config["releaseThreshold"].is_number())
+            // Device::SetReleaseThreshold(config["releaseThreshold"].get<double>());
+
+        //
+        Device::SetReleaseThreshold(1.0);
 
         if (config.contains("sensorThresholds") && config["sensorThresholds"].is_array()) {
             for (int i = 0; i < (int)config["sensorThresholds"].size() && i < pad->numSensors; ++i) {
