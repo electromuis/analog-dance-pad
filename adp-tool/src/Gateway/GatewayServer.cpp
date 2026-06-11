@@ -154,7 +154,7 @@ public:
             for (int i = 0; i < (int)config["sensorThresholds"].size() && i < pad->numSensors; ++i) {
                 double threshold = config["sensorThresholds"][i].get<double>();
                 auto sensor = Device::Sensor(i);
-                if (sensor) Device::SetThreshold(i, threshold, sensor->releaseThreshold);
+                if (sensor) Device::SetThreshold(i, threshold, threshold);
             }
         }
 
