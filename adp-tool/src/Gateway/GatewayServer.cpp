@@ -144,17 +144,17 @@ public:
             Device::SetDeviceName(name.c_str());
         }
 
-        // if (config.contains("releaseThreshold") && config["releaseThreshold"].is_number())
-            // Device::SetReleaseThreshold(config["releaseThreshold"].get<double>());
+        if (config.contains("releaseThreshold") && config["releaseThreshold"].is_number())
+            Device::SetReleaseThreshold(config["releaseThreshold"].get<double>());
 
-        //
-        Device::SetReleaseThreshold(1.0);
+        double releaseThresholdultiplier = pad->releaseThreshold;
 
         if (config.contains("sensorThresholds") && config["sensorThresholds"].is_array()) {
             for (int i = 0; i < (int)config["sensorThresholds"].size() && i < pad->numSensors; ++i) {
                 double threshold = config["sensorThresholds"][i].get<double>();
+                double releaseThreshold = threshold * releaseThresholdultiplier;
                 auto sensor = Device::Sensor(i);
-                if (sensor) Device::SetThreshold(i, threshold, threshold);
+                if (sensor) Device::SetThreshold(i, threshold, releaseThreshold);
             }
         }
 
