@@ -159,8 +159,13 @@ public:
         }
 
         if (config.contains("sensorToButtonMapping") && config["sensorToButtonMapping"].is_array()) {
-            for (int i = 0; i < (int)config["sensorToButtonMapping"].size() && i < pad->numSensors; ++i)
-                Device::SetButtonMapping(i, config["sensorToButtonMapping"][i].get<int>());
+            for (int i = 0; i < (int)config["sensorToButtonMapping"].size() && i < pad->numSensors; ++i) {
+                int button = config["sensorToButtonMapping"][i].get<int>() + 1;
+                if (button < 1) {
+                    button = 0;
+                }
+                Device::SetButtonMapping(i, button);
+            }
         }
 
         if (data.value("store", false)) Device::SaveChanges();
@@ -175,11 +180,14 @@ public:
         auto pad = Device::Pad();
         if (!pad) return;
 
+        double releaseThresholdultiplier = pad->releaseThreshold;
+
         int sensorIndex = data.value("sensorIndex", 0);
         double newThreshold = data.value("newThreshold", 0.0);
+        double releaseThreshold = newThreshold * releaseThresholdultiplier;
 
         auto sensor = Device::Sensor(sensorIndex);
-        if (sensor) Device::SetThreshold(sensorIndex, newThreshold, sensor->releaseThreshold);
+        if (sensor) Device::SetThreshold(sensorIndex, newThreshold, releaseThreshold);
 
         if (data.value("store", false)) Device::SaveChanges();
     }
