@@ -4,9 +4,12 @@
 #include <fstream>
 
 #ifndef __EMSCRIPTEN__
-#include <sago/platform_folders.h>
+	#include <ranges>
+	#include <sago/platform_folders.h>
 #endif
+
 #include <nlohmann/json.hpp>
+#include <fmt/core.h>
 
 namespace adp {
 
@@ -80,6 +83,12 @@ bool UserConfig::SaveToDisk() {
   WriteColor(j, "SensorOff", UserConfig::SensorOff);
   WriteColor(j, "SensorBar", UserConfig::SensorBar);
 
+  j["GraphColors"] = nlohmann::json::object();
+  for (size_t i = 0; i < std::size(UserConfig::GraphColors); ++i) {
+    auto& color = UserConfig::GraphColors[i];
+    WriteColor(j["GraphColors"], fmt::format("{}", i), color);
+  }
+
   j["WindowWidth"] = UserConfig::WindowWidth;
   j["WindowHeight"] = UserConfig::WindowHeight;
 
@@ -103,5 +112,21 @@ int UserConfig::WindowHeight = 800;
 RgbColorf UserConfig::SensorOn = RgbColorf(0.98f, 0.902f, 0.745f);
 RgbColorf UserConfig::SensorOff = RgbColorf(0.902f, 0.627f, 0.392f);
 RgbColorf UserConfig::SensorBar = RgbColorf(0.098f, 0.098f, 0.098f);
+RgbColorf UserConfig::GraphActive = RgbColorf(0.12f, 0.70f, 0.24f);
+
+// SENSOR_COUNT_MAX == 32
+// and SENSOR_COUNT_V1 == 12
+// For now, we store 8 colors (2 for each direction is enough for most use cases).
+// For counts above 8 we will just cycle through the colors.
+std::vector<RgbColorf> UserConfig::GraphColors = {
+    RgbColorf(0.91f, 0.30f, 0.24f),
+    RgbColorf(0.80f, 0.80f, 0.44f),
+    RgbColorf(0.20f, 0.60f, 0.86f),
+    RgbColorf(0.61f, 0.35f, 0.71f),
+    RgbColorf(1.00f, 0.50f, 0.00f),
+    RgbColorf(0.56f, 0.56f, 0.56f),
+    RgbColorf(0.20f, 0.80f, 0.60f),
+    RgbColorf(0.90f, 0.49f, 0.13f),
+};
 
 } // namespace adp.

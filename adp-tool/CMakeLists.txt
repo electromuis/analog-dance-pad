@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(adp-tool VERSION 2.0 LANGUAGES C CXX)
+project(adp-tool VERSION 2.2 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
@@ -19,7 +19,9 @@ option(ADP_STATIC "Link vcpkg dependencies and the C++ runtime statically" ON)
 # Dependencies
 # ---------------------------------------------------------------------------
 if(ADP_STATIC)
-	if(WIN32)
+	if(MINGW)
+		set(VCPKG_TARGET_TRIPLET "x64-mingw-static" CACHE STRING "Triplet" FORCE)
+	elseif(WIN32)
 		set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "Triplet" FORCE)
 	elseif(ADP_LINUX)
 		# Static libs, dynamic glibc (the vcpkg default on Linux, made explicit)
@@ -101,7 +103,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(WIN32)
-	list(APPEND ADP_COMMON_LIBS setupapi ws2_32)
+	list(APPEND ADP_COMMON_LIBS setupapi mswsock ws2_32)
 elseif(ADP_LINUX)
 	list(APPEND ADP_COMMON_LIBS udev)
 endif()
@@ -148,6 +150,7 @@ set(ADP_GUI_SOURCES
 	"src/View/LightsTab.cpp"
 	"src/View/MappingTab.cpp"
 	"src/View/SensitivityTab.cpp"
+	"src/View/GraphTab.cpp"
 	"src/View/UserConfig.cpp"
 
 	"src/Main.cpp"
@@ -176,9 +179,14 @@ function(adp_setup_target target)
 		target_compile_definitions(${target} PRIVATE DEVICE_SERVER_ENABLED)
 	endif()
 
-	# Static C++ runtime (glibc, X11 and GL stay dynamic on Linux)
-	if(ADP_STATIC AND (MINGW OR (ADP_LINUX AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")))
-		target_link_options(${target} PRIVATE -static-libgcc -static-libstdc++)
+	if(ADP_STATIC)
+		if(MINGW)
+			# Fully static: no libgcc/libstdc++/libwinpthread DLLs next to the exe
+			target_link_options(${target} PRIVATE -static)
+		elseif(ADP_LINUX AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+			# Static C++ runtime (glibc, X11 and GL stay dynamic)
+			target_link_options(${target} PRIVATE -static-libgcc -static-libstdc++)
+		endif()
 	endif()
 endfunction()
 

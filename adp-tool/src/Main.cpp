@@ -18,6 +18,7 @@
 #include <View/LightsTab.h>
 #include <View/MappingTab.h>
 #include <View/SensitivityTab.h>
+#include <View/GraphTab.h>
 #include <View/UserConfig.h>
 
 #ifndef __EMSCRIPTEN__
@@ -65,6 +66,7 @@ private:
 	LightsTab myLightsTab;
 	MappingTab myMappingTab;
 	SensitivityTab mySensitivityTab;
+	GraphTab myGraphTab;
 	Clock::time_point myLastUpdateTime;
 };
 
@@ -284,6 +286,7 @@ void AdpApplication::RenderCallback()
 	if (pad)
 	{
 		RenderTab(bind(&SensitivityTab::Render, &mySensitivityTab), "Sensitivity");
+		RenderTab(bind(&GraphTab::Render, &myGraphTab), "Graph");
 		RenderTab(bind(&MappingTab::Render, &myMappingTab), "Mapping");
 		RenderTab(bind(&DeviceTab::Render, &myDeviceTab), "Device");
 		RenderTab(bind(&LightsTab::Render, &myLightsTab), "Lights");

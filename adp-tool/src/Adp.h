@@ -7,7 +7,7 @@
 namespace adp {
 
 #define ADP_VERSION_MAJOR 2
-#define ADP_VERSION_MINOR 0
+#define ADP_VERSION_MINOR 2
 
 #define ADP_VERSION_STR_1(x) #x
 #define ADP_VERSION_STR_2(a,b) ADP_VERSION_STR_1(a) "." ADP_VERSION_STR_1(b)
