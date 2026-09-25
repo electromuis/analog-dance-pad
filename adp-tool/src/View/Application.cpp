@@ -1,5 +1,7 @@
 #include <View/Application.h>
 
+#include <View/UserConfig.h>
+
 // #define GLFW_INCLUDE_ES3
 
 //#include <gl3.h>
@@ -48,9 +50,9 @@ static void glfw_error_callback(int error, const char* description)
 
 namespace Walnut {
 
-Application::Application(int width, int height, const char* title)
+Application::Application(const char* title)
 {
-	if(!Init(width, height, title)) {
+	if(!Init(title)) {
 		std::cerr << "Init failed!\n";
 	}
 }
@@ -60,8 +62,12 @@ Application::~Application()
 	Shutdown();
 }
 
-bool Application::Init(int width, int height, const char* title)
+bool Application::Init(const char* title)
 {
+	adp::UserConfig::Init();
+	int width = adp::UserConfig::WindowWidth;
+	int height = adp::UserConfig::WindowHeight;
+
 	// Setup GLFW window
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
@@ -155,6 +161,14 @@ bool Application::Init(int width, int height, const char* title)
 void Application::Shutdown()
 {
 	m_Icon64.reset();
+
+	// Save the window size in user config so it will be
+	// the same size on next launch
+	glfwGetWindowSize(
+			m_WindowHandle,
+			&adp::UserConfig::WindowWidth,
+			&adp::UserConfig::WindowHeight);
+	adp::UserConfig::SaveToDisk();
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

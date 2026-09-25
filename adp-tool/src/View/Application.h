@@ -16,7 +16,7 @@ namespace Walnut {
 	class Application
 	{
 	public:
-		Application(int width, int height, const char* title);
+		Application(const char* title);
 		~Application();
 
 		void Run();
@@ -33,7 +33,7 @@ namespace Walnut {
 		std::unique_ptr<Walnut::Image> m_Icon64;
 
 	private:
-		bool Init(int width, int height, const char* title);
+		bool Init(const char* title);
 		void Shutdown();
 
 	private:

@@ -38,8 +38,4 @@ RgbColor RgbColorf::ToRGB() const
 		uint8_t(clamp(int(rgb[2] * 255.f), 0, 255)));
 }
 
-RgbColorf RgbColorf::SensorOn(0.98f, 0.902f, 0.745f);
-RgbColorf RgbColorf::SensorOff(0.902f, 0.627f, 0.392f);
-RgbColorf RgbColorf::SensorBar(0.098f, 0.098f, 0.098f);
-
 }; // namespace adp.

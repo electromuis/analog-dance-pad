@@ -55,6 +55,7 @@ if(EMSCRIPTEN)
 	)
 else()
 	find_package(unofficial-nativefiledialog REQUIRED)
+	find_package(platform_folders REQUIRED)
 	find_package(libzippp REQUIRED)
 	find_package(OpenGL REQUIRED)
 	if(ADP_LINUX)
@@ -107,7 +108,11 @@ endif()
 
 set(ADP_GUI_LIBS imgui::imgui)
 if(NOT EMSCRIPTEN)
-	list(APPEND ADP_GUI_LIBS unofficial::nativefiledialog::nfd OpenGL::GL)
+	list(APPEND ADP_GUI_LIBS
+		unofficial::nativefiledialog::nfd
+		OpenGL::GL
+		sago::platform_folders
+	)
 	if(ADP_LINUX)
 		list(APPEND ADP_GUI_LIBS X11::X11)
 	endif()
@@ -143,6 +148,8 @@ set(ADP_GUI_SOURCES
 	"src/View/LightsTab.cpp"
 	"src/View/MappingTab.cpp"
 	"src/View/SensitivityTab.cpp"
+	"src/View/UserConfig.cpp"
+
 	"src/Main.cpp"
 )
 

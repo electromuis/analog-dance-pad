@@ -18,6 +18,7 @@
 #include <View/LightsTab.h>
 #include <View/MappingTab.h>
 #include <View/SensitivityTab.h>
+#include <View/UserConfig.h>
 
 #ifndef __EMSCRIPTEN__
 	#include <nfd.h>
@@ -68,7 +69,7 @@ private:
 };
 
 AdpApplication::AdpApplication()
-	: Walnut::Application(800, 800, TOOL_NAME)
+	: Walnut::Application(TOOL_NAME)
 {
 }
 
@@ -391,6 +392,7 @@ int Main(int argc, char** argv)
 		app.Run();
 	#endif
 
+	UserConfig::SaveToDisk();
 	Device::Shutdown();
 	Log::Shutdown();
 

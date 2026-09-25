@@ -6,6 +6,7 @@
 #include <Model/Device.h>
 #include <View/Colors.h>
 #include <View/MappingTab.h>
+#include <View/UserConfig.h>
 
 using namespace std;
 
@@ -32,12 +33,12 @@ static void RenderSensorBar(int sensorIndex)
     wdl->AddRectFilled(
         { wp.x, wp.y },
         { wp.x + ws.x, wp.y + ws.y },
-        RgbColorf::SensorBar.ToU32());
+        UserConfig::SensorBar.ToU32());
 
     wdl->AddRectFilled(
         { wp.x, wp.y },
         { wp.x + fillW, wp.y + ws.y },
-        RgbColorf::SensorOff.ToU32());
+        UserConfig::SensorOff.ToU32());
 
     ImGui::EndChild();
 }

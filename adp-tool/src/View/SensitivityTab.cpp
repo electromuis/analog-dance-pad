@@ -8,6 +8,7 @@
 
 #include <Model/Device.h>
 #include <View/Colors.h>
+#include <View/UserConfig.h>
 #include <View/SensitivityTab.h>
 
 using namespace std;
@@ -137,13 +138,13 @@ void SensitivityTab::RenderSensor(int sensorIndex)
     wdl->AddRectFilled(
         { wp.x, wp.y },
         { wp.x + ws.x, wp.y + ws.y},
-        RgbColorf::SensorBar.ToU32());
+        UserConfig::SensorBar.ToU32());
 
     // Filled bar that indicates current sensor reading.
     wdl->AddRectFilled(
         { wp.x , wp.y + ws.y - fillH },
         { wp.x + ws.x, wp.y + ws.y },
-        pressed ? RgbColorf::SensorOn.ToU32() : RgbColorf::SensorOff.ToU32());
+        pressed ? UserConfig::SensorOn.ToU32() : UserConfig::SensorOff.ToU32());
 
     // Line representing where the release threshold would be for the current sensor.
     if (releaseThreshold < 1.0)
@@ -194,11 +195,11 @@ void SensitivityTab::Render()
     int colorEditFlags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel;
     ImGui::TextUnformatted(ActivationMsg);
     ImGui::SameLine();
-    ImGui::ColorEdit3("SensorBar", RgbColorf::SensorBar.rgb, colorEditFlags);
+    ImGui::ColorEdit3("SensorBar", UserConfig::SensorBar.rgb, colorEditFlags);
     ImGui::SameLine();
-    ImGui::ColorEdit3("SensorOn", RgbColorf::SensorOn.rgb, colorEditFlags);
+    ImGui::ColorEdit3("SensorOn", UserConfig::SensorOn.rgb, colorEditFlags);
     ImGui::SameLine();
-    ImGui::ColorEdit3("SensorOff", RgbColorf::SensorOff.rgb, colorEditFlags);
+    ImGui::ColorEdit3("SensorOff", UserConfig::SensorOff.rgb, colorEditFlags);
 
     if(RELEASE_MODE == RELEASE_INDIVIDUAL) {
         ImGui::TextUnformatted(ReleaseMsg);

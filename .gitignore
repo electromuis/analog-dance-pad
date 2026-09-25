@@ -3,6 +3,13 @@ node_modules
 .vscode
 .claude
 
+adp-tool/.cache/
+adp-tool/lib/
+adp-tool/lib/fmt/
+adp-tool/lib/glfw/
+adp-tool/lib/imgui/
+adp-tool/lib/json/
+adp-tool/lib/nfd/
 adp-tool/imgui.ini
 adp-tool/build*
 adp-tool/src/Adp.h
@@ -10,6 +17,7 @@ adp-tool/src/Adp.h
 adp-tool/vcpkg_installed
 
 firmware/build/.vs
+firmware/build/
 firmware/.vs
 firmware/.pio
 firmware/.vscode
