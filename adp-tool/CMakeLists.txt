@@ -1,29 +1,66 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-project(adp-tool VERSION 2.0)
+project(adp-tool VERSION 2.0 LANGUAGES C CXX)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/Adp.h")
 
-# Load dependencies start
-if(WIN32)
-	SET(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "Triplet" FORCE)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+	set(ADP_LINUX ON)
+endif()
+
+option(ADP_STATIC "Link vcpkg dependencies and the C++ runtime statically" ON)
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+if(ADP_STATIC)
+	if(WIN32)
+		set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "Triplet" FORCE)
+	elseif(ADP_LINUX)
+		# Static libs, dynamic glibc (the vcpkg default on Linux, made explicit)
+		set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "Triplet")
+	endif()
 endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 if(EMSCRIPTEN)
 	set(CMAKE_EXECUTABLE_SUFFIX ".html")
-
-	set(EM_FLAGS " -lwebsocket.js -O3 -lhtml5.js -lhtml5 -sAUTO_NATIVE_LIBRARIES -pthread -sSHARED_MEMORY=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=2 -s ALLOW_MEMORY_GROWTH -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
-	 #set(EM_FLAGS "-lwebsocket.js -g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 -s AUTO_NATIVE_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
-	# set(EM_FLAGS "-g -s ALLOW_MEMORY_GROWTH -s DEMANGLE_SUPPORT=1 -s ASYNCIFY=1 -s FULL_ES3=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s DYNAMIC_EXECUTION=0 -s AUTO_JS_LIBRARIES=0 --bind -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['callMain']")
-
 	add_compile_options(-g -pthread)
+
+	set(ADP_EM_LINK_OPTIONS
+		-O3
+		-pthread
+		--bind
+		-lwebsocket.js
+		-lhtml5.js
+		-lhtml5
+		-sPTHREAD_POOL_SIZE=2
+		-sALLOW_MEMORY_GROWTH=1
+		-sASYNCIFY=1
+		-sFULL_ES3=1
+		-sUSE_WEBGL2=1
+		-sUSE_GLFW=3
+		-sNO_DISABLE_EXCEPTION_CATCHING=1
+		-sDYNAMIC_EXECUTION=0
+		-sAUTO_JS_LIBRARIES=0
+		-sAUTO_NATIVE_LIBRARIES=0
+		-sWASM=1
+		-sEXPORTED_RUNTIME_METHODS=callMain
+	)
 else()
 	find_package(unofficial-nativefiledialog REQUIRED)
 	find_package(libzippp REQUIRED)
+	find_package(OpenGL REQUIRED)
+	if(ADP_LINUX)
+		find_package(X11 REQUIRED)
+	endif()
 endif()
-
 
 add_subdirectory(lib)
 
@@ -32,25 +69,26 @@ find_package(imgui REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Stb REQUIRED)
 find_package(argparse REQUIRED)
-# Load dependencies end
 
-add_definitions (-D_WEBSOCKETPP_CPP11_FUNCTIONAL_)
-add_definitions (-D_WEBSOCKETPP_CPP11_SYSTEM_ERROR_)
-add_definitions (-D_WEBSOCKETPP_CPP11_RANDOM_DEVICE_)
-add_definitions (-D_WEBSOCKETPP_CPP11_MEMORY_)
-add_definitions (-D_WEBSOCKETPP_CPP11_TYPE_TRAITS_)
-add_definitions (-D_WEBSOCKETPP_CPP11_THREAD_)
-
-# find_path(SYSTEM_INCLUDE_DIR zlib.h)
+add_compile_definitions(
+	_WEBSOCKETPP_CPP11_FUNCTIONAL_
+	_WEBSOCKETPP_CPP11_SYSTEM_ERROR_
+	_WEBSOCKETPP_CPP11_RANDOM_DEVICE_
+	_WEBSOCKETPP_CPP11_MEMORY_
+	_WEBSOCKETPP_CPP11_TYPE_TRAITS_
+	_WEBSOCKETPP_CPP11_THREAD_
+)
 
 include_directories(
 	"lib/avrdude"
 	"lib/argparse"
 	"src"
-	# ${SYSTEM_INCLUDE_DIR}
 )
 
-set(GLOBAL_LIBS
+# ---------------------------------------------------------------------------
+# Libraries
+# ---------------------------------------------------------------------------
+set(ADP_COMMON_LIBS
 	hidapi
 	fmt::fmt
 	nlohmann_json::nlohmann_json
@@ -58,19 +96,27 @@ set(GLOBAL_LIBS
 )
 
 if(NOT EMSCRIPTEN)
-	list(APPEND GLOBAL_LIBS avrdude serial libzippp::libzippp)
+	list(APPEND ADP_COMMON_LIBS avrdude serial libzippp::libzippp)
 endif()
 
-if(EMSCRIPTEN)
-
-elseif(WIN32 OR MINGW)
-	list(APPEND GLOBAL_LIBS setupapi ws2_32)
-elseif(UNIX)
-	list(APPEND GLOBAL_LIBS udev X11)
+if(WIN32)
+	list(APPEND ADP_COMMON_LIBS setupapi ws2_32)
+elseif(ADP_LINUX)
+	list(APPEND ADP_COMMON_LIBS udev)
 endif()
-# Load dependencies end
 
-set(SHARED_SOURCES
+set(ADP_GUI_LIBS imgui::imgui)
+if(NOT EMSCRIPTEN)
+	list(APPEND ADP_GUI_LIBS unofficial::nativefiledialog::nfd OpenGL::GL)
+	if(ADP_LINUX)
+		list(APPEND ADP_GUI_LIBS X11::X11)
+	endif()
+endif()
+
+# ---------------------------------------------------------------------------
+# Sources
+# ---------------------------------------------------------------------------
+set(ADP_SHARED_SOURCES
 	"src/Model/Device.cpp"
 	"src/Model/Firmware.cpp"
 	"src/Model/Log.cpp"
@@ -79,18 +125,17 @@ set(SHARED_SOURCES
 )
 
 if(EMSCRIPTEN)
-	list(APPEND SHARED_SOURCES "src/Model/DeviceClientEm.cpp")
+	list(APPEND ADP_SHARED_SOURCES "src/Model/DeviceClientEm.cpp")
 else()
-	list(APPEND SHARED_SOURCES "src/Model/FirmwareBack.cpp")
-	list(APPEND SHARED_SOURCES "src/Model/DeviceServerWs.cpp")
-	list(APPEND SHARED_SOURCES "src/Model/DeviceClientWspp.cpp")
+	list(APPEND ADP_SHARED_SOURCES
+		"src/Model/FirmwareBack.cpp"
+		"src/Model/DeviceServerWs.cpp"
+		"src/Model/DeviceClientWspp.cpp"
+	)
 endif()
 
-# GUI application start
-
-set(GUI_SOURCES
-	${SHARED_SOURCES}
-
+set(ADP_GUI_SOURCES
+	${ADP_SHARED_SOURCES}
 	"src/View/Application.cpp"
 	"src/View/Colors.cpp"
 	"src/View/DeviceTab.cpp"
@@ -98,110 +143,79 @@ set(GUI_SOURCES
 	"src/View/LightsTab.cpp"
 	"src/View/MappingTab.cpp"
 	"src/View/SensitivityTab.cpp"
-
 	"src/Main.cpp"
 )
 
-#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${GUI_SOURCES})
-#set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+if(WIN32)
+	list(APPEND ADP_GUI_SOURCES "src/Assets/Resource.rc")
+endif()
 
-set(GUI_LIBS
-	${GLOBAL_LIBS}
-	imgui::imgui
+set(ADP_CLI_SOURCES
+	${ADP_SHARED_SOURCES}
+	"src/Cli.cpp"
+	"src/Gateway/GatewayServer.cpp"
 )
 
-if(NOT EMSCRIPTEN)
-	list(APPEND GUI_LIBS unofficial::nativefiledialog::nfd)
-  if(WIN32 OR MINGW)
-    list(APPEND GUI_LIBS opengl32)
-  else()
-    find_package(OpenGL REQUIRED)
-    list(APPEND GUI_LIBS OpenGL::GL)
-  endif()
-endif()
+# ---------------------------------------------------------------------------
+# Common target setup
+# ---------------------------------------------------------------------------
+function(adp_setup_target target)
+	target_link_libraries(${target} PRIVATE ${ARGN})
+	target_compile_definitions(${target} PRIVATE DEVICE_CLIENT_ENABLED)
 
-if(WIN32)
-	list(APPEND GUI_SOURCES "src/Assets/Resource.rc")
-endif()
-
-add_executable (${PROJECT_NAME} ${GUI_SOURCES})
-if(MINGW)
-	target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
-endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES
-	CXX_STANDARD 20
-	CXX_EXTENSIONS OFF)
-target_link_libraries(${PROJECT_NAME} ${GUI_LIBS})
-target_compile_definitions(${PROJECT_NAME} PRIVATE DEVICE_CLIENT_ENABLED)
-if(WIN32)
-	target_link_options(${PROJECT_NAME} PRIVATE /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup)
-endif()
-
-if(EMSCRIPTEN)
-	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS ${EM_FLAGS})
-else()
-	target_compile_definitions(${PROJECT_NAME} PRIVATE DEVICE_SERVER_ENABLED)
-endif()
-# GUI application end
-
-if(NOT EMSCRIPTEN)
-	# CLI application start
-	set(CLI_SOURCES
-		${SHARED_SOURCES}
-		"src/Cli.cpp"
-		"src/Gateway/GatewayServer.cpp")
-
-	#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${CLI_SOURCES})
-
-	add_executable ("adp-cli" ${CLI_SOURCES})
-	if(MINGW)
-		target_link_options("adp-cli" PRIVATE -static-libgcc -static-libstdc++)
-	endif()
-	set_target_properties("adp-cli" PROPERTIES
-		CXX_STANDARD 20
-		CXX_EXTENSIONS OFF)
-	target_link_libraries("adp-cli" ${GLOBAL_LIBS} argparse::argparse)
 	if(EMSCRIPTEN)
-		set_target_properties("adp-cli" PROPERTIES LINK_FLAGS ${EM_FLAGS})
+		target_link_options(${target} PRIVATE ${ADP_EM_LINK_OPTIONS})
 	else()
-		target_compile_definitions("adp-cli" PRIVATE DEVICE_SERVER_ENABLED)
-		target_compile_definitions("adp-cli" PRIVATE DEVICE_CLIENT_ENABLED)
+		target_compile_definitions(${target} PRIVATE DEVICE_SERVER_ENABLED)
 	endif()
-	# CLI application end
+
+	# Static C++ runtime (glibc, X11 and GL stay dynamic on Linux)
+	if(ADP_STATIC AND (MINGW OR (ADP_LINUX AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")))
+		target_link_options(${target} PRIVATE -static-libgcc -static-libstdc++)
+	endif()
+endfunction()
+
+# ---------------------------------------------------------------------------
+# GUI application
+# ---------------------------------------------------------------------------
+add_executable(${PROJECT_NAME} ${ADP_GUI_SOURCES})
+adp_setup_target(${PROJECT_NAME} ${ADP_COMMON_LIBS} ${ADP_GUI_LIBS})
+
+if(WIN32)
+	set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)
+	if(MSVC)
+		target_link_options(${PROJECT_NAME} PRIVATE /ENTRY:mainCRTStartup)
+	endif()
 endif()
 
+# ---------------------------------------------------------------------------
+# CLI application
+# ---------------------------------------------------------------------------
+if(NOT EMSCRIPTEN)
+	add_executable(adp-cli ${ADP_CLI_SOURCES})
+	adp_setup_target(adp-cli ${ADP_COMMON_LIBS} argparse::argparse)
+endif()
 
+# ---------------------------------------------------------------------------
+# Debian package
+# ---------------------------------------------------------------------------
+if(ADP_LINUX)
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/icon64.png"
+		"${CMAKE_CURRENT_BINARY_DIR}/adp-tool.png" COPYONLY)
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/adp-tool.desktop.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/adp-tool.desktop")
 
-
-# Debian installation start
-if(UNIX)	
-	install(
-	    TARGETS ${PROJECT_NAME}
-	    DESTINATION "/usr/bin/"
-	)
-
-	install(
-	    FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/99_adp.rules"
-	    DESTINATION "/etc/udev/rules.d/"
-	)
-	
-	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/icon64.png" "${CMAKE_CURRENT_BINARY_DIR}/adp-tool.png" COPYONLY)
-	install(
-	    FILES "${CMAKE_CURRENT_BINARY_DIR}/adp-tool.png"
-	    DESTINATION "/usr/share/pixmaps/"
-	)
-	
-	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/adp-tool.desktop.in" "${CMAKE_CURRENT_BINARY_DIR}/adp-tool.desktop")
-	install(
-	    FILES "${CMAKE_CURRENT_BINARY_DIR}/adp-tool.desktop"
-	    DESTINATION "/usr/share/applications/"
-	)
+	install(TARGETS ${PROJECT_NAME} DESTINATION "/usr/bin")
+	install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/99_adp.rules" DESTINATION "/etc/udev/rules.d")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/adp-tool.png" DESTINATION "/usr/share/pixmaps")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/adp-tool.desktop" DESTINATION "/usr/share/applications")
 
 	set(CPACK_GENERATOR "DEB")
 	set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Electromuis")
 	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/postinst;${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/postrm")
+	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+		"${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/postinst"
+		"${CMAKE_CURRENT_SOURCE_DIR}/cmake/deb/postrm")
 
 	include(CPack)
 endif()
-# Debian installation end
